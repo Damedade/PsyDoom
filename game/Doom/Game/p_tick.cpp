@@ -985,9 +985,9 @@ void P_Stop([[maybe_unused]] const gameaction_t exitAction) noexcept {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// Helper added for PsyDoom: returns the current gravity strength, adjusted for the game's current framerate (if that fix is enabled)
+// Helper added for PsyDoom: returns the player gravity strength, adjusted for the game's current framerate (if that fix is enabled)
 //------------------------------------------------------------------------------------------------------------------------------------------
-fixed_t P_GetGravity() noexcept {
+fixed_t P_GetPlayerGravity() noexcept {
     fixed_t gravity = GRAVITY;
 
     #if PSYDOOM_MODS

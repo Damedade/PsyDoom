@@ -77,7 +77,7 @@ gameaction_t P_Ticker() noexcept;
 void P_Drawer() noexcept;
 void P_Start() noexcept;
 void P_Stop(const gameaction_t exitAction) noexcept;
-fixed_t P_GetGravity() noexcept;
+fixed_t P_GetPlayerGravity() noexcept;
 
 #if PSYDOOM_MODS
     void P_GatherTickInputs(TickInputs& inputs) noexcept;

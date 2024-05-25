@@ -220,7 +220,7 @@ static void P_PlayerZMovement(mobj_t& mobj) noexcept {
     else {
         // Not hitting the floor: do acceleration due to gravity.
         // Gravity is doubled on the first falling tic to account for the fact that it was always being applied, even on the floor:
-        const fixed_t gravity = P_GetGravity();
+        const fixed_t gravity = P_GetPlayerGravity();
         mobj.momz -= (mobj.momz == 0) ? gravity : gravity / 2;
     }
 
