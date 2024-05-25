@@ -258,8 +258,8 @@ void WadFile::readLump(const int32_t lumpIdx, void* const pDest, const bool bDec
 
     // Do we need to decompress?
     // Decompress if specified and if the lumpname has the special bit set in the first character, indicating that the lump is compressed.
-    const uint32_t sizeToRead = getRawSize(lumpIdx);
     const bool bIsLumpCompressed = ((uint8_t) lumpName.chars[0] & 0x80u);
+    const uint32_t sizeToRead = (bIsLumpCompressed) ? getRawSize(lumpIdx) : lump.uncompressedSize;
 
     if (bDecompress && bIsLumpCompressed) {
         // Decompression needed, must alloc a temp buffer for the compressed data before reading and decompressing!
