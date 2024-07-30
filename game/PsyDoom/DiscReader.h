@@ -18,7 +18,7 @@ public:
     int32_t getTrackNum() const noexcept;
     bool setTrackNum(int32_t trackNum) noexcept;
 
-    bool isTrackOpen() noexcept;
+    bool isTrackOpen() const noexcept;
     void closeTrack() noexcept;
     inline const DiscTrack* getOpenTrack() const { return mpCurTrack; }
 

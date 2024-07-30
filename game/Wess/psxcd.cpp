@@ -13,6 +13,7 @@
 #include "PsyDoom/DiscInfo.h"
 #include "PsyDoom/DiscReader.h"
 #include "PsyDoom/ModMgr.h"
+#include "PsyDoom/MusicStreamer.h"
 #include "PsyDoom/ProgArgs.h"
 #include "PsyDoom/PsxVm.h"
 #include "PsyDoom/Utils.h"
@@ -28,8 +29,7 @@
     static constexpr int32_t MAX_OPEN_FILES = 4;    // Maximum number of open files
 #endif
 
-static constexpr int32_t FADE_TIME_MS       = 250;      // Time it takes to fade out CD audio (milliseconds)
-static constexpr int32_t CDDA_SECTOR_SIZE   = 2352;     // Size of of a CD digital audio sector
+static constexpr int32_t FADE_TIME_MS = 250;    // Time it takes to fade out CD audio (milliseconds)
 
 // If true then the 'psxcd' module has been initialized
 static bool gbPSXCD_IsCdInit;
@@ -37,28 +37,17 @@ static bool gbPSXCD_IsCdInit;
 // Used to hold a file temporarily after opening
 static PsxCd_File gPSXCD_cdfile;
 
-// CD audio playback related state.
-// Access to all of this is controlled by the CD player mutex.
-static struct {
-    DiscReader  discReader          = { PsxVm::gDiscInfo };     // The disc reader used to stream the audio
-    bool        bPlay               = false;                    // If 'false' then playback is either paused or stopped (stopped if the disc reader doesn't have a track)
-    bool        bLoop               = false;                    // If 'true' then playback is looped upon reaching the end
-    int32_t     bufferOffset        = 0;                        // Where we are in the audio buffer
-    int32_t     loopTrack           = 0;                        // The track to play when looping
-    int32_t     loopSectorOffset    = 0;                        // Offset (in sectors) to start at in the track when looping
+// The Music Streamer: used to stream CD audio (among other sources)
+static MusicStreamer gMusicStreamer;
 
-    // The CD audio buffer: we read CD audio in chunks
-    int16_t buffer[CDDA_SECTOR_SIZE / sizeof(int16_t)];
-} gCdPlayer;
-
-// The lock for the CD player and a helper to lock/unlock via RAII.
+// The lock for the Music Streamer and a helper to lock/unlock via RAII.
 // N.B: this *CANNOT* be held the same time as the SPU lock, otherwise deadlock MIGHT occur!
-// The SPU can request audio from the CD and thus needs access to the cd player lock also.
-static std::recursive_mutex gCdPlayerMutex;
+// The SPU can request audio from the CD and thus needs access to the Music Streamer lock also.
+static std::recursive_mutex gMusicStreamerMutex;
 
-struct LockCdPlayer {
-    LockCdPlayer() noexcept { gCdPlayerMutex.lock(); }
-    ~LockCdPlayer() noexcept { gCdPlayerMutex.unlock(); }
+struct LockMusicStreamer {
+    LockMusicStreamer() noexcept { gMusicStreamerMutex.lock(); }
+    ~LockMusicStreamer() noexcept { gMusicStreamerMutex.unlock(); }
 };
 
 // Disc readers used for each open file
@@ -70,78 +59,16 @@ static DiscReader gFileDiscReaders[MAX_OPEN_FILES] = {
 };
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// A callback invoked by the SPU when it wants audio from the CD player - returns a single sample.
+// A callback invoked by the SPU when it wants audio from the Music Streamer: returns a single sample
 //------------------------------------------------------------------------------------------------------------------------------------------
 static Spu::StereoSample SpuAudioCallback([[maybe_unused]] void* pUserData) noexcept {
-    // Lock the CD player while we are doing this.
+    // Lock the Music Streamer while we are doing this.
     // Note that this thread also has the SPU lock at this point too.
-    // Therefore the main thread must NOT lock both the CD player and the SPU at the same time, or otherwise a deadlock might occur.
-    LockCdPlayer cdPlayerLock;
-
-    // If the CD player is not currently active then return silence
-    if ((!gCdPlayer.bPlay) || (!gCdPlayer.discReader.isTrackOpen()))
-        return Spu::StereoSample{};
-
-    // Check if we have any data left in the buffer firstly
-    constexpr int16_t SAMPLE_SIZE = sizeof(int16_t);
-    constexpr int32_t NUM_BUFFER_SAMPLES = sizeof(gCdPlayer.buffer) / SAMPLE_SIZE;
-    static_assert(NUM_BUFFER_SAMPLES % 2 == 0);
-
-    DiscReader& disc = gCdPlayer.discReader;
-
-    if (gCdPlayer.bufferOffset + 1 >= NUM_BUFFER_SAMPLES) {
-        // Get the size of the track and where we are at in it
-        const DiscTrack* pTrack = disc.getOpenTrack();
-        int32_t trackSize = pTrack->trackPayloadSize;
-        int32_t trackOffset = disc.tell();
-
-        // See if there is any data left in the track to read
-        if (trackOffset >= trackSize) {
-            // We reached the end, do we loop back around again?
-            if (gCdPlayer.bLoop) {
-                // Looping: rewind back to the start plus any additional offset.
-                // Change tracks also if we need to.
-                if (disc.getTrackNum() != gCdPlayer.loopTrack) {
-                    disc.setTrackNum(gCdPlayer.loopTrack);
-
-                    // Need to re-fetch this info when changing tracks
-                    pTrack = disc.getOpenTrack();
-                    trackSize = pTrack->trackPayloadSize;
-                }
-
-                if (gCdPlayer.loopSectorOffset > 0) {
-                    disc.trackSeekAbs(CDDA_SECTOR_SIZE * gCdPlayer.loopSectorOffset);
-                } else {
-                    disc.trackSeekAbs(0);
-                }
-
-                trackOffset = disc.tell();
-            }
-            else {
-                // No looping, mark the CD player as no longer playing and return an empty sample
-                gCdPlayer.bPlay = false;
-                return Spu::StereoSample{};
-            }
-        }
-
-        // Read what we can and zero anything we can't (in case the last sector is short for some reason)
-        const int32_t samplesToRead = std::min<int32_t>((trackSize - trackOffset) / SAMPLE_SIZE, NUM_BUFFER_SAMPLES);
-        const int32_t samplesToZero = NUM_BUFFER_SAMPLES - samplesToRead;
-        disc.read(gCdPlayer.buffer, samplesToRead * SAMPLE_SIZE);
-
-        if (samplesToZero > 0) {
-            std::memset(gCdPlayer.buffer + samplesToRead * SAMPLE_SIZE, 0, (size_t) samplesToZero * SAMPLE_SIZE);
-        }
-
-        gCdPlayer.bufferOffset = 0;
-    }
-
-    // Should have samples in the buffer at this point, return the requested samples
-    ASSERT(gCdPlayer.bufferOffset + 2 <= NUM_BUFFER_SAMPLES);
-
-    Spu::StereoSample sample = { gCdPlayer.buffer[gCdPlayer.bufferOffset], gCdPlayer.buffer[gCdPlayer.bufferOffset + 1] };
-    gCdPlayer.bufferOffset += 2;
-    return sample;
+    // Therefore the main thread must NOT lock both the Music Streamer and the SPU at the same time, or otherwise a deadlock might occur!
+    LockMusicStreamer musicStreamerLock;
+    
+    // Simply read and return the next sample from the Music Streamer
+    return gMusicStreamer.readNextSample();
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -345,27 +272,24 @@ void psxcd_close([[maybe_unused]] PsxCd_File& file) noexcept {
 static void psxcd_play_internal(
     const int32_t track,
     const int32_t vol,
-    const int32_t sectorOffset,
     const int32_t fadeUpTime,
     const bool bLoop,
-    const int32_t loopTrack,
-    const int32_t loopSectorOffset
+    const int32_t loopTrack
 ) noexcept {
     // Ignore the command in headless mode
     if (ProgArgs::gbHeadlessMode)
         return;
 
-    // Switch to the specified track and temporarily pause: if it fails then stop and abort
-    bool setTrackOk;
+    // Switch to the specified track and if it fails then stop
+    bool bStartedPlayingTrack;
 
     {
         // N.B: don't hold this lock in the main thread at the same time as the SPU lock - otherwise deadlock might occur!
-        LockCdPlayer cdPlayerLock;
-        gCdPlayer.bPlay = false;
-        setTrackOk = gCdPlayer.discReader.setTrackNum(track);
+        MusicStreamer musicStreamerLock;
+        bStartedPlayingTrack = gMusicStreamer.playTrack(track, (bLoop) ? loopTrack : 0);
     }
 
-    if (!setTrackOk) {
+    if (!bStartedPlayingTrack) {
         psxcd_stop();
         return;
     }
@@ -380,23 +304,6 @@ static void psxcd_play_internal(
         psxspu_set_cd_vol(0);
         psxspu_start_cd_fade(fadeUpTime, vol);
     }
-
-    // Skip the requested number of sectors
-    {
-        // N.B: don't hold this lock in the main thread at the same time as the SPU lock - otherwise deadlock might occur!
-        LockCdPlayer cdPlayerLock;
-
-        if (sectorOffset > 0) {
-            gCdPlayer.discReader.trackSeekAbs(CDDA_SECTOR_SIZE * sectorOffset);
-        }
-
-        // Mark the player as playing and save loop parameters
-        gCdPlayer.bPlay = true;
-        gCdPlayer.bufferOffset = CDDA_SECTOR_SIZE / sizeof(int16_t);    // Need to read a sector
-        gCdPlayer.bLoop = bLoop;
-        gCdPlayer.loopTrack = loopTrack;
-        gCdPlayer.loopSectorOffset = loopSectorOffset;
-    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -405,38 +312,51 @@ static void psxcd_play_internal(
 //  track:              The track to play
 //  vol:                Track volume
 //  sectorOffset:       To start past the normal track start
+//                      NOTE: This is IGNORED by PsyDoom and was always '0' in PSX Doom.
 //  fadeUpTime:         Milliseconds to fade in the track, or '0' if instant play.
 //  loopTrack:          What track to play in loop after this track ends
 //  loopVol:            What volume to play that looped track at.
-//                          NOTE: This is IGNORED by PsyDoom and was always the same as the original volume in PSX DOOM.
+//                      NOTE: This is IGNORED by PsyDoom and was always the same as the original volume in PSX DOOM.
 //  loopSectorOffset:   What sector offset to use for the looped track
+//                      NOTE: This is IGNORED by PsyDoom and was always '0' in PSX Doom.
 //  loopFadeUpTime:     Fade up time for the looped track.
-//                          NOTE: This is IGNORED by PsyDoom and was always '0' in PSX Doom.
+//                      NOTE: This is IGNORED by PsyDoom and was always '0' in PSX Doom.
 //------------------------------------------------------------------------------------------------------------------------------------------
 void psxcd_play_at_andloop(
     const int32_t track,
     const int32_t vol,
-    const int32_t sectorOffset,
+    [[maybe_unused]] const int32_t sectorOffset,
     const int32_t fadeUpTime,
     const int32_t loopTrack,
     [[maybe_unused]] const int32_t loopVol,
-    const int32_t loopSectorOffset,
+    [[maybe_unused]] const int32_t loopSectorOffset,
     [[maybe_unused]] const int32_t loopFadeUpTime
 ) noexcept {
     // PsyDoom: to simplify threading and very messy synchronization in the CD audio callback these fields are no longer supported.
     // Setting them to values other than this will no longer work! That's OK because Doom always followed these usage patterns:
     ASSERT(loopVol == vol);
     ASSERT(loopFadeUpTime == 0);
+    
+    // PsyDoom: not supporting sector offsets for starting playback and looping anymore.
+    // This makes integrating new audio sources such as Ogg Vorbis easier.
+    // These offsets were always '0' in the original PSX Doom anyway...
+    ASSERT(sectorOffset == 0);
+    ASSERT(loopSectorOffset == 0);
 
-    psxcd_play_internal(track, vol, sectorOffset, fadeUpTime, true, loopTrack, loopSectorOffset);
+    psxcd_play_internal(track, vol, fadeUpTime, true, loopTrack);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Begin playint the specified cd track at the given volume level.
 // A sector offset can also be specified to begin from a certain location in the track.
 //------------------------------------------------------------------------------------------------------------------------------------------
-void psxcd_play_at(const int32_t track, const int32_t vol, const int32_t sectorOffset) noexcept {
-    psxcd_play_internal(track, vol, sectorOffset, 0, false, 0, 0);
+void psxcd_play_at(const int32_t track, const int32_t vol, [[maybe_unused]] const int32_t sectorOffset) noexcept {
+    // PsyDoom: not supporting sector offsets for starting playback and looping anymore.
+    // This makes integrating new audio sources such as Ogg Vorbis easier.
+    // These offsets were always '0' in the original PSX Doom anyway...
+    ASSERT(sectorOffset == 0);
+
+    psxcd_play_internal(track, vol, 0, false, 0);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -455,8 +375,8 @@ void psxcd_stop() noexcept {
 
     {
         // N.B: don't hold this lock in the main thread at the same time as the SPU lock - otherwise deadlock might occur!
-        LockCdPlayer cdPlayerLock;
-        bMightNeedFade = (gCdPlayer.discReader.isTrackOpen() && gCdPlayer.bPlay);
+        LockMusicStreamer musicStreamerLock;
+        bMightNeedFade = gMusicStreamer.isTrackPlayingAndUnpaused();
     }
 
     if (bMightNeedFade) {
@@ -468,16 +388,11 @@ void psxcd_stop() noexcept {
         }
     }
 
-    // Close the disc and zero out everything
+    // Close the current music stream
     {
         // N.B: don't hold this lock in the main thread at the same time as the SPU lock - otherwise deadlock might occur!
-        LockCdPlayer cdPlayerLock;
-
-        gCdPlayer.discReader.closeTrack();
-        gCdPlayer.bPlay = false;
-        gCdPlayer.bLoop = false;
-        gCdPlayer.bufferOffset = 0;
-        gCdPlayer.loopSectorOffset = 0;
+        LockMusicStreamer musicStreamerLock;
+        gMusicStreamer.stop();
     }
 }
 
@@ -490,8 +405,8 @@ void psxcd_pause() noexcept {
 
     {
         // N.B: don't hold this lock in the main thread at the same time as the SPU lock - otherwise deadlock might occur!
-        LockCdPlayer cdPlayerLock;
-        bMightNeedFade = (gCdPlayer.discReader.isTrackOpen() && gCdPlayer.bPlay);
+        LockMusicStreamer musicStreamerLock;
+        bMightNeedFade = gMusicStreamer.isTrackPlayingAndUnpaused();
     }
 
     if (bMightNeedFade) {
@@ -503,11 +418,11 @@ void psxcd_pause() noexcept {
         }
     }
 
-    // Mark as no longer playing
+    // Pause the current music stream
     {
         // N.B: don't hold this lock in the main thread at the same time as the SPU lock - otherwise deadlock might occur!
-        LockCdPlayer cdPlayerLock;
-        gCdPlayer.bPlay = false;
+        MusicStreamer musicStreamerLock;
+        gMusicStreamer.pause();
     }
 }
 
@@ -515,16 +430,12 @@ void psxcd_pause() noexcept {
 // Restart cd audio playback: playback resumes from where the cd was last paused
 //------------------------------------------------------------------------------------------------------------------------------------------
 void psxcd_restart(const int32_t vol) noexcept {
-    // Only Do this if we are actually playing a track
+    // Resume playing the current music stream.
+    // Note: this won't do anything if nothing is actually playing, hence no status checking here.
     {
         // N.B: don't hold this lock in the main thread at the same time as the SPU lock - otherwise deadlock might occur!
-        LockCdPlayer cdPlayerLock;
-
-        if (!gCdPlayer.discReader.isTrackOpen())
-            return;
-
-        // Begin playing again
-        gCdPlayer.bPlay = true;
+        LockMusicStreamer musicStreamerLock;
+        gMusicStreamer.resume();
     }
 
     // Set the audio volume
@@ -535,9 +446,16 @@ void psxcd_restart(const int32_t vol) noexcept {
 // Tells how many sectors have elapsed during cd playback
 //------------------------------------------------------------------------------------------------------------------------------------------
 int32_t psxcd_elapsed_sectors() noexcept {
+    // Helpful constants
+    constexpr uint32_t CD_SECTOR_SIZE = 2352;
+    constexpr uint32_t STEREO_SAMPLE_SIZE = sizeof(int16_t) * 2;
+    constexpr uint32_t STEREO_SAMPLES_PER_SECTOR = CD_SECTOR_SIZE / STEREO_SAMPLE_SIZE;
+    
     // N.B: don't hold this lock in the main thread at the same time as the SPU lock - otherwise deadlock might occur!
-    LockCdPlayer cdPlayerLock;
-    return (gCdPlayer.discReader.isTrackOpen()) ? gCdPlayer.discReader.tell() / CDDA_SECTOR_SIZE : 0;
+    LockMusicStreamer lockMusicStreamer;
+    const size_t elapsedSamples = gMusicStreamer.getCurrentStereoSampleIndex();
+    const size_t elapsedSectors = elapsedSamples / STEREO_SAMPLES_PER_SECTOR;
+    return (int32_t) elapsedSectors;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -552,7 +470,7 @@ int32_t psxcd_get_file_size(const CdFileId discFile) noexcept {
 }
 
 int32_t psxcd_get_playing_track() noexcept {
-    LockCdPlayer cdPlayerLock;
-    const DiscTrack* const pTrack = gCdPlayer.discReader.getOpenTrack();
-    return (pTrack) ? pTrack->trackNum : -1;
+    // N.B: don't hold this lock in the main thread at the same time as the SPU lock - otherwise deadlock might occur!
+    LockMusicStreamer lockMusicStreamer;
+    return gMusicStreamer.getCurrentTrack();
 }

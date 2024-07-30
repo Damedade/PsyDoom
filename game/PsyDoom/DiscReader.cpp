@@ -75,7 +75,7 @@ bool DiscReader::setTrackNum(int32_t trackNum) noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Is a track currently open for reading?
 //------------------------------------------------------------------------------------------------------------------------------------------
-bool DiscReader::isTrackOpen() noexcept {
+bool DiscReader::isTrackOpen() const noexcept {
     return (mpOpenFile != nullptr);
 }
 

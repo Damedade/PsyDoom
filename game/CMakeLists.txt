@@ -283,6 +283,8 @@ set(SOURCE_FILES
     "PsyDoom/Movie/MoviePlayer.h"
     "PsyDoom/Movie/XAAdpcmDecoder.cpp"
     "PsyDoom/Movie/XAAdpcmDecoder.h"
+    "PsyDoom/MusicStreamer.cpp"
+    "PsyDoom/MusicStreamer.h"
     "PsyDoom/NetPacketReader.h"
     "PsyDoom/NetPacketWriter.h"
     "PsyDoom/Network.cpp"
