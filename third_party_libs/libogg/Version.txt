@@ -1,0 +1,5 @@
+Note: I have stripped out some stuff which is not needed to use this library.
+The full version is available at the link below.
+
+Version 1.3.5:
+    https://ftp.osuosl.org/pub/xiph/releases/ogg/libogg-1.3.5.zip
