@@ -1,7 +1,10 @@
+#include "Doom/cdmaptbl.h"
 #include "Spu.h"
 #include "Macros.h"
 
 #include <memory>
+#include <string>
+#include <vector>
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Abstract representation of a music source used by the music streamer.
@@ -68,4 +71,12 @@ private:
 
     // The source of the music itself
     std::unique_ptr<IMusicSource> mpMusicSource;
+    
+    // Which music tracks are available as Ogg Vorbis files and the paths to them
+    struct OggVorbisTrack {
+        int32_t         trackNum;
+        std::string     filePath;
+    };
+    
+    std::vector<OggVorbisTrack> mOggVorbisTracks;
 };

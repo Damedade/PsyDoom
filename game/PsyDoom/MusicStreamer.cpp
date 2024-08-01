@@ -4,6 +4,8 @@
 #include "DiscInfo.h"
 #include "DiscReader.h"
 #include "Endian.h"
+#include "ModMgr.h"
+#include "ProgArgs.h"
 #include "PsxVm.h"
 
 #include <cstdio>
@@ -307,6 +309,7 @@ MusicStreamer::MusicStreamer() noexcept
     , mLoopTrack(0)
     , mbPaused(false)
     , mpMusicSource(nullptr)
+    , mOggVorbisTracks()
 {
 }
 
@@ -318,7 +321,22 @@ MusicStreamer::~MusicStreamer() noexcept {
 // Initializes the music streamer
 //------------------------------------------------------------------------------------------------------------------------------------------
 void MusicStreamer::init() noexcept {
-    // Nothing to do here yet...
+    // Temporary string buffer
+    std::string tempStr;
+    tempStr.reserve(1023);
+
+    // Determine the paths to all music tracks implemented as Ogg Vorbis files
+    mOggVorbisTracks.clear();
+    
+    ModMgr::enumOggVorbisMusicFiles(
+        [&](const int32_t trackNum, const CdFileId& fileId) noexcept {
+            tempStr = ProgArgs::gDataDirPath;
+            tempStr.push_back('/');
+            tempStr += std::string_view(fileId.chars, fileId.length());
+            
+            mOggVorbisTracks.push_back(OggVorbisTrack{ trackNum, tempStr });
+        }
+    );
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -326,6 +344,7 @@ void MusicStreamer::init() noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 void MusicStreamer::shutdown() noexcept {
     stop();
+    mOggVorbisTracks.clear();
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -480,16 +499,30 @@ size_t MusicStreamer::getCurrentStereoSampleIndex() noexcept {
 // Attempts to play the current track number from the beginning and returns 'true' on success
 //------------------------------------------------------------------------------------------------------------------------------------------
 bool MusicStreamer::playCurrentTrack() noexcept {
-    // Create and initialize the music source
-    {
-        std::unique_ptr<MusicSource_CDDA> pSource_cdda = std::make_unique<MusicSource_CDDA>();
-        
-        if (pSource_cdda->openTrack(mCurTrack)) {
-            mpMusicSource.reset(pSource_cdda.release());
+    // Search for the current track number among the available Ogg Vorbis tracks.
+    // If found then play the Ogg Vorbis file.
+    for (const OggVorbisTrack& track : mOggVorbisTracks) {
+        // Is this the track we want?
+        if (track.trackNum != mCurTrack)
+            continue;
+    
+        // This is the correct track, play the music:
+        std::unique_ptr<MusicSource_OggVorbis> pSource_vorbis = std::make_unique<MusicSource_OggVorbis>();
+    
+        if (pSource_vorbis->openTrack(track.filePath.c_str())) {
+            mpMusicSource.reset(pSource_vorbis.release());
             return true;
         }
-        else {
-            return false;
-        }
+    }
+    
+    // Usual case: try to play the track as a regular CD-DA track
+    std::unique_ptr<MusicSource_CDDA> pSource_cdda = std::make_unique<MusicSource_CDDA>();
+        
+    if (pSource_cdda->openTrack(mCurTrack)) {
+        mpMusicSource.reset(pSource_cdda.release());
+        return true;
+    }
+    else {
+        return false;
     }
 }

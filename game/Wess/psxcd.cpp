@@ -89,12 +89,24 @@ void psxcd_init() noexcept {
         PsxVm::gSpu.pExtInputCallback = SpuAudioCallback;
         PsxVm::gSpu.pExtInputUserData = nullptr;
     }
+    
+    // Initialize the Music Streamer
+    {
+        LockMusicStreamer musicStreamerLock;
+        gMusicStreamer.init();
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Shut down the WESS (Williams Entertainment Sound System) CD handling module
 //------------------------------------------------------------------------------------------------------------------------------------------
 void psxcd_exit() noexcept {
+    // Shut down the Music Streamer
+    {
+        LockMusicStreamer musicStreamerLock;
+        gMusicStreamer.shutdown();
+    }
+    
     // Uninstall the CD player as an external input to the SPU
     {
         PsxVm::LockSpu spuLock;
@@ -285,7 +297,7 @@ static void psxcd_play_internal(
 
     {
         // N.B: don't hold this lock in the main thread at the same time as the SPU lock - otherwise deadlock might occur!
-        MusicStreamer musicStreamerLock;
+        LockMusicStreamer musicStreamerLock;
         bStartedPlayingTrack = gMusicStreamer.playTrack(track, (bLoop) ? loopTrack : 0);
     }
 
@@ -421,7 +433,7 @@ void psxcd_pause() noexcept {
     // Pause the current music stream
     {
         // N.B: don't hold this lock in the main thread at the same time as the SPU lock - otherwise deadlock might occur!
-        MusicStreamer musicStreamerLock;
+        LockMusicStreamer musicStreamerLock;
         gMusicStreamer.pause();
     }
 }

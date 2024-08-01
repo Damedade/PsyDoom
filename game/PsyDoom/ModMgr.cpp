@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <functional>
 #include <map>
+#include <regex>
 #include <unordered_set>
 #include <vector>
 
@@ -45,6 +46,12 @@ static std::unordered_set<CdFileId> gOverridenFileNames;
 // A list of currently open files.
 // Only a certain amount are allowed at a time:
 static std::FILE* gOpenFileSlots[MAX_OPEN_FILES] = {};
+
+// A regex used to identify Ogg Vorbis music files
+static const std::regex gRegex_OggVorbisMusicFile = std::regex(
+    R"(^MUSIC(\d+)\.OGG$)",
+    std::regex_constants::ECMAScript | std::regex_constants::icase
+);
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Get the path to a file in the data dir.
@@ -333,6 +340,25 @@ int32_t getOverridenFileSize(const CdFileId discFile) noexcept {
 
     std::string filePath = getOverridenFilePath(discFile);
     return (int32_t) FileUtils::getFileSize(filePath.c_str());
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Enumerate all overriden files that are Ogg Vorbis files, invoking the given callback for each one
+//------------------------------------------------------------------------------------------------------------------------------------------
+void enumOggVorbisMusicFiles(const EnumOggVorbisMusicCallback& callback) noexcept {
+    std::smatch matches;
+    std::string fileName;
+    fileName.reserve(31);
+
+    for (const CdFileId& fileId : gOverridenFileNames) {
+        fileName.assign(fileId.chars, fileId.length());
+        std::regex_search(fileName, matches, gRegex_OggVorbisMusicFile);
+
+        if (matches.size() == 2) {
+            const int32_t trackNum = std::atoi(matches[1].str().c_str());
+            callback(trackNum, fileId);
+        }
+    }
 }
 
 END_NAMESPACE(ModMgr)
