@@ -3,7 +3,11 @@
 #include "Asserts.h"
 #include "DiscInfo.h"
 #include "DiscReader.h"
+#include "Endian.h"
 #include "PsxVm.h"
+
+#include <cstdio>
+#include <vorbis/vorbisfile.h>
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Represents a music source from a CD 'Digital Audio' track on the current game disc.
@@ -23,6 +27,10 @@ public:
         , mBufferOffset(NUM_BUFFER_MONO_SAMPLES)
         , mBuffer{}
     {
+    }
+    
+    virtual ~MusicSource_CDDA() noexcept override {
+        closeTrack();
     }
     
     // Attempts to open the specified CD-DA track for reading and returns 'true' if successful
@@ -79,7 +87,7 @@ public:
         return { sample, ReadSampleResult::OK };
     }
     
-    // Get the current track position in terms of stereo samples
+    // Gets the current track position in terms of stereo samples
     virtual size_t getCurrentStereoSampleIndex() const noexcept override {
         const uint32_t numBytesBuffered = (mDiscReader.isTrackOpen()) ? mDiscReader.tell() : 0;
         
@@ -95,10 +103,9 @@ public:
     virtual bool rewind() noexcept override {
         if (!mDiscReader.isTrackOpen())
             return false;
-            
-        mDiscReader.trackSeekAbs(0);
+        
         invalidateBuffer();
-        return true;
+        return mDiscReader.trackSeekAbs(0);
     }
 
 private:
@@ -110,6 +117,186 @@ private:
     DiscReader  mDiscReader;                        // The disc reader used to stream the audio
     int32_t     mBufferOffset;                      // Current read position in the audio buffer
     int16_t     mBuffer[NUM_BUFFER_MONO_SAMPLES];   // The CD audio buffer: we read CD audio in chunks
+};
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Represents a music source from an Ogg Vorbis file on disc.
+// This can be used for modding purposes to add new music to levels.
+//------------------------------------------------------------------------------------------------------------------------------------------
+class MusicSource_OggVorbis : public IMusicSource {
+public:
+    static constexpr uint32_t MAX_BUFFER_SIZE = 1024 * 16; // 16KiB
+    static constexpr uint32_t STEREO_SAMPLE_SIZE = sizeof(int16_t) * 2;
+    static constexpr uint32_t MAX_BUFFER_STEREO_SAMPLES = MAX_BUFFER_SIZE / STEREO_SAMPLE_SIZE;
+    
+    static_assert(MAX_BUFFER_SIZE % STEREO_SAMPLE_SIZE == 0);
+
+    MusicSource_OggVorbis() noexcept
+        : mVorbisFile{}
+        , mpVorbisInfo(nullptr)
+        , mSampleIndex(0)
+        , mBufferSize(0)
+        , mBufferOffset(0)
+        , mBuffer{}
+    {
+    }
+    
+    virtual ~MusicSource_OggVorbis() noexcept override {
+        closeTrack();
+    }
+    
+    // Attempts to open an Ogg Vorbis file at the given path as the current track.
+    // Returns 'true' if that was succesful.
+    bool openTrack(const char* const filePath) noexcept {
+        // Close up the current track (if any)
+        closeTrack();
+        
+        // Open the file itself and abort if failed
+        FILE* const pFile = std::fopen(filePath, "rb");
+        
+        if (pFile == nullptr)
+            return false;
+            
+        if (ov_open(pFile, &mVorbisFile, nullptr, 0) < 0) {
+            std::fclose(pFile);
+            return false;
+        }
+        
+        // Get the metadata for the track and abort if failed
+        mpVorbisInfo = ov_info(&mVorbisFile, -1);
+        
+        if (mpVorbisInfo == nullptr) {
+            closeTrack();
+            return false;
+        }
+        
+        // Verify the file is in the correct format.
+        // Only 2 channel 44.1KHz audio is supported!
+        const bool bValidFormat = (
+            (mpVorbisInfo->channels == 2) &&
+            (mpVorbisInfo->rate == 44100)
+        );
+        
+        if (!bValidFormat) {
+            closeTrack();
+            return false;
+        }
+        
+        return true;
+    }
+    
+    // Closes the currently opened Ogg Vorbis file (if any)
+    void closeTrack() noexcept {
+        if (mpVorbisInfo) {
+            ov_clear(&mVorbisFile);
+            mVorbisFile = {};
+            mpVorbisInfo = nullptr;
+        }
+        
+        mSampleIndex = 0;
+        invalidateBuffer();
+    }
+    
+    // Attempts to get the next sample from the music track
+    std::tuple<Spu::StereoSample, ReadSampleResult> readNextSample() noexcept override {
+        // No track open? If so then return silence and 'END_OF_STREAM':
+        if (mpVorbisInfo == nullptr)
+            return { Spu::StereoSample{}, ReadSampleResult::END_OF_STEAM };
+
+        // Check if we need to read any more data into the internal buffer firstly (because it has been exhausted)
+        if (mBufferOffset + STEREO_SAMPLE_SIZE > mBufferSize) {
+            // Fill the buffer and abort if failed
+            if (!fillAudioBuffer()) {
+                invalidateBuffer();
+                return { Spu::StereoSample{}, ReadSampleResult::ERROR }; // Uh-oh! Let the caller decide how to handle it..
+            }
+            
+            // If there is no data left then we have reached EOF
+            if (mBufferSize < STEREO_SAMPLE_SIZE)
+                return { Spu::StereoSample{}, ReadSampleResult::END_OF_STEAM };
+        }
+
+        // Should have at least 2 samples in the buffer at this point, return the requested stereo sample:
+        ASSERT(mBufferOffset + STEREO_SAMPLE_SIZE <= mBufferSize);
+
+        int16_t channelSamples[2];
+        std::memcpy(channelSamples, mBuffer + mBufferOffset, sizeof(int16_t) * 2);
+        const Spu::StereoSample sample = { channelSamples[0], channelSamples[1] };
+        mBufferOffset += STEREO_SAMPLE_SIZE;
+        mSampleIndex++;
+        
+        return { sample, ReadSampleResult::OK };
+    }
+    
+    // Gets the current track position in terms of stereo samples
+    virtual size_t getCurrentStereoSampleIndex() const noexcept override {
+        return mSampleIndex;
+    }
+    
+    // Rewinds the current track to the beginning
+    virtual bool rewind() noexcept override {
+        if (mpVorbisInfo == nullptr)
+            return false;
+            
+        invalidateBuffer();
+        mSampleIndex = 0;
+        return (ov_raw_seek(&mVorbisFile, 0) == 0);
+    }
+
+private:
+    // Invalidates the contents of the buffer and marks that it must be filled again
+    void invalidateBuffer() noexcept {
+        mBufferSize = 0;
+        mBufferOffset = 0;
+    }
+    
+    // Attempts to fill the audio buffer as much as possible.
+    // Returns 'false' if there was an error.
+    bool fillAudioBuffer() noexcept {
+        // Empty the buffer
+        mBufferSize = 0;
+        mBufferOffset = 0;
+        
+        // Keep reading until there is an error or EOF (result == 0)
+        while (true) {
+            [[maybe_unused]] int curBitstreamOut = {};
+            const int maxReadSize  = MAX_BUFFER_SIZE - mBufferSize;
+            const long readResult = ov_read(
+                &mVorbisFile,
+                mBuffer + mBufferSize,
+                maxReadSize,
+                (Endian::isBig()) ? 1 : 0,
+                sizeof(int16_t),
+                1, // Signed data format
+                &curBitstreamOut
+            );
+            
+            // A result of less than zero means an error
+            if (readResult < 0)
+                return false;
+                
+            // A result of '0' means EOF
+            if (readResult == 0)
+                return true;
+                
+            // Every other result is the number of bytes filled into the buffer
+            mBufferSize += (uint32_t) readResult;
+            
+            // Is the buffer now full?
+            if (mBufferSize >= MAX_BUFFER_SIZE)
+                return true;
+        }
+        
+        // Should never reach here but if we do assume failure
+        return false;
+    }
+
+    OggVorbis_File  mVorbisFile;                // The Ogg Vorbis stream
+    vorbis_info*    mpVorbisInfo;               // Metadata for the Ogg Vorbis stream
+    size_t          mSampleIndex;               // Index of the next sample to be read
+    uint32_t        mBufferSize;                // How much data has been put into the buffer
+    uint32_t        mBufferOffset;              // Current read position in the audio buffer
+    char            mBuffer[MAX_BUFFER_SIZE];   // The audio buffer
 };
 
 //------------------------------------------------------------------------------------------------------------------------------------------
