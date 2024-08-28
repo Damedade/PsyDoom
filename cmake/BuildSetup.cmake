@@ -65,6 +65,7 @@ macro(compiler_specific_setup)
     if (PSYDOOM_ENABLE_ASAN)
         if (COMPILER_MSVC)
             add_compile_options(/fsanitize=address)
+            add_link_options(/INCREMENTAL:NO) # Incremental linking is incompatible with ASAN
         elseif (COMPILER_CLANG OR COMPILER_GCC)
             add_compile_options(-fsanitize=address)
             add_link_options(-fsanitize=address)

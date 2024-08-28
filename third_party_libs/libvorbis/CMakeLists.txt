@@ -17,7 +17,6 @@ set(SOURCE_FILES
     "${INCLUDE_DIR}/vorbis/vorbisfile.h"
     "${SRC_DIR}/analysis.c"
     "${SRC_DIR}/backends.h"
-    "${SRC_DIR}/barkmel.c"
     "${SRC_DIR}/bitrate.c"
     "${SRC_DIR}/bitrate.h"
     "${SRC_DIR}/block.c"
@@ -76,7 +75,6 @@ set(SOURCE_FILES
     "${SRC_DIR}/smallft.c"
     "${SRC_DIR}/smallft.h"
     "${SRC_DIR}/synthesis.c"
-    "${SRC_DIR}/tone.c"
     "${SRC_DIR}/vorbisenc.c"
     "${SRC_DIR}/vorbisfile.c"
     "${SRC_DIR}/window.c"
@@ -88,8 +86,13 @@ set(OTHER_FILES
 
 add_library(${LIBVORBIS_TGT_NAME} ${SOURCE_FILES} ${OTHER_FILES})
 setup_source_groups("${SOURCE_FILES}" "${OTHER_FILES}")
-
-add_common_target_compile_options(${LIBVORBIS_TGT_NAME})
 include_directories(${INCLUDE_PATHS})
 target_include_directories(${LIBVORBIS_TGT_NAME} INTERFACE ${EXPORTED_INCLUDE_PATHS})
 target_link_libraries(${LIBVORBIS_TGT_NAME} ${LIBOGG_TGT_NAME})
+
+add_common_target_compile_options(${LIBVORBIS_TGT_NAME})
+
+if (COMPILER_MSVC)
+    # Use a lenient warning level for this as we get unwanted spam otherwise
+    target_compile_options(${LIBVORBIS_TGT_NAME} PRIVATE /W1)
+endif()

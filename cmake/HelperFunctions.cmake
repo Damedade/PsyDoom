@@ -38,7 +38,7 @@ function(add_psydoom_common_target_compile_options TARGET_NAME)
     add_common_target_compile_options(${TARGET_NAME})
 
     # Enable a very strict level of warnings
-    if (COMPILER_MSVC)    
+    if (COMPILER_MSVC)
         target_compile_options(${TARGET_NAME} PRIVATE /W4)          # Enable all warnings
         target_compile_options(${TARGET_NAME} PRIVATE /wd4702)      # Disable: unreachable code
     elseif(COMPILER_GCC OR COMPILER_CLANG)
