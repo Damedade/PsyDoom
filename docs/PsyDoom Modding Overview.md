@@ -4,6 +4,7 @@ Table of contents:
 - [Extension IWADS](#Extension-IWADS)
 - [Level Editor](#Level-Editor)
 - [`ALLMAPS.LCD`](#ALLMAPSLCD)
+- [OGG Vorbis custom music](#Ogg-Vorbis-Custom-Music)
 - [PsyDoom limit removing and extended features](#PsyDoom-limit-removing-and-extended-features)
 
 In-depth specifications:
@@ -52,6 +53,9 @@ The PsyDoom GIT repository supplies a version of this file which can be redistri
 [extras/psydoom_mapping](../extras/psydoom_mapping)
 
 If you use this `ALLMAPS.LCD` file then you can avoid generating `MAPXX.LCD` files via the custom GZDoom Builder scripts, thus simplifying the mapping workflow greatly.
+
+## Ogg Vorbis custom music
+PsyDoom now supports adding custom music to user mods in Ogg Vorbis format. PsyDoom sees the Ogg Vorbis tracks as 'CD' music, and they can override existing CD tracks in the game. To supply these new tracks to game, add them to your mod directory and name the files `MUSICXXX.OGG` where `XXX` is the CD track number. For example `MUSIC002.OGG` would override CD track `2`. [`MAPINFO`](PsyDoom%20MAPINFO.md) allows you to use these tracks in any map, by specifying the map as using CD music and by specifying the track number.
 
 ## PsyDoom limit removing and extended features
 PsyDoom has the following new or limit removing features versus the original PlayStation engine. This means more complex and customized creations are now possible:
