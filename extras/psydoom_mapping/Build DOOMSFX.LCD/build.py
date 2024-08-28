@@ -1,8 +1,8 @@
 #!python
 
 ############################################################################################################################################
-# This script builds 'DOOMSFX.LCD' which is an archive containing the sound samples for all general effects (SFX) in PsyDoom.
-# This .LCD file can be redistributed with new user maps to provide all required audio for those maps.
+# This script builds 'DOOMSFX.LCD' which is an archive containing sound samples for all general SFX in PSX Doom.
+# This .LCD file can be redistributed with new user maps to override existing sounds.
 #
 # Requirements:
 #   (1) The PsyDoom audio tool 'LcdTool' must be invokable on the command line (add it to the system path).

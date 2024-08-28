@@ -23,7 +23,7 @@ CREDITS: The GEC team behind the "PlayStation Doom: Master Edition" project has 
 ---------------------------------------
 DOOMSFX.LCD
 ---------------------------------------
-DOOMSFX is the audio bank containing all sound effects. All of these sounds are loaded into memory when a level is started.  If you want to build a custom ALLMAPS.LCD you may also have to rebuild DOOMSFX.LCD - even with the stock effects - as it can help fix some sounds not loading correctly.
+DOOMSFX.LCD is the audio bank containing sound effects that remain persistently loaded by the game, like menu and player sound effects. If you want to build a custom ALLMAPS.LCD you may also have to rebuild DOOMSFX.LCD since some in-game SFX like fireball sounds are also used in menus, and are thus contained in DOOMSFX.LCD.
 
 ---------------------------------------
 Build DOOMSND.WMD
