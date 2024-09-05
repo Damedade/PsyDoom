@@ -1,9 +1,18 @@
 #include "DemoCommon.h"
 
+#include "Doom/Base/i_main.h"
 #include "Doom/doomdef.h"
 #include "Endian.h"
 
 #include <cstring>
+
+// Helper/reminder for when one of these constants is changed.
+// These numbers should normally be incremented at the same time for a public facing release of PsyDoom.
+// A change in network game behavior normally implies a change in demo behavior, and new game settings to enable/disable the modified behavior.
+static_assert(
+    (NET_PROTOCOL_VERSION == 34) &&
+    (DemoCommon::DEMO_FILE_VERSION == 16)
+);
 
 BEGIN_NAMESPACE(DemoCommon)
 

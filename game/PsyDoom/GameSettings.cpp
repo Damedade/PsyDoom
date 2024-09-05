@@ -4,6 +4,8 @@
 #include "GameSettings.h"
 
 #include "Asserts.h"
+#include "DemoCommon.h"
+#include "Doom/Base/i_main.h"
 #include "Endian.h"
 #include "Game.h"
 
@@ -13,11 +15,62 @@
 #include <type_traits>
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// Game version:            1.1.0+
-// Demo file version:       14
-// Net protocol version:    31
+// Game version:            1.2.0+
+// Demo file version:       16
+// Net protocol version:    34
 //------------------------------------------------------------------------------------------------------------------------------------------
-typedef GameSettings GameSettingsV2;
+static_assert(DemoCommon::DEMO_FILE_VERSION == 16, "Update the comment here after bumping the current demo file version!");
+static_assert(NET_PROTOCOL_VERSION == 34, "Update the comment here after bumping the net protocol version!");
+
+typedef GameSettings GameSettingsV3;
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Game version:            1.1.x
+// Demo file version:       14
+// Net protocol version:    31/32
+//------------------------------------------------------------------------------------------------------------------------------------------
+struct GameSettingsV2 {
+    static constexpr uint32_t VERSION = 2;
+
+    uint8_t     bUsePalTimings;
+    uint8_t     bUseDemoTimings;
+    uint8_t     bFixKillCount;
+    uint8_t     bFixLineActivation;
+    uint8_t     bUseExtendedPlayerShootRange;
+    uint8_t     bFixMultiLineSpecialCrossing;
+    uint8_t     bUsePlayerRocketBlastFix;
+    uint8_t     bUseSuperShotgunDelayTweak;
+    uint8_t     bUseMoveInputLatencyTweak;
+    uint8_t     bUseItemPickupFix;
+    uint8_t     bUseFinalDoomPlayerMovement;
+    uint8_t     bAllowMovementCancellation;
+    uint8_t     bAllowTurningCancellation;
+    uint8_t     bFixViewBobStrength;
+    uint8_t     bFixGravityStrength;
+    uint8_t     bNoMonsters;
+    uint8_t     bNoMonstersBossFixup;
+    uint8_t     bPistolStart;
+    uint8_t     bTurboMode;
+    uint8_t     bUseLostSoulSpawnFix;
+    uint8_t     bUseLineOfSightOverflowFix;
+    uint8_t     bRemoveMaxCrossLinesLimit;
+    uint8_t     bFixOutdoorBulletPuffs;
+    uint8_t     bFixBlockingGibsBug;
+    uint8_t     bFixSoundPropagation;
+    uint8_t     bFixSpriteVerticalWarp;
+    uint8_t     bAllowMultiMapPickup;
+    uint8_t     bEnableMapPatches_GamePlay;
+    uint8_t     bCoopNoFriendlyFire;
+    uint8_t     bCoopForceSpawnDeathmatchThings;
+    uint8_t     bDmExitDisabled;
+    uint8_t     bCoopPreserveKeys;
+    uint8_t     bDmActivateBossSpecialSectors;
+    int32_t     lostSoulSpawnLimit;
+    int32_t     viewBobbingStrengthFixed;
+    int32_t     dmFragLimit;
+    int32_t     coopPreserveAmmoFactor;
+    uint8_t     bSinglePlayerForceSpawnDmThings;
+};
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Game version:            1.0.x
@@ -104,6 +157,10 @@ static void byteSwapGameSettings(GameSettingsT& settings) noexcept {
         Endian::byteSwapInPlace(settings.coopPreserveAmmoFactor);
         Endian::byteSwapInPlace(settings.bSinglePlayerForceSpawnDmThings);
     }
+
+    if constexpr (GameSettingsT::VERSION >= 3) {
+        Endian::byteSwapInPlace(settings.bFixCoopNoFriendlyFireTargeting);
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -161,6 +218,10 @@ static void migrateGameSettings(OldGameSettingsT& oldSettings, GameSettings& new
         COPY_GAME_SETTINGS_FIELD(bSinglePlayerForceSpawnDmThings);
     }
 
+    if constexpr (OldGameSettingsT::VERSION >= 3) {
+        COPY_GAME_SETTINGS_FIELD(bFixCoopNoFriendlyFireTargeting);
+    }
+
     #undef COPY_GAME_SETTINGS_FIELD
 }
 
@@ -215,7 +276,10 @@ int32_t getGameSettingsVersionForDemoFileVersion(const int32_t demoFileVersion) 
     switch (demoFileVersion) {
         case 11:    return 1;
         case 14:    return 2;
+        case 16:    return 3;
     }
+
+    static_assert(DemoCommon::DEMO_FILE_VERSION == 16, "Update the code here after bumping the current demo file version!");
 
     ASSERT_FAIL_F("No 'GameSettings' mapping for demo file version '%d'! Support might need to be added here...", demoFileVersion);
     return -1;
@@ -229,6 +293,7 @@ int32_t getGameSettingsSize(const int32_t gameSettingsVersion) noexcept {
     switch (gameSettingsVersion) {
         case 1:     return sizeof(GameSettingsV1);
         case 2:     return sizeof(GameSettingsV2);
+        case 3:     return sizeof(GameSettingsV3);
     }
 
     ASSERT_FAIL_F("Invalid 'GameSettings' version '%d'!", gameSettingsVersion);
@@ -247,6 +312,7 @@ bool readAndMigrateGameSettings(const int32_t gameSettingsVersion, const void* c
     switch (gameSettingsVersion) {
         case 1:     readAndMigrateGameSettingsImpl<GameSettingsV1>(pSrcBuffer, dstSettings);    break;
         case 2:     readAndMigrateGameSettingsImpl<GameSettingsV2>(pSrcBuffer, dstSettings);    break;
+        case 3:     readAndMigrateGameSettingsImpl<GameSettingsV3>(pSrcBuffer, dstSettings);    break;
 
         default:
             ASSERT_FAIL_F("Invalid 'GameSettings' version '%d'!", gameSettingsVersion);

@@ -6,6 +6,7 @@
 #include "Doom/Renderer/r_local.h"
 #include "Doom/Renderer/r_main.h"
 #include "doomdata.h"
+#include "p_inter.h"
 #include "p_map.h"
 #include "p_setup.h"
 
@@ -271,6 +272,12 @@ bool PA_ShootThing(mobj_t& thing, const fixed_t hitFrac) noexcept {
     // A shooter cannot shoot itself
     if (&thing == gpShooter)
         return true;
+
+#if PSYDOOM_MODS
+    // Disable player to player targeting if the 'no friendly fire' option is enabled for a coop game
+    if (P_IgnoreFriendlyAttackTarget(*gpShooter, thing))
+        return true;
+#endif
 
     // Can't shoot the thing if it's not shootable (corpse etc.)
     if ((thing.flags & MF_SHOOTABLE) == 0)

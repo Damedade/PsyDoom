@@ -681,7 +681,6 @@ void P_TouchSpecialThing(mobj_t& special, mobj_t& toucher) noexcept {
 }
 
 #if PSYDOOM_MODS
-
 //------------------------------------------------------------------------------------------------------------------------------------------
 // PsyDoom addition: tells if the given key can be picked up the specified player
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -814,6 +813,23 @@ bool P_CanTouchSpecialThing(const mobj_t& special, const mobj_t& toucher) noexce
     return true;
 }
 
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Tells if the specified attacker should NOT aim at or hit the given target due to 'no friendly fire' rules for a coop game
+//------------------------------------------------------------------------------------------------------------------------------------------
+bool P_IgnoreFriendlyAttackTarget(const mobj_t& attacker, const mobj_t& target) noexcept
+{
+    return (
+        // The 'No friendly fire' rule is only used for player to player attacks and only for coop
+        attacker.player &&
+        target.player &&
+        (gNetGame == gt_coop) &&
+        // The 'No friendly fire' rule must be enabled, otherwise players can attack each other
+        Game::gSettings.bCoopNoFriendlyFire &&
+        // Older versions of PsyDoom let players hit each other, even when the 'no friendly fire' option was turned on for coop.
+        // We keep this behavior for older demos for compatibility purposes.
+        Game::gSettings.bFixCoopNoFriendlyFireTargeting
+    );
+}
 #endif  // #if PSYDOOM_MODS
 
 //------------------------------------------------------------------------------------------------------------------------------------------

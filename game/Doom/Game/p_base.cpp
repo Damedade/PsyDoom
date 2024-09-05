@@ -12,6 +12,7 @@
 #include "doomdata.h"
 #include "info.h"
 #include "p_enemy.h"
+#include "p_inter.h"
 #include "p_local.h"
 #include "p_maputl.h"
 #include "p_mobj.h"
@@ -690,6 +691,12 @@ static bool PB_CheckThing(mobj_t& mobj) noexcept {
         #endif
 
         if (bFirerExists) {
+        #if PSYDOOM_MODS
+            // Disable player missile to player collisions if the 'no friendly fire' option is enabled for a coop game
+            if (P_IgnoreFriendlyAttackTarget(*pFirer, mobj))
+                return true;
+        #endif
+
             const mobjtype_t sourceObjType = pFirer->type;
 
             if (sourceObjType == mobj.type) {

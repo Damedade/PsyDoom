@@ -121,10 +121,6 @@ texture_t gTex_CONNECT;
     // Max tolerated packet delay in milliseconds: after which we start adjusting clocks
     static constexpr int32_t MAX_PACKET_DELAY_MS = 15;
 
-    // The current network protocol version.
-    // Should be incremented whenever the data format being transmitted changes, or when updates might cause differences in game behavior.
-    static constexpr int32_t NET_PROTOCOL_VERSION = 33;
-
     // Previous game error checking value when we last sent to the other player.
     // Have to store this because we always send 1 packet ahead for the next frame.
     static uint32_t gNetPrevErrorCheck;

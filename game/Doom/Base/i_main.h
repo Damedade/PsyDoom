@@ -22,6 +22,10 @@ struct texture_t;
     #endif
 #endif
 
+// The current network protocol version.
+// Should be incremented whenever the data format being transmitted changes, or when updates might cause differences in game behavior.
+static constexpr int32_t NET_PROTOCOL_VERSION = 34;
+
 // Game control binding index: these are the actions which are configurable to different buttons.
 // These also must be synchronized in a network game.
 enum controlbinding_t : int32_t {

@@ -205,6 +205,9 @@ void getUserGameSettings(GameSettings& settings) noexcept {
     settings.bAllowMultiMapPickup               = Config::gbAllowMultiMapPickup;
     settings.bEnableMapPatches_GamePlay         = Config::gbEnableMapPatches_GamePlay;
     settings.bCoopNoFriendlyFire                = Config::gbCoopNoFriendlyFire;
+    // We always apply this fix to 'no friendly fire' for current versions of PsyDoom.
+    // It's only ever disabled when playing older multiplayer demos, for compatibility reasons.
+    settings.bFixCoopNoFriendlyFireTargeting    = true;
     settings.bCoopForceSpawnDeathmatchThings    = Config::gbCoopForceSpawnDeathmatchThings;
     settings.bDmExitDisabled                    = Config::gbDmExitDisabled;
     settings.bCoopPreserveKeys                  = Config::gbCoopPreserveKeys;
@@ -260,6 +263,7 @@ void getClassicDemoGameSettings(GameSettings& settings) noexcept {
     settings.bAllowMultiMapPickup               = false;
     settings.bEnableMapPatches_GamePlay         = false;
     settings.bCoopNoFriendlyFire                = false;
+    settings.bFixCoopNoFriendlyFireTargeting    = false;
     settings.bCoopForceSpawnDeathmatchThings    = false;
     settings.bDmExitDisabled                    = false;
     settings.bCoopPreserveKeys                  = false;

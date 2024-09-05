@@ -555,6 +555,12 @@ static bool PIT_CheckThing(mobj_t& mobj) noexcept {
         #endif
 
         if (bFirerExists) {
+        #if PSYDOOM_MODS
+            // Disable player missile to player collisions if the 'no friendly fire' option is enabled for a coop game
+            if (P_IgnoreFriendlyAttackTarget(*pFiringThing, mobj))
+                return true;
+        #endif
+
             if (mobj.type == pFiringThing->type) {
                 // Missiles don't collide with the things which fired them
                 if (&mobj == pFiringThing)

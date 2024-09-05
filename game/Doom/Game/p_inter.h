@@ -20,6 +20,7 @@ void P_TouchSpecialThing(mobj_t& special, mobj_t& toucher) noexcept;
 
 #if PSYDOOM_MODS
     bool P_CanTouchSpecialThing(const mobj_t& special, const mobj_t& toucher) noexcept;
+    bool P_IgnoreFriendlyAttackTarget(const mobj_t& attacker, const mobj_t& target) noexcept;
 #endif
 
 void P_KillMobj(mobj_t* const pKiller, mobj_t& target) noexcept;

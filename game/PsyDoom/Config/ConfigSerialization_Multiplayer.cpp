@@ -22,7 +22,7 @@ void initCfgSerialization_Multiplayer() noexcept {
 
     cfg.coopNoFriendlyFire = makeConfigField(
         "CoopNoFriendlyFire",
-        "Cooperative: disable taking damage from other players?\n"
+        "Cooperative: disable taking damage from and shooting at other players?\n"
         "\n"
         "Notes:\n"
         "(1) This setting does not affect barrel or telefrag damage.\n"

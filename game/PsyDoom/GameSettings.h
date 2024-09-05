@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------------------------------------------------------------------
 struct GameSettings {
     // The current version of this struct: this can be incremented for future PsyDoom releases if the format changes
-    static constexpr uint32_t VERSION = 2;
+    static constexpr uint32_t VERSION = 3;
 
     uint8_t     bUsePalTimings;                         // Use 50 Hz vblanks and other various timing adjustments for the PAL version of the game?
     uint8_t     bUseDemoTimings;                        // Force player logic to run at a consistent, but slower rate used by demos? (15 Hz for NTSC)
@@ -41,6 +41,7 @@ struct GameSettings {
     uint8_t     bAllowMultiMapPickup;                   // If true then allow players to pickup more than one 'Computer Area Map'
     uint8_t     bEnableMapPatches_GamePlay;             // Enable patches for original game maps that affect gameplay?
     uint8_t     bCoopNoFriendlyFire;                    // If true then players are not able to damage each other in co-op.
+    uint8_t     bFixCoopNoFriendlyFireTargeting;        // Fix a bug with 'bCoopNoFriendlyFire' where friendly players are targeted?
     uint8_t     bCoopForceSpawnDeathmatchThings;        // Enable multiplayer-only things in co-op?
     uint8_t     bDmExitDisabled;                        // If true while playing deathmatch exits will display a 'disabled' message and do nothing.
     uint8_t     bCoopPreserveKeys;                      // If true while playing co-op a player will spawn with previously collected keys.
