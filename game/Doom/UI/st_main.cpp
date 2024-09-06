@@ -398,9 +398,16 @@ void ST_Drawer() noexcept {
         const int32_t widescreenAdjust = 0;
     #endif
 
-    // Draw the current status bar message, or the map name (if in the automap)
+    // PsyDoom: determine automap visibility. It's hidden temporarily if there is a camera active:
     player_t& player = gPlayers[gCurPlayerIndex];
 
+    #if PSYDOOM_MODS
+        const bool bShowAutomap = ((player.automapflags & AF_ACTIVE) && (gExtCameraTicsLeft <= 0));
+    #else
+        const bool bShowAutomap = (player.automapflags & AF_ACTIVE);
+    #endif
+
+    // Draw the current status bar message, or the map name (if in the automap)
     if (gStatusBar.messageTicsLeft > 0) {
         // PsyDoom: have to explicitly specify sprite shading parameters now for 'draw string' rather than relying on global state
         #if PSYDOOM_MODS
@@ -408,53 +415,45 @@ void ST_Drawer() noexcept {
         #else
             I_DrawStringSmall(7, 193, gStatusBar.message);
         #endif
-    } else {
-        // PsyDoom: the automap is hidden temporarily if there is a camera active
+    }
+    else if (bShowAutomap) {
+        constexpr const char* const MAP_TITLE_FMT = "LEVEL %d:%s";
+        char drawStr[64];
+
+        // PsyDoom: use 'snprintf' just to be safe here
         #if PSYDOOM_MODS
-            const bool bShowAutomap = ((player.automapflags & AF_ACTIVE) && (gExtCameraTicsLeft <= 0));
+            std::snprintf(drawStr, C_ARRAY_SIZE(drawStr), MAP_TITLE_FMT, gGameMap, Game::getMapName(gGameMap).c_str().data());
         #else
-            const bool bShowAutomap = (player.automapflags & AF_ACTIVE);
+            std::sprintf(drawStr, MAP_TITLE_FMT, gGameMap, gMapNames[gGameMap - 1]);
         #endif
 
-        if (bShowAutomap) {
-            constexpr const char* const MAP_TITLE_FMT = "LEVEL %d:%s";
-            char drawStr[64];
+        // PsyDooom: handle longer map names that have a newline in the middle of them or which exceed the display area.
+        // When we find this case then draw the level number on one line and the map name on the next line down.
+        // Note that the map name should always fit on the 2nd line in this situation due to the 32 character limit and 8 pixel font size.
+        #if PSYDOOM_MODS
+            DrawStringParams drawStrParams = {};
+            drawStrParams.bUseSmallFont = true;
+            I_DrawStringEx_LayoutText(7, 193, drawStrParams, drawStr);
 
-            // PsyDoom: use 'snprintf' just to be safe here
-            #if PSYDOOM_MODS
-                std::snprintf(drawStr, C_ARRAY_SIZE(drawStr), MAP_TITLE_FMT, gGameMap, Game::getMapName(gGameMap).c_str().data());
-            #else
-                std::sprintf(drawStr, MAP_TITLE_FMT, gGameMap, gMapNames[gGameMap - 1]);
-            #endif
+            // Does it fit?
+            if ((gDrawStringEx_metrics.numLines <= 1) && (gDrawStringEx_metrics.endX <= SCREEN_W)) {
+                // Yes it does, just draw what we already laid out:
+                I_DrawStringEx_PostLayoutDraw(drawStrParams);
+            }
+            else {
+                // No fit, split the render up into two lines and center the text.
+                // First draw the level number:
+                std::snprintf(drawStr, C_ARRAY_SIZE(drawStr), "LEVEL %d", gGameMap);
+                drawStrParams.xAnchorMode = DrawStringAnchorMode::CENTER;
+                I_DrawStringEx(SCREEN_W / 2, 185, drawStrParams, drawStr);
 
-            // PsyDooom: handle longer map names that have a newline in the middle of them or which exceed the display area.
-            // When we find this case then draw the level number on one line and the map name on the next line down.
-            // Note that the map name should always fit on the 2nd line in this situation due to the 32 character limit and 8 pixel font size.
-            #if PSYDOOM_MODS
-                DrawStringParams drawStrParams = {};
-                drawStrParams.bUseSmallFont = true;
-                I_DrawStringEx_LayoutText(7, 193, drawStrParams, drawStr);
-
-                // Does it fit?
-                if ((gDrawStringEx_metrics.numLines <= 1) && (gDrawStringEx_metrics.endX <= SCREEN_W)) {
-                    // Yes it does, just draw what we already laid out:
-                    I_DrawStringEx_PostLayoutDraw(drawStrParams);
-                }
-                else {
-                    // No fit, split the render up into two lines and center the text.
-                    // First draw the level number:
-                    std::snprintf(drawStr, C_ARRAY_SIZE(drawStr), "LEVEL %d", gGameMap);
-                    drawStrParams.xAnchorMode = DrawStringAnchorMode::CENTER;
-                    I_DrawStringEx(SCREEN_W / 2, 185, drawStrParams, drawStr);
-
-                    // Next draw the map name itself and treat any new line commands as spaces instead (single line only)
-                    drawStrParams.bRemoveNewlines = true;
-                    I_DrawStringEx(SCREEN_W / 2, 193, drawStrParams, Game::getMapName(gGameMap).c_str().data());
-                }
-            #else
-                I_DrawStringSmall(7, 193, drawStr);
-            #endif
-        }
+                // Next draw the map name itself and treat any new line commands as spaces instead (single line only)
+                drawStrParams.bRemoveNewlines = true;
+                I_DrawStringEx(SCREEN_W / 2, 193, drawStrParams, Game::getMapName(gGameMap).c_str().data());
+            }
+        #else
+            I_DrawStringSmall(7, 193, drawStr);
+        #endif
     }
 
     // PsyDoom: draw the new alert message centered (in the small 8x8 px font) if active
@@ -595,7 +594,8 @@ void ST_Drawer() noexcept {
         LIBGPU_setWH(spritePrim, 12, 12);
 
         I_AddPrim(spritePrim);
-    } else {
+    }
+    else {
         // Draw the frags container box
         LIBGPU_setXY0(spritePrim, 209, 221);
         LIBGPU_setUV0(spritePrim, 208, 243);
@@ -620,7 +620,18 @@ void ST_Drawer() noexcept {
 
     // PsyDoom: draw level stats if enabled, or frags if playing deathmatch:
     #if PSYDOOM_MODS
-        const bool bShowStats = (PlayerPrefs::gStatDisplayMode >= StatDisplayMode::Kills);
+    {
+        const StatDisplayMode statDisplayMode = PlayerPrefs::gStatDisplayMode;
+        const bool bStatDisplayEnabled = (statDisplayMode >= StatDisplayMode::Kills);
+        const bool bAutomapOnlyStats = (
+            (statDisplayMode >= StatDisplayMode::MapOnly_Kills) &&
+            (statDisplayMode <= StatDisplayMode::MapOnly_KillsSecretsAndItems)
+        );
+
+        const bool bShowStats = (
+            bStatDisplayEnabled &&
+            (bShowAutomap || (!bAutomapOnlyStats))
+        );
 
         if (bShowStats) {
             // Compute the kill, secret and item counts.
@@ -642,18 +653,32 @@ void ST_Drawer() noexcept {
             if (gNetGame != gt_deathmatch) {
                 ST_DrawRightAlignedStat(2 + widescreenAdjust, 2, 'K', jointKillCount, gTotalKills);
 
-                if (PlayerPrefs::gStatDisplayMode >= StatDisplayMode::KillsAndSecrets) {
+                const bool bShowSecrets = (
+                    (statDisplayMode == StatDisplayMode::KillsAndSecrets) ||
+                    (statDisplayMode == StatDisplayMode::KillsSecretsAndItems) ||
+                    (statDisplayMode == StatDisplayMode::MapOnly_KillsAndSecrets) ||
+                    (statDisplayMode == StatDisplayMode::MapOnly_KillsSecretsAndItems)
+                );
+
+                if (bShowSecrets) {
                     ST_DrawRightAlignedStat(2 + widescreenAdjust, 10, 'S', jointSecretCount, gTotalSecret);
                 }
 
-                if (PlayerPrefs::gStatDisplayMode >= StatDisplayMode::KillsSecretsAndItems) {
+                const bool bShowItems = (
+                    (statDisplayMode == StatDisplayMode::KillsSecretsAndItems) ||
+                    (statDisplayMode == StatDisplayMode::MapOnly_KillsSecretsAndItems)
+                );
+
+                if (bShowItems) {
                     ST_DrawRightAlignedStat(2 + widescreenAdjust, 18, 'I', jointItemCount, gTotalItems);
                 }
-            } else {
+            }
+            else {
                 // Show frags for deathmatch
                 ST_DrawRightAlignedStat(2 + widescreenAdjust, 2, 'F', gPlayers[gCurPlayerIndex].frags, gPlayers[gCurPlayerIndex ^ 1].frags);
             }
         }
+    }
     #endif  // #if PSYDOOM_MODS
 
     // Draw the paused overlay, level warp and vram viewer

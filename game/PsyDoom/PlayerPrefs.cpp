@@ -152,7 +152,7 @@ static void loadPrefsFileIniEntry(const IniUtils::IniEntry& entry) noexcept {
     }
     else if (entry.key == "statDisplayMode") {
         gStatDisplayMode = (StatDisplayMode) entry.value.tryGetAsInt((int32_t) gStatDisplayMode);
-        gStatDisplayMode = std::clamp(gStatDisplayMode, StatDisplayMode::None, StatDisplayMode::KillsSecretsAndItems);  // Ensure it's in range
+        gStatDisplayMode = std::clamp(gStatDisplayMode, StatDisplayMode::None, StatDisplayMode::MapOnly_KillsSecretsAndItems); // Ensure it's in range
     }
     else if (entry.key == "startupWithVulkanRenderer") {
         gbStartupWithVulkanRenderer = entry.value.tryGetAsBool(gbStartupWithVulkanRenderer);

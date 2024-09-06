@@ -9,7 +9,10 @@ enum class StatDisplayMode : int32_t {
     None = 0,
     Kills = 1,
     KillsAndSecrets = 2,
-    KillsSecretsAndItems = 3
+    KillsSecretsAndItems = 3,
+    MapOnly_Kills = 4,
+    MapOnly_KillsAndSecrets = 5,
+    MapOnly_KillsSecretsAndItems = 6,
 };
 
 BEGIN_NAMESPACE(PlayerPrefs)
