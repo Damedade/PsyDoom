@@ -10,6 +10,7 @@
 #include "PsyDoom/IVideoSurface.h"
 #include "PsyDoom/ProgArgs.h"
 #include "PsyDoom/PsxVm.h"
+#include "PsyDoom/SpuExtInputMux.hpp"
 #include "PsyDoom/Video.h"
 #include "PsyDoom/Vulkan/VRenderer.h"
 #include "Spu.h"
@@ -50,7 +51,6 @@ static std::vector<AudioSector*>    gEmptyAudioSectors;                     // W
 static std::vector<AudioSector*>    gDecodingAudioSectors;                  // Which audio sectors are currently being decoded
 static std::vector<AudioSector*>    gReadyAudioSectors;                     // Which audio sectors are populated with data and ready to use
 static Spu::ExtInputCallback        gPrevAudioExtInput;                     // Previous audio external input callback: restored after playback finishes
-static void*                        gPrevAudioExtInputUserdata;             // User data for the previous audio external input callback
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Helper: returns an empty audio sector for decoding or 'nullptr' if there are none.
@@ -238,7 +238,7 @@ static void tryLoadNextAudioSample() noexcept {
 // Audio callback for the movie player.
 // Called on the audio thread to retrieve the next sample of audio from the movie.
 //------------------------------------------------------------------------------------------------------------------------------------------
-static Spu::StereoSample movieGetAudioSampleCallback([[maybe_unused]] void* const pUserData) noexcept {
+static Spu::SpuCallbackOutput movieGetAudioSampleCallback() noexcept {
     // Move along time and grab new samples if required
     gCurAudioSampleTime += gAudioSampleTimeStep;
 
@@ -248,7 +248,7 @@ static Spu::StereoSample movieGetAudioSampleCallback([[maybe_unused]] void* cons
     }
 
     // Do cubic interpolation to determine the current audio sample value
-    Spu::StereoSample interpolated;
+    Spu::SpuCallbackOutput out;
 
     {
         const float t = gCurAudioSampleTime;
@@ -256,11 +256,12 @@ static Spu::StereoSample movieGetAudioSampleCallback([[maybe_unused]] void* cons
         const Spu::StereoSample& s1 = gAudioSamples[1];
         const Spu::StereoSample& s2 = gAudioSamples[2];
         const Spu::StereoSample& s3 = gAudioSamples[3];
-        interpolated.left = cubicInterpolateAudioSample(s0.left, s1.left, s2.left, s3.left, t);
-        interpolated.right = cubicInterpolateAudioSample(s0.right, s1.right, s2.right, s3.right, t);
+        out.sample.left = cubicInterpolateAudioSample(s0.left, s1.left, s2.left, s3.left, t);
+        out.sample.right = cubicInterpolateAudioSample(s0.right, s1.right, s2.right, s3.right, t);
     }
 
-    return interpolated;
+    out.reverbSample = {};  // No reverb!
+    return out;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -311,17 +312,9 @@ static bool initMoviePlayback(const char* const cdFilePath) noexcept {
             break;
     }
 
-    // Install the external audio input callback.
-    // This will cause the movie's audio to be fed to the SPU:
-    {
-        PsxVm::LockSpu lockSpu;
-        Spu::Core& spu = PsxVm::gSpu;
-
-        gPrevAudioExtInput = spu.pExtInputCallback;
-        gPrevAudioExtInputUserdata = spu.pExtInputUserData;
-        spu.pExtInputCallback = movieGetAudioSampleCallback;
-        spu.pExtInputUserData = nullptr;
-    }
+    // Install an audio callback that will output the movie's audio and pipe it to the SPU.
+    // The piping happens via the SPU external input multiplexer.
+    SpuExtInputMux::addInput(movieGetAudioSampleCallback);
 
     // Begin external surface display: will be submitting frames manually from here on in
     Video::getCurrentBackend().beginExternalSurfaceDisplay();
@@ -332,16 +325,8 @@ static bool initMoviePlayback(const char* const cdFilePath) noexcept {
 // Shuts down playback of the movie and cleans up resources
 //------------------------------------------------------------------------------------------------------------------------------------------
 static void shutdownMoviePlayback() noexcept {
-    // Uninstall the audio callback and restore the previous one
-    {
-        PsxVm::LockSpu lockSpu;
-        Spu::Core& spu = PsxVm::gSpu;
-
-        spu.pExtInputCallback = gPrevAudioExtInput;
-        spu.pExtInputUserData = gPrevAudioExtInputUserdata;
-        gPrevAudioExtInput = {};
-        gPrevAudioExtInputUserdata = {};
-    }
+    // Uninstall the movie's audio callback
+    SpuExtInputMux::removeInput(movieGetAudioSampleCallback);
 
     // Cleanup everything else
     gReadyAudioSectors.clear();

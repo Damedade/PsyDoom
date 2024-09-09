@@ -10,6 +10,7 @@
 #if PSYDOOM_MODS
 
 #include <cstdint>
+#include <optional>
 
 // PsyDoom: 'CdFileId' has changed in format
 #if PSYDOOM_MODS
@@ -83,5 +84,12 @@ void psxcd_restart(const int32_t vol) noexcept;
 int32_t psxcd_elapsed_sectors() noexcept;
 int32_t psxcd_get_file_size(const CdFileId discFile) noexcept;
 int32_t psxcd_get_playing_track() noexcept;
+
+void psxcd_set_playback_attribs(
+    const std::optional<bool> bMusicEnable,
+    const std::optional<bool> bMusicReverbEnable,
+    const std::optional<int16_t> musicVolumeL,
+    const std::optional<int16_t> musicVolumeR
+) noexcept;
 
 #endif  // #if PSYDOOM_MODS

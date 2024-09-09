@@ -307,6 +307,8 @@ set(SOURCE_FILES
     "PsyDoom/ScriptBindings.h"
     "PsyDoom/ScriptingEngine.cpp"
     "PsyDoom/ScriptingEngine.h"
+    "PsyDoom/SpuExtInputMux.cpp"
+    "PsyDoom/SpuExtInputMux.hpp"
     "PsyDoom/TexturePatcher.cpp"
     "PsyDoom/TexturePatcher.h"
     "PsyDoom/Utils.cpp"

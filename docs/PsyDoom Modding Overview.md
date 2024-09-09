@@ -57,6 +57,8 @@ If you use this `ALLMAPS.LCD` file then you can avoid generating `MAPXX.LCD` fil
 ## Ogg Vorbis custom music
 PsyDoom now supports adding custom music to user mods in Ogg Vorbis format. PsyDoom sees the Ogg Vorbis tracks as 'CD' music, and they can override existing CD tracks in the game. To supply these new tracks to game, add them to your mod directory and name the files `MUSICXXX.OGG` where `XXX` is the CD track number. For example `MUSIC002.OGG` would override CD track `2`. [`MAPINFO`](PsyDoom%20MAPINFO.md) allows you to use these tracks in any map, by specifying the map as using CD music and by specifying the track number.
 
+Restrictions: the Ogg Vorbis files provided must have exactly 2 channels and a 44.1KHz sample rate (CD Audio quality).
+
 ## PsyDoom limit removing and extended features
 PsyDoom has the following new or limit removing features versus the original PlayStation engine. This means more complex and customized creations are now possible:
 - Extended VRAM for sprites and textures: instead of `1 MiB` PsyDoom can now have up to `128 MiB` of VRAM available (the default).

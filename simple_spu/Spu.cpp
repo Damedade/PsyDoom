@@ -445,29 +445,6 @@ static void stepVoices(
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// Mixes sound from an external input; does nothing if there is no current external input
-//------------------------------------------------------------------------------------------------------------------------------------------
-static void mixExternalInput(
-    const ExtInputCallback pExtCallback,
-    void* const pExtCallbackUserData,
-    const Volume extVolume,
-    const bool bExtReverbEnabled,
-    StereoSample& output,
-    StereoSample& outputToReverb
-) noexcept {
-    if (!pExtCallback)
-        return;
-
-    const StereoSample extSample = pExtCallback(pExtCallbackUserData);
-    const StereoSample extSampleScaled = extSample * extVolume;
-    output += extSampleScaled;
-
-    if (bExtReverbEnabled) {
-        outputToReverb += extSampleScaled;
-    }
-}
-
-//------------------------------------------------------------------------------------------------------------------------------------------
 // Add the given sample to reverb input and return a sample of reverb output
 //------------------------------------------------------------------------------------------------------------------------------------------
 static void doReverb(
@@ -736,15 +713,10 @@ StereoSample Spu::stepCore(Core& core) noexcept {
     }
 
     // Mix any external input
-    if (core.bExtEnabled) {
-        mixExternalInput(
-            core.pExtInputCallback,
-            core.pExtInputUserData,
-            core.extInputVol,
-            core.bExtReverbEnable,
-            output,
-            outputToReverb
-        );
+    if (core.pExtInputCallback) {
+        const SpuCallbackOutput callbackOutput = core.pExtInputCallback();
+        output += callbackOutput.sample;
+        outputToReverb += callbackOutput.reverbSample;
     }
 
     // Do reverb every 2 cycles: PSX reverb operates at 22,050 Hz and the SPU operates at 44,100 Hz

@@ -16,6 +16,7 @@
 #include "PsyDoom/MusicStreamer.h"
 #include "PsyDoom/ProgArgs.h"
 #include "PsyDoom/PsxVm.h"
+#include "PsyDoom/SpuExtInputMux.hpp"
 #include "PsyDoom/Utils.h"
 #include "Spu.h"
 
@@ -37,8 +38,15 @@ static bool gbPSXCD_IsCdInit;
 // Used to hold a file temporarily after opening
 static PsxCd_File gPSXCD_cdfile;
 
-// The Music Streamer: used to stream CD audio (among other sources)
+// The Music Streamer: used to stream CD audio (among other sources).
+// Access to this is guarded by the music streamer mutex.
 static MusicStreamer gMusicStreamer;
+
+// The volume for CD music (and other music sources) and whether music, and reverb on music, is enabled.
+// Access all these variables is guarded by the music streamer mutex.
+static Spu::Volume  gCdMusicVolume          = {};
+static bool         gCdMusicEnable          = false;
+static bool         gCdMusicReverbEnable    = false;
 
 // The lock for the Music Streamer and a helper to lock/unlock via RAII.
 // N.B: this *CANNOT* be held the same time as the SPU lock, otherwise deadlock MIGHT occur!
@@ -59,16 +67,23 @@ static DiscReader gFileDiscReaders[MAX_OPEN_FILES] = {
 };
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// A callback invoked by the SPU when it wants audio from the Music Streamer: returns a single sample
+// A callback invoked by the SPU (via the SPU input multiplexer) when it wants audio from the Music Streamer: returns a single sample
 //------------------------------------------------------------------------------------------------------------------------------------------
-static Spu::StereoSample SpuAudioCallback([[maybe_unused]] void* pUserData) noexcept {
+static Spu::SpuCallbackOutput SpuAudioCallback() noexcept {
     // Lock the Music Streamer while we are doing this.
     // Note that this thread also has the SPU lock at this point too.
     // Therefore the main thread must NOT lock both the Music Streamer and the SPU at the same time, or otherwise a deadlock might occur!
     LockMusicStreamer musicStreamerLock;
-    
-    // Simply read and return the next sample from the Music Streamer
-    return gMusicStreamer.readNextSample();
+
+    if (!gCdMusicEnable)
+        return {};
+
+    // Read the next sample from the Music Streamer
+    Spu::SpuCallbackOutput out;
+    out.sample = gMusicStreamer.readNextSample();
+    out.sample *= gCdMusicVolume;
+    out.reverbSample = (gCdMusicReverbEnable) ? out.sample : Spu::StereoSample{};
+    return out;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -81,14 +96,9 @@ void psxcd_init() noexcept {
 
     gbPSXCD_IsCdInit = true;
 
-    // Initialize the SPU and install the CD player as an external input to the SPU
+    // Initialize the SPU and install the CD player as an external input to the SPU (via the multiplexer)
     psxspu_init();
-
-    {
-        PsxVm::LockSpu spuLock;
-        PsxVm::gSpu.pExtInputCallback = SpuAudioCallback;
-        PsxVm::gSpu.pExtInputUserData = nullptr;
-    }
+    SpuExtInputMux::addInput(SpuAudioCallback);
     
     // Initialize the Music Streamer
     {
@@ -107,12 +117,8 @@ void psxcd_exit() noexcept {
         gMusicStreamer.shutdown();
     }
     
-    // Uninstall the CD player as an external input to the SPU
-    {
-        PsxVm::LockSpu spuLock;
-        PsxVm::gSpu.pExtInputCallback = nullptr;
-        PsxVm::gSpu.pExtInputUserData = nullptr;
-    }
+    // Uninstall the CD player as an external input to the SPU (via the multiplexer)
+    SpuExtInputMux::removeInput(SpuAudioCallback);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -485,4 +491,33 @@ int32_t psxcd_get_playing_track() noexcept {
     // N.B: don't hold this lock in the main thread at the same time as the SPU lock - otherwise deadlock might occur!
     LockMusicStreamer lockMusicStreamer;
     return gMusicStreamer.getCurrentTrack();
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Update the settings for music playback
+//------------------------------------------------------------------------------------------------------------------------------------------
+void psxcd_set_playback_attribs(
+    const std::optional<bool> bMusicEnable,
+    const std::optional<bool> bMusicReverbEnable,
+    const std::optional<int16_t> musicVolumeL,
+    const std::optional<int16_t> musicVolumeR
+) noexcept
+{
+    LockMusicStreamer musicStreamerLock;
+
+    if (bMusicEnable.has_value()) {
+        gCdMusicEnable = bMusicEnable.value();
+    }
+
+    if (bMusicReverbEnable.has_value()) {
+        gCdMusicReverbEnable = bMusicReverbEnable.value();
+    }
+
+    if (musicVolumeL.has_value()) {
+        gCdMusicVolume.left = musicVolumeL.value();
+    }
+
+    if (musicVolumeR.has_value()) {
+        gCdMusicVolume.right = musicVolumeR.value();
+    }
 }

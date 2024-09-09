@@ -45,20 +45,20 @@ class MusicStreamer {
 public:
     MusicStreamer() noexcept;
     ~MusicStreamer() noexcept;
-    
+
     void init() noexcept;
     void shutdown() noexcept;
-    
+
     bool playTrack(const int32_t trackNum, const int32_t loopTrackNum) noexcept;
     uint16_t getCurrentTrack() const noexcept;
     bool isTrackPlaying() const noexcept;
     bool isTrackPlayingAndUnpaused() const noexcept;
     void stop() noexcept;
-    
+
     bool pause() noexcept;
     bool isPaused() const noexcept;
     bool resume() noexcept;
-    
+
     Spu::StereoSample readNextSample() noexcept;
     size_t getCurrentStereoSampleIndex() noexcept;
 
@@ -71,12 +71,12 @@ private:
 
     // The source of the music itself
     std::unique_ptr<IMusicSource> mpMusicSource;
-    
+
     // Which music tracks are available as Ogg Vorbis files and the paths to them
     struct OggVorbisTrack {
         int32_t         trackNum;
         std::string     filePath;
     };
-    
+
     std::vector<OggVorbisTrack> mOggVorbisTracks;
 };

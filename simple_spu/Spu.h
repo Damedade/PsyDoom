@@ -392,11 +392,18 @@ struct Voice {
 };
 
 //------------------------------------------------------------------------------------------------------------------------------------------
+// The data that an SPU callback must return
+//------------------------------------------------------------------------------------------------------------------------------------------
+struct SpuCallbackOutput {
+    StereoSample sample;        // The sample that was output by the callback: this will be audible to the user
+    StereoSample reverbSample;  // The sample to pipe through the reverb effect (not heard directly, can be lower volume or silent)
+};
+
+//------------------------------------------------------------------------------------------------------------------------------------------
 // A callback which is invoked by the SPU to provide external input.
 // Can be used to mix in CD audio or anything else and run it through the reverb processing of the SPU.
-// The callback takes a single piece of user data and must return 1 sound sample.
 //------------------------------------------------------------------------------------------------------------------------------------------
-typedef StereoSample (*ExtInputCallback)(void* pUserData) noexcept;
+typedef SpuCallbackOutput (*ExtInputCallback)() noexcept;
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // The SPU core/device itself
@@ -412,13 +419,9 @@ struct Core {
     uint32_t            numVoices;              // How many voices the core provides
     Volume              masterVol;              // Master volume. Note: expected to be from -0x3FFF to +0x3FFF.
     Volume              reverbVol;              // Reverb volume level
-    Volume              extInputVol;            // External input volume (I'm using this for CD audio mixing)
     bool                bUnmute;                // If 'true' then the output from voices is mixed into the output
     bool                bReverbWriteEnable;     // Whether reverb can write output to the reverb work area
-    bool                bExtEnabled;            // Whether to mix input from the external input source
-    bool                bExtReverbEnable;       // Whether to apply reverb on the input from the external source
     ExtInputCallback    pExtInputCallback;      // Callback used to source external input: if null no external input is mixed with SPU voices
-    void*               pExtInputUserData;      // User data passed to the external input callback
     uint32_t            cycleCount;             // How many cycles has the SPU done (44,100 == 1 second of audio): each cycle is generating a 16-bit left & right audio sample
     uint32_t            reverbBaseAddr8;        // Start address of the reverb work area in 8 byte units; anything past this address in SPU RAM is for reverb
     uint32_t            reverbCurAddr;          // Used for relative reads and writes to the reverb work area; continously incremented and wrapped as reverb is processed

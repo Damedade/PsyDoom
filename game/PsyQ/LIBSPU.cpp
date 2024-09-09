@@ -7,6 +7,7 @@
 #include "Asserts.h"
 #include "PsyDoom/PsxVm.h"
 #include "Spu.h"
+#include "Wess/psxcd.h"
 
 #include <cmath>
 #include <cstring>
@@ -551,31 +552,28 @@ void LIBSPU_SpuSetCommonAttr(const SpuCommonAttr& attribs) noexcept {
         }
     }
 
-    // Note: PsyDoom's new SPU implemention only supports a single external input, which is used to supply CD audio.
-    // Because of this, parameters relating to CD volume and reverb are set for the 'external input' on the SPU and not on dedicated
-    // fields relating to CD audio specifically. Because there is only one external input also, I'm ignoring anything requested here
-    // related to the PlayStation's original external input. Doom didn't use this input so that's okay to do...
-
-    // Set: cd volume left and right
-    if (bSetCdVolL) {
-        spu.extInputVol.left = attribs.cd.volume.left;
+    // This is a slightly messy dependency between LIBSPU and the 'psxcd' module, but necessary given recent PsyDoom SPU refactoring.
+    // The single external input for the SPU is now fed by an audio multiplexer, which can combine sound from multiple sources.
+    // Because of this, a single volume and reverb etc. setting on the SPU itself was no longer sufficient for individual control.
+    // To fix this, the responsibility for volume and reverb controls etc. is now moved onto each audio source feeding the multiplexer.
+    //
+    // Because of this fix we can no longer update the SPU struct here to adjust settings.
+    // In order to emulate the original game behavior but not disturb any other audio sources we have to adjust the settings for cd-music
+    // specifically - the intended target for PSX Doom. And that means we must call into the 'psxcd' module - which LIBSPU should really
+    // not depend on because of the game-code vs library-code separation.
+    //
+    if (bSetCdVolL || bSetCdVolR || bSetCdReverb || bSetCdMix) {
+        psxcd_set_playback_attribs(
+            (bSetCdMix) ? (attribs.cd.mix != 0) : std::optional<bool>{},
+            (bSetCdReverb) ? (attribs.cd.reverb != 0) : std::optional<bool>{},
+            (bSetCdVolL) ? attribs.cd.volume.left : std::optional<int16_t>{},
+            (bSetCdVolR) ? attribs.cd.volume.right : std::optional<int16_t>{}
+        );
     }
 
-    if (bSetCdVolR) {
-        spu.extInputVol.right = attribs.cd.volume.right;
-    }
-
-    // Set: cd reverb and mix enabled
-    if (bSetCdReverb) {
-        spu.bExtReverbEnable = (attribs.cd.reverb != 0);
-    }
-
-    if (bSetCdMix) {
-        spu.bExtEnabled = (attribs.cd.mix != 0);
-    }
-
-    // Attributes relating to PlayStation external inputs are ignored for PsyDoom (see comments above)
-    #if false
+    // Attributes relating to PlayStation external inputs are ignored for PsyDoom.
+    // These were never used in the original PSX Doom and therefore don't map to anything in PsyDoom.
+    #if 0
         if (bSetExtVolL) {
             spu.extInputVol.left = attribs.ext.volume.left;
         }
@@ -704,14 +702,10 @@ void LIBSPU_SpuInit() noexcept {
     Spu::Core& spu = PsxVm::gSpu;
     PsxVm::LockSpu spuLock;
 
-    spu.bExtEnabled = false;
-    spu.bExtReverbEnable = false;
     spu.bUnmute = false;
     spu.bReverbWriteEnable = false;
-
     spu.masterVol = {};
     spu.reverbVol = {};
-    spu.extInputVol = {};
 
     for (uint32_t voiceIdx = 0; voiceIdx < spu.numVoices; ++voiceIdx) {
         Spu::Voice& voice = spu.pVoices[voiceIdx];

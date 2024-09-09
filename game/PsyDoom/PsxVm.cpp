@@ -13,6 +13,7 @@
 #include "IsoFileSys.h"
 #include "ProgArgs.h"
 #include "Spu.h"
+#include "SpuExtInputMux.hpp"
 
 #include <SDL.h>
 #include <mutex>
@@ -144,6 +145,9 @@ bool init(const char* const doomCdCuePath) noexcept {
         );
     #endif
 
+    // Init the SPU external input multiplexer
+    SpuExtInputMux::init();
+
     // Parse the .cue info for the game disc
     {
         std::string parseErrorMsg;
@@ -212,7 +216,9 @@ void shutdown() noexcept {
         gSdlAudioDeviceId = 0;
     }
 
-    Spu::destroyCore(gSpu);     // Note: no locking of the SPU here because all threads should be done with it at this point
+    gIsoFileSys = {};
+    SpuExtInputMux::shutdown();
+    Spu::destroyCore(gSpu); // Note: no locking of the SPU here because all threads should be done with it at this point
     Gpu::destroyCore(gGpu);
 }
 
