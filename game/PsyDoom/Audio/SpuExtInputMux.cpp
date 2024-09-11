@@ -4,10 +4,10 @@
 // It provides a flexible way to add and remove audio inputs which that get routed through the Spu.
 // For example it can be used to pipe CD music or an external sound playback system through the Spu.
 //------------------------------------------------------------------------------------------------------------------------------------------
-#include "SpuExtInputMux.hpp"
+#include "SpuExtInputMux.h"
 
 #include "Asserts.h"
-#include "PsxVm.h"
+#include "PsyDoom/PsxVm.h"
 
 #include <mutex>
 

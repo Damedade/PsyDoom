@@ -4,7 +4,8 @@
 #include "PsxVm.h"
 
 #include "Asserts.h"
-#include "AudioCompressor.h"
+#include "Audio/AudioCompressor.h"
+#include "Audio/SpuExtInputMux.h"
 #include "Config/Config.h"
 #include "DiscInfo.h"
 #include "DiscReader.h"
@@ -13,7 +14,6 @@
 #include "IsoFileSys.h"
 #include "ProgArgs.h"
 #include "Spu.h"
-#include "SpuExtInputMux.hpp"
 
 #include <SDL.h>
 #include <mutex>

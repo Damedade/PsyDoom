@@ -1,12 +1,12 @@
 #include "MusicStreamer.h"
 
 #include "Asserts.h"
-#include "DiscInfo.h"
-#include "DiscReader.h"
 #include "Endian.h"
-#include "ModMgr.h"
-#include "ProgArgs.h"
-#include "PsxVm.h"
+#include "PsyDoom/DiscInfo.h"
+#include "PsyDoom/DiscReader.h"
+#include "PsyDoom/ModMgr.h"
+#include "PsyDoom/ProgArgs.h"
+#include "PsyDoom/PsxVm.h"
 
 #include <cstdio>
 #include <vorbis/vorbisfile.h>

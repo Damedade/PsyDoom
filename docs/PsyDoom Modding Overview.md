@@ -67,6 +67,7 @@ PsyDoom has the following new or limit removing features versus the original Pla
 - Added support for any power of two texture size from `2x2` up to `1024x512`.
 - The number of PSX format palettes that can be stored in `PLAYPAL` has been raised from `26` to `32`. Final Doom uses `26` palettes so this allows an extra `6` user palettes.
 - Increased number of SPU voices (`64` instead of `24`).
+- Ogg Vorbis files can be used to add new CD-quality music tracks.
 - Floating point mixing for the SPU; eliminates clipping artifacts if sound gets too loud.
 - A [Lua scripting engine](PsyDoom%20Lua%20Scripting.md) for more complex special actions.
 - Generic 'marker' thing types intended to be used with scripting.
