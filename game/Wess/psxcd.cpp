@@ -48,15 +48,27 @@ static Spu::Volume  gCdMusicVolume          = {};
 static bool         gCdMusicEnable          = false;
 static bool         gCdMusicReverbEnable    = false;
 
-// The lock for the Music Streamer and a helper to lock/unlock via RAII.
-// N.B: this *CANNOT* be held the same time as the SPU lock, otherwise deadlock MIGHT occur!
-// The SPU can request audio from the CD and thus needs access to the Music Streamer lock also.
+// The lock for the Music Streamer and implementation of an RAII helper class to lock/unlock
 static std::recursive_mutex gMusicStreamerMutex;
 
-struct LockMusicStreamer {
-    LockMusicStreamer() noexcept { gMusicStreamerMutex.lock(); }
-    ~LockMusicStreamer() noexcept { gMusicStreamerMutex.unlock(); }
-};
+#ifndef NDEBUG
+static size_t gMusicStreamerLockCount = 0;
+#endif
+
+LockPsxcdMusicStreamer::LockPsxcdMusicStreamer() noexcept {
+    gMusicStreamerMutex.lock();
+#ifndef NDEBUG
+    gMusicStreamerLockCount++;
+#endif
+}
+
+LockPsxcdMusicStreamer::~LockPsxcdMusicStreamer() noexcept {
+#ifndef NDEBUG
+    ASSERT(gMusicStreamerLockCount > 0);
+    gMusicStreamerLockCount--;
+#endif
+    gMusicStreamerMutex.unlock();
+}
 
 // Disc readers used for each open file
 static DiscReader gFileDiscReaders[MAX_OPEN_FILES] = {
@@ -70,10 +82,11 @@ static DiscReader gFileDiscReaders[MAX_OPEN_FILES] = {
 // A callback invoked by the SPU (via the SPU input multiplexer) when it wants audio from the Music Streamer: returns a single sample
 //------------------------------------------------------------------------------------------------------------------------------------------
 static Spu::SpuCallbackOutput SpuAudioCallback() noexcept {
-    // Lock the Music Streamer while we are doing this.
-    // Note that this thread also has the SPU lock at this point too.
-    // Therefore the main thread must NOT lock both the Music Streamer and the SPU at the same time, or otherwise a deadlock might occur!
-    LockMusicStreamer musicStreamerLock;
+    // The SDL audio thread callback must first acquire lock for the music streamer.
+    // It does this once per batch of samples, to reduce locking overhead.
+    #ifndef NDEBUG
+        ASSERT(gMusicStreamerLockCount > 0);
+    #endif
 
     if (!gCdMusicEnable)
         return {};
@@ -102,7 +115,7 @@ void psxcd_init() noexcept {
     
     // Initialize the Music Streamer
     {
-        LockMusicStreamer musicStreamerLock;
+        LockPsxcdMusicStreamer musicStreamerLock;
         gMusicStreamer.init();
     }
 }
@@ -113,7 +126,7 @@ void psxcd_init() noexcept {
 void psxcd_exit() noexcept {
     // Shut down the Music Streamer
     {
-        LockMusicStreamer musicStreamerLock;
+        LockPsxcdMusicStreamer musicStreamerLock;
         gMusicStreamer.shutdown();
     }
     
@@ -303,7 +316,7 @@ static void psxcd_play_internal(
 
     {
         // N.B: don't hold this lock in the main thread at the same time as the SPU lock - otherwise deadlock might occur!
-        LockMusicStreamer musicStreamerLock;
+        LockPsxcdMusicStreamer musicStreamerLock;
         bStartedPlayingTrack = gMusicStreamer.playTrack(track, (bLoop) ? loopTrack : 0);
     }
 
@@ -393,7 +406,7 @@ void psxcd_stop() noexcept {
 
     {
         // N.B: don't hold this lock in the main thread at the same time as the SPU lock - otherwise deadlock might occur!
-        LockMusicStreamer musicStreamerLock;
+        LockPsxcdMusicStreamer musicStreamerLock;
         bMightNeedFade = gMusicStreamer.isTrackPlayingAndUnpaused();
     }
 
@@ -409,7 +422,7 @@ void psxcd_stop() noexcept {
     // Close the current music stream
     {
         // N.B: don't hold this lock in the main thread at the same time as the SPU lock - otherwise deadlock might occur!
-        LockMusicStreamer musicStreamerLock;
+        LockPsxcdMusicStreamer musicStreamerLock;
         gMusicStreamer.stop();
     }
 }
@@ -423,7 +436,7 @@ void psxcd_pause() noexcept {
 
     {
         // N.B: don't hold this lock in the main thread at the same time as the SPU lock - otherwise deadlock might occur!
-        LockMusicStreamer musicStreamerLock;
+        LockPsxcdMusicStreamer musicStreamerLock;
         bMightNeedFade = gMusicStreamer.isTrackPlayingAndUnpaused();
     }
 
@@ -439,7 +452,7 @@ void psxcd_pause() noexcept {
     // Pause the current music stream
     {
         // N.B: don't hold this lock in the main thread at the same time as the SPU lock - otherwise deadlock might occur!
-        LockMusicStreamer musicStreamerLock;
+        LockPsxcdMusicStreamer musicStreamerLock;
         gMusicStreamer.pause();
     }
 }
@@ -452,7 +465,7 @@ void psxcd_restart(const int32_t vol) noexcept {
     // Note: this won't do anything if nothing is actually playing, hence no status checking here.
     {
         // N.B: don't hold this lock in the main thread at the same time as the SPU lock - otherwise deadlock might occur!
-        LockMusicStreamer musicStreamerLock;
+        LockPsxcdMusicStreamer musicStreamerLock;
         gMusicStreamer.resume();
     }
 
@@ -470,7 +483,7 @@ int32_t psxcd_elapsed_sectors() noexcept {
     constexpr uint32_t STEREO_SAMPLES_PER_SECTOR = CD_SECTOR_SIZE / STEREO_SAMPLE_SIZE;
     
     // N.B: don't hold this lock in the main thread at the same time as the SPU lock - otherwise deadlock might occur!
-    LockMusicStreamer lockMusicStreamer;
+    LockPsxcdMusicStreamer lockMusicStreamer;
     const size_t elapsedSamples = gMusicStreamer.getCurrentStereoSampleIndex();
     const size_t elapsedSectors = elapsedSamples / STEREO_SAMPLES_PER_SECTOR;
     return (int32_t) elapsedSectors;
@@ -489,7 +502,7 @@ int32_t psxcd_get_file_size(const CdFileId discFile) noexcept {
 
 int32_t psxcd_get_playing_track() noexcept {
     // N.B: don't hold this lock in the main thread at the same time as the SPU lock - otherwise deadlock might occur!
-    LockMusicStreamer lockMusicStreamer;
+    LockPsxcdMusicStreamer lockMusicStreamer;
     return gMusicStreamer.getCurrentTrack();
 }
 
@@ -503,7 +516,7 @@ void psxcd_set_playback_attribs(
     const std::optional<int16_t> musicVolumeR
 ) noexcept
 {
-    LockMusicStreamer musicStreamerLock;
+    LockPsxcdMusicStreamer musicStreamerLock;
 
     if (bMusicEnable.has_value()) {
         gCdMusicEnable = bMusicEnable.value();

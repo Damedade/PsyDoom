@@ -56,6 +56,13 @@ struct PsxCd_MapTblEntry {
     }
 };
 
+// An RAII lock for the music streamer hidden within this module.
+// Exposed so the SDL audio thread can lock it while it needs access.
+struct LockPsxcdMusicStreamer {
+    LockPsxcdMusicStreamer() noexcept;
+    ~LockPsxcdMusicStreamer() noexcept;
+};
+
 void psxcd_init() noexcept;
 void psxcd_exit() noexcept;
 PsxCd_File* psxcd_open(const CdFileId discFile) noexcept;

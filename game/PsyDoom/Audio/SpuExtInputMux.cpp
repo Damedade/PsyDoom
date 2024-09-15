@@ -20,14 +20,28 @@ static constexpr uint32_t MAX_MUX_INPUTS = 4;
 static Spu::ExtInputCallback gMuxInputCallbacks[MAX_MUX_INPUTS];
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// The lock for the multiplexer and a helper to lock/unlock via RAII
+// The lock for the multiplexer
 //------------------------------------------------------------------------------------------------------------------------------------------
 static std::recursive_mutex gSpuInputMuxMutex;
 
-struct LockSpuInputMux {
-    LockSpuInputMux() noexcept { gSpuInputMuxMutex.lock(); }
-    ~LockSpuInputMux() noexcept { gSpuInputMuxMutex.unlock(); }
-};
+#ifndef NDEBUG
+static size_t gInputMuxLockCount = 0;
+#endif
+
+LockSpuInputMux::LockSpuInputMux() noexcept {
+    gSpuInputMuxMutex.lock();
+#ifndef NDEBUG
+    gInputMuxLockCount++;
+#endif
+}
+
+LockSpuInputMux::~LockSpuInputMux() noexcept {
+#ifndef NDEBUG
+    ASSERT(gInputMuxLockCount > 0);
+    gInputMuxLockCount--;
+#endif
+    gSpuInputMuxMutex.unlock();
+}
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Helper: returns the index of the specified input callback or UINT32_MAX if not found.
@@ -46,19 +60,21 @@ static uint32_t findSpuCallback(const Spu::ExtInputCallback callback) noexcept {
 // This is the callback invoked by the SPU to get external audio input
 //------------------------------------------------------------------------------------------------------------------------------------------
 static Spu::SpuCallbackOutput spuCallback() noexcept {
+    // The SDL audio thread callback must first acquire lock of input multiplexer.
+    // It does this once per batch of samples, to reduce locking overhead.
+    #ifndef NDEBUG
+        ASSERT(gInputMuxLockCount > 0);
+    #endif
+
     Spu::SpuCallbackOutput combinedOutput = {};
 
-    {
-        LockSpuInputMux lockMux;
+    for (uint32_t i = 0; i < MAX_MUX_INPUTS; ++i) {
+        const Spu::ExtInputCallback inputCallback = gMuxInputCallbacks[i];
 
-        for (uint32_t i = 0; i < MAX_MUX_INPUTS; ++i) {
-            const Spu::ExtInputCallback inputCallback = gMuxInputCallbacks[i];
-
-            if (inputCallback) {
-                const Spu::SpuCallbackOutput callbackOutput = inputCallback();
-                combinedOutput.sample += callbackOutput.sample;
-                combinedOutput.reverbSample += callbackOutput.reverbSample;
-            }
+        if (inputCallback) {
+            const Spu::SpuCallbackOutput callbackOutput = inputCallback();
+            combinedOutput.sample += callbackOutput.sample;
+            combinedOutput.reverbSample += callbackOutput.reverbSample;
         }
     }
 

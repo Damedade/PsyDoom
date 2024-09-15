@@ -14,6 +14,7 @@
 #include "IsoFileSys.h"
 #include "ProgArgs.h"
 #include "Spu.h"
+#include "Wess/psxcd.h"
 
 #include <SDL.h>
 #include <mutex>
@@ -42,11 +43,16 @@ static void SdlAudioCallback([[maybe_unused]] void* userData, Uint8* pOutput, in
         return;
 
     // How many samples are to be output?
-    const uint32_t numSamples = (uint32_t) outputSize / (sizeof(float) * 2);
+    const uint32_t numSamples = (uint32_t) outputSize / (sizeof(float) * 2u);
+
+    // Lock the SPU and other audio related components that the audio thread might need access to.
+    // We lock them all here once per batch of audio samples, to reduce the overhead.
+    PsxVm::LockSpu spuLock;
+    LockPsxcdMusicStreamer psxcdMusicStreamerLock;
+    SpuExtInputMux::LockSpuInputMux spuInputMuxLock;
 
     // Lock the SPU and generate the requested number of samples
     float* pOutputF = reinterpret_cast<float*>(pOutput);
-    PsxVm::LockSpu spuLock;
 
     for (uint32_t sampleIdx = 0; sampleIdx < numSamples; ++sampleIdx) {
         // Get this sample in floating point format
