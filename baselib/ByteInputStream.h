@@ -10,6 +10,13 @@
 //------------------------------------------------------------------------------------------------------------------------------------------
 class ByteInputStream final : public InputStream {
 public:
+    inline ByteInputStream() noexcept
+        : mpData(nullptr)
+        , mSize(0)
+        , mCurByteIdx(0)
+    {
+    }
+
     inline ByteInputStream(const std::byte* const pData, const size_t size) noexcept
         : mpData(pData)
         , mSize(size)
@@ -18,6 +25,7 @@ public:
     }
 
     inline ByteInputStream(const ByteInputStream& other) noexcept = default;
+    inline ByteInputStream& operator = (const ByteInputStream& other) noexcept = default;
 
     virtual void readBytes(void* const pDstBytes, const size_t numBytes) THROWS override {
         ensureBytesLeft(numBytes);
@@ -41,11 +49,16 @@ public:
     // Return the next value ahead (of the given type) but do not consume the input.
     // This is possible for this stream type because we have all of the bytes available to us at all times.
     template <class T>
-    T peek() {
+    T peek() const {
         ensureBytesLeft(sizeof(T));
         T output;
         std::memcpy(&output, mpData + mCurByteIdx, sizeof(T));
         return output;
+    }
+
+    // Get a pointer to all the bytes in the stream (from the beginning)
+    const std::byte* data() const {
+        return mpData;
     }
 
     // Gives the overall size of the stream
@@ -65,7 +78,7 @@ public:
     }
 
 private:
-    inline void ensureBytesLeft(const size_t numBytes) THROWS {
+    inline void ensureBytesLeft(const size_t numBytes) const THROWS {
         if ((numBytes > mSize) || (mCurByteIdx + numBytes > mSize)) {
             throw StreamException();
         }
