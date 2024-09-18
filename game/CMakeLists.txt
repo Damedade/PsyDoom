@@ -178,6 +178,8 @@ set(SOURCE_FILES
     "PsyDoom/Audio/AudioSampler.h"
     "PsyDoom/Audio/MusicStreamer.cpp"
     "PsyDoom/Audio/MusicStreamer.h"
+    "PsyDoom/Audio/SoundCache.cpp"
+    "PsyDoom/Audio/SoundCache.h"
     "PsyDoom/Audio/SpuExtInputMux.cpp"
     "PsyDoom/Audio/SpuExtInputMux.h"
     "PsyDoom/Audio/WavReader.cpp"
