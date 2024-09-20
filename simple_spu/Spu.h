@@ -216,6 +216,7 @@ inline int16_t sampleAttenuate(const int16_t sample, const int16_t volume) noexc
 
         inline Sample() noexcept : value(0) {}
         inline Sample(const int16_t value) noexcept : value(value) {}
+        inline Sample(const float value) noexcept: value(toInt16Sample(value)) {}   // Convenience auto-conversion from float
 
         Sample(const Sample& other) noexcept = default;
         Sample& operator = (const Sample& other) noexcept = default;
