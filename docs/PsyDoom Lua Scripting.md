@@ -916,15 +916,15 @@ MT_MARKER16             -- PsyDoom generic marker (type 16)
 ```
 ### Sound ids (built-in)
 ```lua
-sfx_sgcock              -- 1: WeWeapon pickup sound
-sfx_punch               -- 2: PuPunch hit
-sfx_itmbk               -- 3: DeDeathmatch item respawn
-sfx_firsht2             -- 4: DeDemon/Baron/Cacodemon etc. fireball sound
-sfx_barexp              -- 5: BaBarrel/rocket explode
-sfx_firxpl              -- 6: DeDemon fireball hit
-sfx_pistol              -- 7: PiPistol fire
-sfx_shotgn              -- 8: ShShotgun fire
-sfx_plasma              -- 9: PlPlasma rifle fire
+sfx_sgcock              -- 1: Weapon pickup sound
+sfx_punch               -- 2: Punch hit
+sfx_itmbk               -- 3: Deathmatch item respawn
+sfx_firsht2             -- 4: Demon/Baron/Cacodemon etc. fireball sound
+sfx_barexp              -- 5: Barrel/rocket explode
+sfx_firxpl              -- 6: Demon fireball hit
+sfx_pistol              -- 7: Pistol fire
+sfx_shotgn              -- 8: Shotgun fire
+sfx_plasma              -- 9: Plasma rifle fire
 sfx_bfg                 -- 10: BFG start firing
 sfx_sawup               -- 11: Chainsaw being started up
 sfx_sawidl              -- 12: Chainsaw idle loop

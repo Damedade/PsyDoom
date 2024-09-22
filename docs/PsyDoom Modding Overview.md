@@ -4,7 +4,8 @@ Table of contents:
 - [Extension IWADS](#Extension-IWADS)
 - [Level Editor](#Level-Editor)
 - [`ALLMAPS.LCD`](#ALLMAPSLCD)
-- [OGG Vorbis custom music](#Ogg-Vorbis-Custom-Music)
+- [OGG Vorbis custom music](#Ogg-Vorbis-custom-music)
+- [Custom sounds](#Custom-sounds)
 - [PsyDoom limit removing and extended features](#PsyDoom-limit-removing-and-extended-features)
 
 In-depth specifications:
@@ -59,6 +60,11 @@ PsyDoom now supports adding custom music to user mods in Ogg Vorbis format. PsyD
 
 Restrictions: the Ogg Vorbis files provided must have exactly 2 channels and a 44.1KHz sample rate (CD Audio quality).
 
+## Custom sounds
+PsyDoom now has the ability to load sounds defined in extension IWADS. The sounds must be stored in the .wav file format, using PCM encoding with 8 or 16 bit sample depth. Any sample rate (44.1 KHz, 22 KHz etc.) is allowed.
+
+The sounds added must be named using the format `WSNDxxxx`, where 'xxxx' is the sample number. For example `WSND0007` is sound number `7`, which is the pistol firing sound. For a full list of sound numbers/ids in the game, refer to the ['Functions/Sounds' section in the Lua Scripting guide](PsyDoom%20Lua%20Scripting.md#Sounds).
+
 ## PsyDoom limit removing and extended features
 PsyDoom has the following new or limit removing features versus the original PlayStation engine. This means more complex and customized creations are now possible:
 - Extended VRAM for sprites and textures: instead of `1 MiB` PsyDoom can now have up to `128 MiB` of VRAM available (the default).
@@ -67,7 +73,8 @@ PsyDoom has the following new or limit removing features versus the original Pla
 - Added support for any power of two texture size from `2x2` up to `1024x512`.
 - The number of PSX format palettes that can be stored in `PLAYPAL` has been raised from `26` to `32`. Final Doom uses `26` palettes so this allows an extra `6` user palettes.
 - Increased number of SPU voices (`64` instead of `24`).
-- Ogg Vorbis files can be used to add new CD-quality music tracks.
+- [Ogg Vorbis files](#Ogg-Vorbis-custom-music) can be used to add new CD-quality music tracks.
+- [Custom sounds](#Custom-sounds) can be added in normal .wav format (PCM 8 or 16-bit encoding only).
 - Floating point mixing for the SPU; eliminates clipping artifacts if sound gets too loud.
 - A [Lua scripting engine](PsyDoom%20Lua%20Scripting.md) for more complex special actions.
 - Generic 'marker' thing types intended to be used with scripting.
