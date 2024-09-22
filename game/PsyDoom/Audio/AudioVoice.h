@@ -22,13 +22,13 @@ struct AudioVoice {
     // Values for the 'volume' field below
     static constexpr uint8_t VOLUME_MAX = 128;
 
-    uint16_t    soundId : 14;       // Which sound to play: this is just enough bits for 'SoundCache::MAX_SOUND_ID'.
-    uint16_t    bReverbEnable : 1;  // Whether the voice should have reverb applied
-    uint16_t    bKillVoice : 1;     // When this bit is set the voice should be killed
-    uint8_t     volume;             // The current volume of the sound
-    uint8_t     pan;                // Current pan value for the voice
-    float       playbackRate;       // How much to advance 'samplePos' per sample requested (E.G: '0.5' for a 22 KHz sample playing at normal pitch since the output rate is 44.1 KHz)
-    double      samplePos;          // Which sample the audio voice is currently on
+    uint16_t    soundId : 14;           // Which sound to play: this is just enough bits for 'SoundCache::MAX_SOUND_ID'.
+    uint16_t    bReverbEnable : 1;      // Whether the voice should have reverb applied
+    uint16_t    bKillVoice : 1;         // When this bit is set the voice should be killed
+    uint8_t     volume;                 // The current volume of the sound
+    uint8_t     pan;                    // Current pan value for the voice
+    float       playbackRate;           // How much to advance 'samplePos' per sample requested (E.G: '0.5' for a 22 KHz sample playing at normal pitch since the output rate is 44.1 KHz)
+    double      samplePos;              // Which sample the audio voice is currently on
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -47,10 +47,10 @@ struct AudioVoiceList {
 };
 
 //----------------------------------------------------------------------------------------------------------------------
-// This is how many voices we allow for looping and non-looping sounds
+// PsyDoom's data structures for audio engine voice lists: non-looping and looping
 //----------------------------------------------------------------------------------------------------------------------
-using NonLoopingAudioVoiceList = AudioVoiceList<64>;
-using LoopingAudioVoiceList = AudioVoiceList<32>;
+struct NonLoopingAudioVoiceList : public AudioVoiceList<64> {};
+struct LoopingAudioVoiceList : public AudioVoiceList<32> {};
 
 //----------------------------------------------------------------------------------------------------------------------
 // Utilities for stepping audio voices and also for finding free voices, or stealing currently active voices
@@ -62,5 +62,46 @@ Spu::SpuCallbackOutput stepLoopingVoice(AudioVoice& voice, const SoundCache& sou
 
 Spu::SpuCallbackOutput stepNonLoopingVoices(NonLoopingAudioVoiceList& voiceList, const SoundCache& soundCache) noexcept;
 Spu::SpuCallbackOutput stepLoopingVoices(LoopingAudioVoiceList& voiceList, const SoundCache& soundCache) noexcept;
+
+uint32_t findFirstFreeVoice(const NonLoopingAudioVoiceList& voiceList) noexcept;
+uint32_t findFirstFreeVoice(const LoopingAudioVoiceList& voiceList) noexcept;
+
+uint32_t pickNonLoopingVoiceToSteal(const NonLoopingAudioVoiceList& voiceList) noexcept;
+uint32_t pickLoopingVoiceToSteal(const LoopingAudioVoiceList& voiceList) noexcept;
+
+bool initVoiceForPlayback(
+    AudioVoice& voice,
+    const uint16_t soundId,
+    const SoundCache& soundCache,
+    const uint8_t volume,
+    const uint8_t pan,
+    const float pitch,
+    const bool bEnableReverb
+) noexcept;
+
+bool beginVoicePlayback(
+    NonLoopingAudioVoiceList& voiceList,
+    const uint32_t voiceIdx,
+    const uint16_t soundId,
+    const SoundCache& soundCache,
+    const uint8_t volume,
+    const uint8_t pan,
+    const float pitch,
+    const bool bEnableReverb
+) noexcept;
+
+bool beginVoicePlayback(
+    LoopingAudioVoiceList& voiceList,
+    const uint32_t voiceIdx,
+    const uint16_t soundId,
+    const SoundCache& soundCache,
+    const uint8_t volume,
+    const uint8_t pan,
+    const float pitch,
+    const bool bEnableReverb
+) noexcept;
+
+void stopVoicePlayback(NonLoopingAudioVoiceList& voiceList, const uint32_t voiceIdx) noexcept;
+void stopVoicePlayback(LoopingAudioVoiceList& voiceList, const uint32_t voiceIdx) noexcept;
 
 END_NAMESPACE(AudioVoiceUtils)

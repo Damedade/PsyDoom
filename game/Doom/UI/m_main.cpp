@@ -11,6 +11,8 @@
 #include "Doom/Game/p_tick.h"
 #include "Doom/Renderer/r_data.h"
 #include "o_main.h"
+#include "PsyDoom/Audio/AudioEngine.h"
+#include "PsyDoom/Audio/SoundCache.h"
 #include "PsyDoom/Game.h"
 #include "PsyDoom/Input.h"
 #include "PsyDoom/MapInfo/GecMapInfo.h"
@@ -464,6 +466,14 @@ gameaction_t RunMenu() noexcept {
         if (bStartGame) {
             G_InitNew(gStartSkill, gStartMapOrEpisode, gStartGameType);
             G_RunGame();
+        #if PSYDOOM_MODS
+            {
+                // Evict all map and custom sounds once we return to the main menu
+                const AudioEngine::LockAudioEngine lockAudioEngine;
+                AudioEngine::gSoundCache.unloadAllMapExclusiveSounds();
+                AudioEngine::gSoundCache.unloadAllCustomSounds();
+            }
+        #endif
         }
     }
 
@@ -496,6 +506,14 @@ void M_Start() noexcept {
     // Show the loading plaque
     I_LoadAndCache_LOADING_TexLump(gTex_LOADING);
     I_DrawLoadingPlaque(gTex_LOADING, 95, 109, Game::getTexClut_LOADING());
+
+    // PsyDoom: precache menu sounds if we didn't already do so
+    #if PSYDOOM_MODS
+    {
+        const AudioEngine::LockAudioEngine lockAudioEngine;
+        AudioEngine::gSoundCache.cacheMenuSounds();
+    }
+    #endif
 
     // Load sounds for the menu
     S_LoadMapSoundAndMusic(0);

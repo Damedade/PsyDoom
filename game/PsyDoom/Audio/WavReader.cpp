@@ -135,7 +135,7 @@ AudioData readWav_Pcm16(const std::byte* const pBytes, const size_t numBytes) no
         waveChunkData.skipBytes(4); // Skip past the 4-byte form type (which has the value 'WAVE')
 
         // Find the 'fmt' chunk and read the 'FormatChunkBaseData' from it:
-        const ByteInputStream fmtChunkData = findNextRiffChunk(waveChunkData, isRiffFmtChunk);
+        const ByteInputStream fmtChunkData = findNextRiffChunk(ByteInputStream(waveChunkData), isRiffFmtChunk);
         const FormatChunkBaseData fmt = fmtChunkData.peek<FormatChunkBaseData>();
 
         // Verify the format is what we support
@@ -144,26 +144,46 @@ AudioData readWav_Pcm16(const std::byte* const pBytes, const size_t numBytes) no
             (fmt.numChannels >= 1) &&
             (fmt.numChannels <= 15) &&
             (fmt.sampleRate > 0) &&
-            (fmt.bitsPerSample == 16) // PsyDoom only supports 16-bit audio!
+            ((fmt.bitsPerSample == 8) || (fmt.bitsPerSample == 16)) // PsyDoom only supports 8 or 16-bit audio!
         );
 
         if (!bValidFmt)
             return {};
 
-        // Find the 'data' chunk and check that it is not too big:
-        ByteInputStream dataChunkData = findNextRiffChunk(waveChunkData, isRiffDataChunk);
-
-        if (dataChunkData.size() >= UINT32_MAX) 
+        // Find the 'data' chunk and ensure that it is valid
+        ByteInputStream dataChunkData = findNextRiffChunk(ByteInputStream(waveChunkData), isRiffDataChunk);
+        const bool bValidDataChunk = (
+            (dataChunkData.size() > 0) &&           // Must have SOME data. If not then the chunk was not found, or is zero sized.
+            (dataChunkData.size() <= UINT32_MAX)    // Can't be too big either!
+        );
+        
+        if (!bValidDataChunk)
             return {};
 
         // Read and return the data for the audio
+        const uint32_t bytesPerSample = fmt.bitsPerSample / 8u;
+        const size_t numSamplesForAllChannels = dataChunkData.size() / bytesPerSample;
+
         AudioData audioData = {};
         audioData.sampleRate = fmt.sampleRate & 0x0FFFFFFF;
         audioData.numChannels = fmt.numChannels & 0xF;
-        audioData.numSamples = (uint32_t)(dataChunkData.size() / (sizeof(int16_t) * fmt.numChannels));
+        audioData.numSamples = (uint32_t)(numSamplesForAllChannels / fmt.numChannels);
         audioData.pData = std::make_unique<int16_t[]>((size_t) audioData.numSamples * fmt.numChannels);
 
-        dataChunkData.readArray<int16_t>(audioData.pData.get(), (size_t) audioData.numSamples * fmt.numChannels);
+        if (fmt.bitsPerSample == 16) {
+            dataChunkData.readArray<int16_t>(audioData.pData.get(), numSamplesForAllChannels);
+        }
+        else {
+            // When dealing with 8-bit wav files first convert them to 16-bit.
+            // This is slightly wasteful of memory, but it allows the audio engine to only deal with one format.
+            int16_t* const pDstSamples = audioData.pData.get();
+            const uint8_t* const pSrcSamples = reinterpret_cast<const uint8_t*>(dataChunkData.data());
+
+            for (size_t i = 0; i < numSamplesForAllChannels; ++i) {
+                pDstSamples[i] = (int16_t)((int16_t)(pSrcSamples[i] << 8) - 0x8000);
+            }
+        }
+
         return audioData;
     }
     catch (...) {

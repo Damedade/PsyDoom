@@ -18,6 +18,7 @@
 #include "Game/p_switch.h"
 #include "Game/p_tick.h"
 #include "Game/sprinfo.h"
+#include "PsyDoom/Audio/AudioEngine.h"
 #include "PsyDoom/Config/Config.h"
 #include "PsyDoom/DemoPlayer.h"
 #include "PsyDoom/DemoRecorder.h"
@@ -199,6 +200,11 @@ void D_DoomMain() noexcept {
     W_Init();
     R_Init();
 
+    // PsyDoom: initialize the new PCM-based audio engine that operates in parallel to the old WESS engine.
+    #if PSYDOOM_MODS
+        AudioEngine::init();
+    #endif
+
     // PsyDoom: build the (now) dynamically generated lists of sprites, map objects, animated textures and switches for the game.
     // User mods can add new entries to any of these lists. Also initialize MAPINFO.
     #if PSYDOOM_MODS
@@ -215,6 +221,7 @@ void D_DoomMain() noexcept {
         // PsyDoom: new cleanup logic before we exit
         const auto dmainCleanup = finally([]() noexcept {
             MapInfo::shutdown();
+            AudioEngine::shutdown();
             W_Shutdown();
         });
 

@@ -25,6 +25,8 @@
 #include "p_mobj.h"
 #include "p_setup.h"
 #include "p_tick.h"
+#include "PsyDoom/Audio/AudioEngine.h"
+#include "PsyDoom/Audio/SoundCache.h"
 #include "PsyDoom/Config/Config.h"
 #include "PsyDoom/DemoPlayer.h"
 #include "PsyDoom/DemoRecorder.h"
@@ -147,6 +149,15 @@ void G_DoLoadLevel() noexcept {
     // And and setup the level, then verify the heap after all that is done
     P_SetupLevel(gGameMap, gGameSkill);
     Z_CheckHeap(*gpMainMemZone);
+
+    // PsyDoom: do pre-caching for the current map for the new audio engine.
+    // Note: this must be done after 'P_SetupLevel()' because it examines all of the newly spawned enemies in the map.
+    #if PSYDOOM_MODS
+        {
+            const AudioEngine::LockAudioEngine lockAudioEngine;
+            AudioEngine::gSoundCache.cacheCurrentMapSounds();
+        }
+    #endif
 
     // No action set upon starting a level
     gGameAction = ga_nothing;

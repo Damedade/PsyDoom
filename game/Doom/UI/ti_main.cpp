@@ -15,6 +15,8 @@
 #include "Doom/Renderer/r_sky.h"
 #include "m_main.h"
 #include "o_main.h"
+#include "PsyDoom/Audio/AudioEngine.h"
+#include "PsyDoom/Audio/SoundCache.h"
 #include "PsyDoom/Config/Config.h"
 #include "PsyDoom/Game.h"
 #include "PsyDoom/Input.h"
@@ -413,6 +415,14 @@ void START_Title() noexcept {
     W_CacheLumpName("LOADING", PU_STATIC, false);
     I_LoadAndCache_LOADING_TexLump(gTex_LOADING);
     I_DrawLoadingPlaque(gTex_LOADING, 95, 109, Game::getTexClut_LOADING());
+
+    // PsyDoom: precache menu sounds if we didn't already do so
+    #if PSYDOOM_MODS
+    {
+        const AudioEngine::LockAudioEngine lockAudioEngine;
+        AudioEngine::gSoundCache.cacheMenuSounds();
+    }
+    #endif
 
     // Load sounds for the menu
     S_LoadMapSoundAndMusic(0);

@@ -174,6 +174,8 @@ set(SOURCE_FILES
     "PsyDoom/Audio/AudioCompressor.cpp"
     "PsyDoom/Audio/AudioCompressor.h"
     "PsyDoom/Audio/AudioData.h"
+    "PsyDoom/Audio/AudioEngine.cpp"
+    "PsyDoom/Audio/AudioEngine.h"
     "PsyDoom/Audio/AudioSampler.cpp"
     "PsyDoom/Audio/AudioSampler.h"
     "PsyDoom/Audio/AudioVoice.cpp"

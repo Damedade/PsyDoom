@@ -9,6 +9,7 @@
 #include "FatalErrors.h"
 #include "i_main.h"
 #include "m_fixed.h"
+#include "PsyDoom/Audio/AudioEngine.h"
 #include "PsyDoom/Config/Config.h"
 #include "PsyDoom/DiscInfo.h"
 #include "PsyDoom/Game.h"
@@ -472,6 +473,12 @@ void S_StopAll() noexcept {
 // For the original implementation, see the 'old' code folder.
 //------------------------------------------------------------------------------------------------------------------------------------------
 static void I_StartSound(const queued_sound_t& sound) noexcept {
+    // PsyDoom: try to trigger the sound via the new PCM based audio engine if we can.
+    // If that doesn't work then use the original WESS sound system.
+    if (AudioEngine::playSound(sound.soundId, sound.volume, sound.pan, 1.0f, (sound.reverb != 0)))
+        return;
+
+    // This is the regular code path, using the original WESS sound system:
     TriggerPlayAttr sndAttribs = {};
 
     sndAttribs.attribs_mask = TRIGGER_VOLUME | TRIGGER_PAN | TRIGGER_REVERB;

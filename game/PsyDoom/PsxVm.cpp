@@ -5,6 +5,7 @@
 
 #include "Asserts.h"
 #include "Audio/AudioCompressor.h"
+#include "Audio/AudioEngine.h"
 #include "Audio/SpuExtInputMux.h"
 #include "Config/Config.h"
 #include "DiscInfo.h"
@@ -47,9 +48,10 @@ static void SdlAudioCallback([[maybe_unused]] void* userData, Uint8* pOutput, in
 
     // Lock the SPU and other audio related components that the audio thread might need access to.
     // We lock them all here once per batch of audio samples, to reduce the overhead.
-    PsxVm::LockSpu spuLock;
-    LockPsxcdMusicStreamer psxcdMusicStreamerLock;
-    SpuExtInputMux::LockSpuInputMux spuInputMuxLock;
+    PsxVm::LockSpu                      spuLock;
+    LockPsxcdMusicStreamer              psxcdMusicStreamerLock;
+    SpuExtInputMux::LockSpuInputMux     spuInputMuxLock;
+    AudioEngine::LockAudioEngine        lockAudioEngine;
 
     // Lock the SPU and generate the requested number of samples
     float* pOutputF = reinterpret_cast<float*>(pOutput);

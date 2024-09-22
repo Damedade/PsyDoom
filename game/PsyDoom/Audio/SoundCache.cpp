@@ -80,6 +80,36 @@ SoundCache::SoundCache() noexcept
 SoundCache::~SoundCache() noexcept = default;
 
 //----------------------------------------------------------------------------------------------------------------------
+// Initialize and shutdown the sound cache
+//----------------------------------------------------------------------------------------------------------------------
+void SoundCache::init() noexcept {
+    determineValidSoundIds();
+}
+
+void SoundCache::shutdown() noexcept {
+    mbValidSoundIdx.reset();
+
+    for (uint16_t& idx : mSoundIdToIdx) {
+        idx = INVALID_SOUND_IDX;
+    }
+
+    mSounds.clear();
+    mFreeSoundSlots.clear();
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// Queries whether the specified sound id is valid and can be played.
+// If 'false' is returned then the id is either out of range or the sound doesn't have data in any open WAD files.
+//----------------------------------------------------------------------------------------------------------------------
+bool SoundCache::isValidSoundId(const uint16_t soundId) const noexcept {
+    return ((soundId <= MAX_SOUND_ID) && mbValidSoundIdx[soundId]);
+}
+
+bool SoundCache::isValidSoundId(const sfxenum_t soundId) const noexcept {
+    return ((soundId >= 0) && (soundId <= MAX_SOUND_ID) && mbValidSoundIdx[soundId]);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 // Attempts to load/cache a specified sound.
 // Returns 'true' on success, or if the sound is already loaded.
 //----------------------------------------------------------------------------------------------------------------------
@@ -564,7 +594,7 @@ void SoundCache::unloadSoundRange(
 ) noexcept
 {
     ASSERT(begSoundId <= MAX_SOUND_ID);
-    ASSERT(endSoundId <= MAX_SOUND_ID);
+    ASSERT(endSoundId <= MAX_SOUND_ID + 1u);
     ASSERT(unloadSoundPredicate);
 
     // Examine all the requested sounds

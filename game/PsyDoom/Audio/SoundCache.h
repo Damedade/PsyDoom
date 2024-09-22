@@ -24,6 +24,12 @@ public:
     SoundCache() noexcept;
     ~SoundCache() noexcept;
 
+    void init() noexcept;
+    void shutdown() noexcept;
+
+    bool isValidSoundId(const uint16_t soundId) const noexcept;
+    bool isValidSoundId(const sfxenum_t soundId) const noexcept;
+
     bool cacheSound(const uint16_t soundId) noexcept;
     bool cacheSound(const sfxenum_t soundId) noexcept;
     void cacheMenuSounds() noexcept;
