@@ -433,6 +433,7 @@ public:
   void wrap_mode(int wrap, int wrap_margin);
 
   virtual void recalc_display();
+  virtual void display_needs_recalc();
   void resize(int X, int Y, int W, int H) FL_OVERRIDE;
 
   /**
@@ -496,6 +497,8 @@ protected:
                    int lineStart, int lineLen, int leftChar, int rightChar,
                    int topClip, int bottomClip,
                    int leftClip, int rightClip) const;
+
+  int handle_rmb(int readonly);
 
   void draw_line_numbers(bool clearAll);
 
@@ -625,6 +628,9 @@ protected:
                                  value is calculated as needed (lazy eval); it
                                  needs to be mutable so that it can be calculated
                                  within a method marked as "const" */
+
+  bool display_needs_recalc_;  /* Set to true when the display needs
+                                 to be recalculated. */
 
   Fl_Color mCursor_color;
 

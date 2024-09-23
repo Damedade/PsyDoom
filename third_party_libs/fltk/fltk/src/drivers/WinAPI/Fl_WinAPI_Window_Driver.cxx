@@ -616,13 +616,24 @@ void Fl_WinAPI_Window_Driver::fullscreen_off(int X, int Y, int W, int H) {
 }
 
 
+void Fl_WinAPI_Window_Driver::maximize() {
+  ShowWindow(fl_xid(pWindow), SW_SHOWMAXIMIZED);
+}
+
+void Fl_WinAPI_Window_Driver::un_maximize() {
+  ShowWindow(fl_xid(pWindow), SW_SHOWNORMAL);
+}
+
+
 void Fl_WinAPI_Window_Driver::iconize() {
   ShowWindow(fl_xid(pWindow), SW_SHOWMINNOACTIVE);
 }
 
 
 void Fl_WinAPI_Window_Driver::decoration_sizes(int *top, int *left,  int *right, int *bottom) {
-  if (size_range_set() && (maxw() != minw() || maxh() != minh())) {
+  int minw, minh, maxw, maxh, set;
+  set = pWindow->get_size_range(&minw, &minh, &maxw, &maxh, NULL, NULL, NULL);
+  if (set && (maxw != minw || maxh != minh)) {
     *left = *right = GetSystemMetrics(SM_CXSIZEFRAME);
     *top = *bottom = GetSystemMetrics(SM_CYSIZEFRAME);
   } else {

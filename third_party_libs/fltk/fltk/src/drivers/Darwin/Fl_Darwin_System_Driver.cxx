@@ -21,6 +21,7 @@
 #include <FL/Fl_Tree_Prefs.H>
 #include <FL/Fl_Pixmap.H>
 #include <FL/platform.H>
+#include <FL/fl_draw.H>
 #include "../../flstring.h"
 #include <string.h>
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_4
@@ -263,11 +264,11 @@ const char *Fl_Darwin_System_Driver::filename_name( const char *name )
 // original pointer.
 //
 // Most X11 implementations seem to default to Latin-1 as a code since it
-// is a superset of ISO 8859-1, the original wetsern codepage on X11.
+// is a superset of ISO 8859-1, the original Western codepage on X11.
 //
 // Apple's OS X however renders text in MacRoman for western settings. The
 // lookup tables below will convert all common character codes and replace
-// unknown characters with an upsidedown question mark.
+// unknown characters with an upside-down question mark.
 
 // This table converts Windows-1252/Latin 1 into MacRoman encoding
 static uchar latin2roman[128] = {
@@ -357,50 +358,12 @@ Fl_Sys_Menu_Bar_Driver *Fl_Darwin_System_Driver::sys_menu_bar_driver()
   return Fl_MacOS_Sys_Menu_Bar_Driver::driver();
 }
 
-const char * const Fl_Darwin_System_Driver::tree_open_xpm_darwin[] = {
-  "11 11 2 1",
-  ".  c None",
-  "@  c #000000",
-  "...@.......",
-  "...@@......",
-  "...@@@.....",
-  "...@@@@....",
-  "...@@@@@...",
-  "...@@@@@@..",
-  "...@@@@@...",
-  "...@@@@....",
-  "...@@@.....",
-  "...@@......",
-  "...@......."
-};
-
-const char * const Fl_Darwin_System_Driver::tree_close_xpm_darwin[] = {
-  "11 11 2 1",
-  ".  c None",
-  "@  c #000000",
-  "...........",
-  "...........",
-  "...........",
-  "@@@@@@@@@@@",
-  ".@@@@@@@@@.",
-  "..@@@@@@@..",
-  "...@@@@@...",
-  "....@@@....",
-  ".....@.....",
-  "...........",
-  "..........."
-};
-
-Fl_Pixmap *Fl_Darwin_System_Driver::tree_openpixmap() {
-  static Fl_Pixmap *pixmap = new Fl_Pixmap(tree_open_xpm_darwin);
-  return pixmap;
+// Draw Mac-specific Fl_Tree open/close icons
+void Fl_Darwin_System_Driver::tree_draw_expando_button(int x, int y, bool state, bool active) {
+  fl_color(active ? FL_FOREGROUND_COLOR : FL_INACTIVE_COLOR);
+  if(state) fl_polygon(x + 3, y, x + 3, y + 11, x + 8, y + 5);   // right arrow: ▶
+  else      fl_polygon(x, y + 3, x + 11, y + 3, x + 5, y + 8);   // down arrow: ▼
 }
-
-Fl_Pixmap *Fl_Darwin_System_Driver::tree_closepixmap() {
-  static Fl_Pixmap *pixmap = new Fl_Pixmap(tree_close_xpm_darwin);
-  return pixmap;
-}
-
 int Fl_Darwin_System_Driver::tree_connector_style() {
   return FL_TREE_CONNECTOR_NONE;
 }

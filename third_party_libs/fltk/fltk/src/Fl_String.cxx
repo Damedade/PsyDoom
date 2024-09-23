@@ -14,7 +14,13 @@
 //     https://www.fltk.org/bugs.php
 //
 
-#include <FL/Fl_String.H>
+/**
+ \cond DriverDev
+ \addtogroup DriverDeveloper
+ \{
+ */
+
+#include "Fl_String.H"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -131,7 +137,8 @@ Fl_String &Fl_String::replace_(int at, int n_del, const char *ins, int n_ins) {
     ::memmove(buffer_+at, ins, n_ins);
   }
   size_ = new_size;
-  buffer_[size_] = 0;
+  if (buffer_)
+    buffer_[size_] = 0;
   return *this;
 }
 
@@ -466,6 +473,21 @@ Fl_String &Fl_String::operator+=(char c) {
 }
 
 /**
+ Find a string inside this string.
+ \param[in] needle    find this string
+ \param[in] start_pos start looking at this position
+ \return the offset of the text inside this string, if it was found
+ \return Fl_String::npos if the needle was not found
+ */
+int Fl_String::find(const Fl_String &needle, int start_pos) const {
+  if ((start_pos < 0) || (start_pos >= size_)) return npos;
+  const char *haystack = data() + start_pos;
+  const char *found = strstr(haystack, needle.c_str());
+  if (!found) return npos;
+  return (int)(found - data());
+}
+
+/**
  Replace part of the string with a C-style string or data.
  \param[in] at    erase and insert at this index
  \param[in] n_del number of bytes to erase
@@ -622,3 +644,21 @@ bool operator==(const Fl_String &lhs, const Fl_String &rhs) {
   }
   return false;
 }
+
+/**
+ Compare two strings for inequality.
+ \param[in] lhs first string
+ \param[in] rhs second string
+ \return true if strings differ in size or content
+ */
+bool operator!=(const Fl_String &lhs, const Fl_String &rhs) {
+  if (lhs.size() != rhs.size()) return true;
+  int sz = lhs.size();  // same size for both
+  if (memcmp(lhs.data(), rhs.data(), sz) != 0) return true;
+  return false;
+}
+
+/**
+\}
+\endcond
+*/

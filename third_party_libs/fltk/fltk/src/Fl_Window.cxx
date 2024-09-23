@@ -35,7 +35,7 @@
 
 char *Fl_Window::default_xclass_ = 0L;
 
-char Fl_Window::show_iconic_ = 0;
+char Fl_Window::show_next_window_iconic_ = 0;
 
 Fl_Window *Fl_Window::current_;
 
@@ -507,21 +507,28 @@ void Fl_Window::draw()
 
   if (damage() & ~FL_DAMAGE_CHILD) {     // draw the entire thing
     draw_box(box(),0,0,w(),h(),color()); // draw box with x/y = 0
-
-    if (image() && (align() & FL_ALIGN_INSIDE)) { // draw the image only
-      Fl_Label l1;
-      memset(&l1,0,sizeof(l1));
-      l1.align_ = align();
-      l1.image = image();
-      if (!active_r() && l1.image && l1.deimage) l1.image = l1.deimage;
-      l1.type = labeltype();
-      l1.draw(0,0,w(),h(),align());
-    }
+    draw_backdrop();
   }
   draw_children();
 
   pWindowDriver->draw_end();
   if (!to_display) current_ = save_current;
+}
+
+/**
+ Draw the background image if one is set and is aligned inside.
+ */
+void Fl_Window::draw_backdrop() {
+  if (image() && (align() & FL_ALIGN_INSIDE)) { // draw the image only
+    Fl_Label l1;
+    memset(&l1,0,sizeof(l1));
+    l1.align_ = align();
+    l1.image = image();
+    if (!active_r() && l1.image && l1.deimage) l1.image = l1.deimage;
+    l1.type = labeltype();
+    l1.h_margin_ = l1.v_margin_ = l1.spacing = 0;
+    l1.draw(0,0,w(),h(),align());
+  }
 }
 
 void Fl_Window::make_current()
@@ -586,8 +593,9 @@ int Fl_Window::handle(int ev)
           // unmap because when the parent window is remapped we don't
           // want to reappear.
           if (visible()) {
-            Fl_Widget* p = parent(); for (;p->visible();p = p->parent()) {}
-            if (p->type() >= FL_WINDOW) break; // don't do the unmap
+            Fl_Widget* p = parent();
+            for (; p && p->visible(); p = p->parent()) { /* empty*/ }
+            if (p && p->as_window()) break; // don't do the unmap
           }
           pWindowDriver->unmap();
         }
@@ -599,17 +607,45 @@ int Fl_Window::handle(int ev)
 }
 
 /**
-  Sets the allowable range the user can resize this window to.
-  This only works for top-level windows.
+  Sets the allowable range to which the user can resize this window.
+
+  We recommend to call size_range() if you have a resizable() widget
+  in a main window, and to call it after setting the resizable() and
+  before show()'ing the window for best cross platform compatibility.
+
+  If this function is \b not called, FLTK tries to figure out the range
+  when the window is shown. Please see the protected method
+  default_size_range() for details.
 
   It is undefined what happens if the current window size does not fit
   in the constraints passed to size_range().
 
-  We recommend to call size_range() if you have a resizable() widget
-  in a main window.
+  \note
+  This only works for top-level windows and the exact behavior can be
+  platform specific. To work correctly across all platforms size_range()
+  must be called after setting the resizable() widget of the window and
+  before the window is show()'n.
 
-  If this function is \b not called, FLTK tries to figure out the range.
-  Please see the protected method default_size_range() for details.
+  Calling size_range() after the window has been shown may work on some
+  but not all platforms. If you need to change the size_range() after
+  the window has been shown, then you should consider to hide() and
+  show() the window again, i.e. call hide(), size_range(), and show()
+  in this order.
+
+  Typical usage: call
+  \code
+      size_range(minWidth, minHeight);
+  \endcode
+  after setting the resizable widget and before calling show().
+  This ensures that the window cannot be resized smaller than the given
+  values by user interaction.
+
+  \c maxWidth and \c maxHeight might be useful in some special cases but
+  less frequently used.
+
+  The other optional parameters \c deltaX, \c deltaY, and \c aspectRatio
+  are not recommended because they may not work on all platforms and may
+  even under X11 not be supported by all Window Managers.
 
   \param[in] minWidth,minHeight The smallest the window can be.
     Either value must be greater than 0.
@@ -640,6 +676,30 @@ void Fl_Window::size_range(int minWidth, int minHeight,
   aspect_         = aspectRatio;
   size_range_set_ = 1;
   pWindowDriver->size_range();  // platform specific stuff
+}
+
+/**
+ Gets the allowable range to which the user can resize this window.
+
+ \param[out] minWidth, minHeight, maxWidth, maxHeight, deltaX, deltaY, aspectRatio
+    are all pointers to integers that will receive the current respective value
+    during the call. Every pointer can be NULL if that value is not needed.
+ \retval 0 if size range not set
+ \retval 1 if the size range was explicitly set by a call to Fl_Window::size_range()
+    or has been calculated
+ \see Fl_Window::size_range(int minWidth, int minHeight, int maxWidth, int maxHeight, int deltaX, int deltaY, int aspectRatio)
+ */
+uchar Fl_Window::get_size_range(int *minWidth, int *minHeight,
+                                int *maxWidth, int *maxHeight,
+                                int *deltaX, int *deltaY, int *aspectRatio) {
+  if (minWidth) *minWidth = minw_;
+  if (minHeight) *minHeight = minh_;
+  if (maxWidth) *maxWidth = maxw_;
+  if (maxHeight) *maxHeight = maxh_;
+  if (deltaX) *deltaX = dw_;
+  if (deltaY) *deltaY = dh_;
+  if (aspectRatio) *aspectRatio = aspect_;
+  return size_range_set_;
 }
 
 /**
@@ -739,7 +799,7 @@ void Fl_Window::default_size_range() {
 
   // Clip the resizable() widget to the window
 
-  int L = r->x();
+  int L = (r == this ? 0 : r->x());
   int R = L + r->w();
   if (R < 0 || L > w()) R = L; // outside the window
   else {
@@ -748,7 +808,7 @@ void Fl_Window::default_size_range() {
   }
   int rw = R - L;
 
-  int T = r->y();
+  int T = (r == this ? 0 : r->y());
   int B = T + r->h();
   if (B < 0 || T > h()) B = T; // outside the window
   else {
@@ -888,3 +948,41 @@ bool Fl_Window::is_a_rescale() {return Fl_Window_Driver::is_a_rescale_;}
  \li other platforms: 0.
  */
 fl_uintptr_t Fl_Window::os_id() { return pWindowDriver->os_id();}
+
+/**
+ Maximizes a top-level window to its current screen.
+
+ This function is effective only with a show()'n, resizable, top-level window.
+ Bordered and borderless windows can be used.
+ \see Fl_Window::un_maximize(), Fl_Window::maximize_active()
+ */
+void Fl_Window::maximize() {
+  if (!shown() || parent() || !is_resizable() || maximize_active()) return;
+  set_flag(MAXIMIZED);
+  if (border()) pWindowDriver->maximize();
+  else pWindowDriver->Fl_Window_Driver::maximize();
+}
+
+/**
+ Returns a previously maximized top-level window to its previous size.
+ \see Fl_Window::maximize()
+*/
+void Fl_Window::un_maximize() {
+  if (!shown() || parent() || !is_resizable() || !maximize_active()) return;
+  clear_flag(MAXIMIZED);
+  if (border()) pWindowDriver->un_maximize();
+  else pWindowDriver->Fl_Window_Driver::un_maximize();
+}
+
+void Fl_Window::is_maximized_(bool b) {
+  if (b) set_flag(MAXIMIZED);
+  else clear_flag(MAXIMIZED);
+}
+
+/** Allow this subwindow to expand outside the area of its parent window.
+ This is presently implemented only for the Wayland platform to help support window docking.
+ \since 1.4.0
+*/
+void Fl_Window::allow_expand_outside_parent() {
+  if (parent()) pWindowDriver->allow_expand_outside_parent();
+}

@@ -1,7 +1,7 @@
 /*
  * Build configuration file for the Fast Light Tool Kit (FLTK).
  *
- * Copyright 1998-2021 by Bill Spitzak and others.
+ * Copyright 1998-2024 by Bill Spitzak and others.
  *
  * This library is free software. Distribution and use rights are outlined in
  * the file "COPYING" which should have been included with this file.  If this
@@ -46,16 +46,36 @@
 
 
 /*
+ * FLTK_HAVE_FORMS
+ *
+ * Do we have the Forms compatibility library available?
+*/
+
+#undef FLTK_HAVE_FORMS
+
+
+/*
  * FLTK_USE_X11
  *
  * Do we use X11 for the current platform?
  *
  */
+
 #if defined(_WIN32) || defined(__APPLE__)
     #undef FLTK_USE_X11
 #else
     #define FLTK_USE_X11 1
 #endif
+
+
+/*
+ * FLTK_USE_CAIRO
+ *
+ * Do we use Cairo to draw to the display?
+ *
+ */
+ 
+#undef FLTK_USE_CAIRO
 
 
 /*
@@ -66,5 +86,29 @@
  */
 
 #undef FLTK_USE_WAYLAND
+
+
+/*
+ * FLTK_USE_STD
+ *
+ * May we use std::string and std::vector for the current build?
+ *
+ * This is a build configuration option which allows FLTK to add some
+ * features based on std::string and std::vector in FLTK 1.4.x
+ *
+ */
+
+#define FLTK_USE_STD 1
+
+
+/*
+ * FLTK_USE_SVG
+ *
+ * Do we want FLTK to read and write SVG-formatted files ?
+ *
+ */
+
+#undef FLTK_USE_SVG
+
 
 #endif /* _FL_fl_config_h_ */

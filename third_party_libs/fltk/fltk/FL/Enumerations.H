@@ -1,7 +1,7 @@
 //
 // Enumerations for the Fast Light Tool Kit (FLTK).
 //
-// Copyright 1998-2023 by Bill Spitzak and others.
+// Copyright 1998-2024 by Bill Spitzak and others.
 //
 // This library is free software. Distribution and use rights are outlined in
 // the file "COPYING" which should have been included with this file.  If this
@@ -407,15 +407,15 @@ enum Fl_Event { // events
   /** A zoom event (ctrl/+/-/0/ or cmd/+/-/0/) was processed.
    Use Fl::add_handler() to be notified of this event.
    */
-  FL_ZOOM_EVENT = 27
-// DEV NOTE: Keep this list in sync with FL/names.h
+  FL_ZOOM_EVENT         = 27
+  // DEV NOTE: Keep this list in sync with FL/names.h
 };
 
 /** \name When Conditions */
 /**@{*/
 /** These constants determine when a callback is performed.
 
-    Fl_When is a bit field. Some values are merely shorcuts for common bit
+    Fl_When is a bit field. Some values are merely shortcuts for common bit
     combinations. New flags may be added in the future, so it's important to
     mask the required bit when reading via \p when().
 
@@ -455,7 +455,9 @@ enum Fl_Callback_Reason {
   FL_REASON_CHANGED,      ///< the value of the widget was modified
   FL_REASON_GOT_FOCUS,    ///< a widget received focus
   FL_REASON_LOST_FOCUS,   ///< a widget lost focus
-  FL_REASON_RELEASED      ///< the mouse button was released
+  FL_REASON_RELEASED,     ///< the mouse button was released
+  FL_REASON_ENTER_KEY,    ///< user finished input pressing Enter
+  FL_REASON_USER = 32     ///< user defined callback reasons
 };
 /**@}*/          // group: Callback Reasons
 
@@ -497,7 +499,7 @@ enum Fl_Callback_Reason {
 #define FL_Menu         0xff67  ///< The menu key.
 #define FL_Help         0xff68  ///< The 'help' key on Mac keyboards
 #define FL_Num_Lock     0xff7f  ///< The num lock key.
-#define FL_KP           0xff80  ///< One of the keypad numbers; use FL_KP + n' for digit n.
+#define FL_KP           0xff80  ///< One of the keypad numbers; use FL_KP + 'n' for digit n.
 #define FL_KP_Enter     0xff8d  ///< The enter key on the keypad, same as Fl_KP+'\\r'.
 #define FL_KP_Last      0xffbd  ///< The last keypad key; use to range-check keypad.
 #define FL_F            0xffbd  ///< One of the function keys; use FL_F + n for function key n.
@@ -512,6 +514,7 @@ enum Fl_Callback_Reason {
 #define FL_Alt_L        0xffe9  ///< The left alt key.
 #define FL_Alt_R        0xffea  ///< The right alt key.
 #define FL_Delete       0xffff  ///< The delete key.
+#define FL_Alt_Gr       0xfe03  ///< The AltGr key on some international keyboards.
 
 // These use the Private Use Area (PUA) of the Basic Multilingual Plane
 // of Unicode. Guaranteed not to conflict with a proper Unicode character.
@@ -559,8 +562,8 @@ enum Fl_Callback_Reason {
 
 /**@{*/          // group: Event States
 
-// FIXME: it would be nice to have the modifiers in the upper 8 bit so that
-//        a unicode key (24bit) can be sent as an unsigned with the modifiers.
+// FIXME: it would be nice to have the modifiers in the upper 8 bits so that
+//        a unicode key (21 bits) can be sent as an unsigned with the modifiers.
 
 #define FL_SHIFT        0x00010000      ///< One of the shift keys is down
 #define FL_CAPS_LOCK    0x00020000      ///< The caps lock is on
@@ -572,14 +575,14 @@ enum Fl_Callback_Reason {
                                         // correct for XFree86
 #define FL_SCROLL_LOCK  0x00800000      ///< The scroll lock is on
                                         // correct for XFree86
-#define FL_BUTTON1      0x01000000      ///< Mouse button 1 is pushed
-#define FL_BUTTON2      0x02000000      ///< Mouse button 2 is pushed
-#define FL_BUTTON3      0x04000000      ///< Mouse button 3 is pushed
-#define FL_BUTTONS      0x7f000000      ///< Any mouse button is pushed
-#define FL_BUTTON(n)    (0x00800000<<(n)) ///< Mouse button n (n > 0) is pushed
+#define FL_BUTTON1      0x01000000      ///< Mouse button 1 is pushed (L)
+#define FL_BUTTON2      0x02000000      ///< Mouse button 2 is pushed (M)
+#define FL_BUTTON3      0x04000000      ///< Mouse button 3 is pushed (R)
+#define FL_BUTTONS      0x07000000      ///< Any mouse button (1-3) is pushed
+#define FL_BUTTON(n)   (0x00800000<<(n)) ///< Mouse button n (n > 0) is pushed
 
-#define FL_KEY_MASK 0x0000ffff          ///< All keys are 16 bit for now
-                                        //   FIXME: Unicode needs 24 bits!
+#define FL_KEY_MASK     0x0000ffff      ///< All keys are 16 bit for now
+                                        //   FIXME: Unicode needs 21 bits!
 
 /**@}*/          // group: Event States
 
@@ -691,7 +694,8 @@ enum Fl_Boxtype { // boxtypes (if you change these you must also change fl_boxty
   _FL_OXY_ROUND_DOWN_BOX,       ///< oxy version of FL_ROUND_DOWN_BOX, use FL_OXY_ROUND_DOWN_BOX
   _FL_OXY_BUTTON_UP_BOX,        ///< FL_OXY_BUTTON_UP_BOX (new boxtype ?), use FL_OXY_BUTTON_UP_BOX
   _FL_OXY_BUTTON_DOWN_BOX,      ///< FL_OXY_BUTTON_DOWN_BOX (new boxtype ?), use FL_OXY_BUTTON_DOWN_BOX
-  FL_FREE_BOXTYPE               ///< the first free box type for creation of new box types
+  FL_FREE_BOXTYPE,              ///< the first free box type for creation of new box types
+  FL_MAX_BOXTYPE = 255          ///< highest legal index for a box type
 };
 
 #ifndef FL_DOXYGEN
@@ -1059,9 +1063,9 @@ const Fl_Font FL_SCREEN_BOLD            = 14;   ///< Default monospaced bold scr
 const Fl_Font FL_ZAPF_DINGBATS          = 15;   ///< Zapf-dingbats font
 
 const Fl_Font FL_FREE_FONT              = 16;   ///< first one to allocate
-const Fl_Font FL_BOLD                   = 1;    ///< add this to helvetica, courier, or times
-const Fl_Font FL_ITALIC                 = 2;    ///< add this to helvetica, courier, or times
-const Fl_Font FL_BOLD_ITALIC            = 3;    ///< add this to helvetica, courier, or times
+const Fl_Font FL_BOLD                   = 1;    ///< add this to Helvetica, Courier, or Times
+const Fl_Font FL_ITALIC                 = 2;    ///< add this to Helvetica, Courier, or Times
+const Fl_Font FL_BOLD_ITALIC            = 3;    ///< add this to Helvetica, Courier, or Times
 
 /**@}*/
 
@@ -1157,19 +1161,22 @@ FL_EXPORT Fl_Color fl_inactive(Fl_Color c);
   with fl_contrast_mode(FL_CONTRAST_CUSTOM).
   Example:
   \code
-    Fl_Color my_contrast(Fl_Color fg, Fl_Color bg, Fl_Fontsize fs, int context) {
+    Fl_Color my_contrast(Fl_Color fg, Fl_Color bg, int context, int size) {
       // calculate contrast and ...
       return color;
     }
     // call this early in your main() program:
     fl_contrast_function(my_contrast);
     fl_contrast_mode(FL_CONTRAST_CUSTOM);
+    fl_contrast_level(50); // optional, must be called after fl_contrast_mode()
   \endcode
 
-  \see fl_contrast(Fl_Color, Fl_Color, Fl_Fontsize, int)
+  For parameters and types see fl_contrast(Fl_Color, Fl_Color, int, int).
+
+  \see fl_contrast(Fl_Color, Fl_Color, int, int)
   \see fl_contrast_mode(int)
 */
-typedef Fl_Color (Fl_Contrast_Function)(Fl_Color, Fl_Color, Fl_Fontsize, int);
+typedef Fl_Color (Fl_Contrast_Function)(Fl_Color, Fl_Color, int, int);
 
 FL_EXPORT void fl_contrast_function(Fl_Contrast_Function *f);
 
@@ -1191,7 +1198,7 @@ FL_EXPORT int fl_contrast_level();
 FL_EXPORT void fl_contrast_mode(int mode);
 FL_EXPORT int fl_contrast_mode();
 
-FL_EXPORT Fl_Color fl_contrast(Fl_Color fg, Fl_Color bg, Fl_Fontsize fs = 0, int context = 0);
+FL_EXPORT Fl_Color fl_contrast(Fl_Color fg, Fl_Color bg, int context = 0, int size = 0);
 
 FL_EXPORT double fl_lightness(Fl_Color color);
 FL_EXPORT double fl_luminance(Fl_Color color);
@@ -1316,7 +1323,7 @@ enum Fl_Mode {
 enum Fl_Damage {
   FL_DAMAGE_CHILD    = 0x01, /**< A child needs to be redrawn. */
   FL_DAMAGE_EXPOSE   = 0x02, /**< The window was exposed. */
-  FL_DAMAGE_SCROLL   = 0x04, /**< The Fl_Scroll widget was scrolled. */
+  FL_DAMAGE_SCROLL   = 0x04, /**< The Fl_Scroll widget was scrolled. Used by other widgets for other widget specific damages. */
   FL_DAMAGE_OVERLAY  = 0x08, /**< The overlay planes need to be redrawn. */
   FL_DAMAGE_USER1    = 0x10, /**< First user-defined damage bit. */
   FL_DAMAGE_USER2    = 0x20, /**< Second user-defined damage bit. */

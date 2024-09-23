@@ -1,7 +1,7 @@
 //
 // Common menu code for the Fast Light Tool Kit (FLTK).
 //
-// Copyright 1998-2016 by Bill Spitzak and others.
+// Copyright 1998-2024 by Bill Spitzak and others.
 //
 // This library is free software. Distribution and use rights are outlined in
 // the file "COPYING" which should have been included with this file.  If this
@@ -267,21 +267,120 @@ const Fl_Menu_Item * Fl_Menu_::find_item(Fl_Callback *cb) {
 }
 
 /**
-  The value is the index into menu() of the last item chosen by
-  the user.  It is zero initially.  You can set it as an integer, or set
-  it with a pointer to a menu item.  The set routines return non-zero if
-  the new value is different than the old one.
-*/
-int Fl_Menu_::value(const Fl_Menu_Item* m) {
-  clear_changed();
-  if (value_ != m) {value_ = m; return 1;}
-  return 0;
+ Find the menu item for the given user data \p v.
+
+ \param[in] v find the first item with this user data
+ \returns The item found, or NULL if not found
+ \see find_item(const char*)
+ */
+const Fl_Menu_Item* Fl_Menu_::find_item_with_user_data(void *v) {
+  for ( int t=0; t < size(); t++ ) {
+    const Fl_Menu_Item *m = menu_ + t;
+    if (m->user_data_==v) {
+      return m;
+    }
+  }
+  return (const Fl_Menu_Item *)NULL;
 }
 
 /**
- When user picks a menu item, call this.  It will do the callback.
- Unfortunately this also casts away const for the checkboxes, but this
- was necessary so non-checkbox menus can really be declared const...
+ Find the menu item for the given user argument \p v.
+
+ \param[in] v find the first item with this user argument
+ \returns The item found, or NULL if not found
+ \see find_item(const char*)
+ */
+const Fl_Menu_Item* Fl_Menu_::find_item_with_argument(long v) {
+  for ( int t=0; t < size(); t++ ) {
+    const Fl_Menu_Item *m = menu_ + t;
+    if (m->argument()==v) {
+      return m;
+    }
+  }
+  return (const Fl_Menu_Item *)NULL;
+}
+
+/**
+  Set the value of a menu to the menu item \c m.
+
+  The \e value of the menu is the index into the menu() of the last
+  item chosen by the user or -1.
+
+  It is \c -1 initially (if no item has been chosen) or if the chosen
+  menu item is part of a submenu addressed by an FL_SUBMENU_POINTER.
+
+  \note All menu items are located in a contiguous array of Fl_Menu_Item's
+    unless an item has the FL_SUBMENU_POINTER flag which redirects the
+    submenu to an independent submenu array. This submenu array is not
+    counted in the size() of the menu, and menu items in this submenu can't
+    return a valid index into the \b main menu. Therefore menu items that
+    are located in such a submenu return -1 when value() is called.
+    This may be changed in a future version.
+
+  The menu item can be any menu item, even one in a detached submenu
+  (see note about FL_SUBMENU_POINTER above).
+
+  \param[in]  m   Pointer to any menu item.
+
+  \return     Whether the new value is different than the old one.
+  \retval  0  The value didn't change.
+  \retval  1  The value was changed.
+
+  \see int value(int)
+  \see int value()
+  \see const Fl_Menu_Item *mvalue()
+*/
+int Fl_Menu_::value(const Fl_Menu_Item* m) {
+  clear_changed();
+  if (value_ != m) {
+    prev_value_ = value_;
+    value_ = m;
+    return 1;
+  }
+  return 0;
+}
+
+/** Return the index into the menu() of the last item chosen by the user.
+
+  The \e value of the menu is the index into the menu() of the last
+  item chosen by the user or -1.
+
+  It is \c -1 initially (if no item has been chosen) or if the chosen
+  menu item is part of a submenu addressed by an FL_SUBMENU_POINTER.
+
+  \note All menu items are located in a contiguous array of Fl_Menu_Item's
+    unless an item has the FL_SUBMENU_POINTER flag which redirects the
+    submenu to an independent submenu array. This submenu array is not
+    counted in the size() of the menu, and menu items in this submenu can't
+    return a valid index into the \b main menu. Therefore menu items that
+    are located in such a submenu return -1 when value() is called.
+    This may be changed in a future version.
+
+  You can use mvalue() instead to retrieve the last picked menu item directly.
+
+  \returns  Index of the last chosen menu item or -1 (see description).
+
+  \see const Fl_Menu_Item *mvalue()
+*/
+int Fl_Menu_::value() const {
+  if (!value_)
+    return -1;
+  if (menu() && value_ >= menu() && value_ < menu() + size())
+    return (int)(value_ - menu_);
+  return -1;
+}
+
+/**
+  When user picks a menu item, call this.
+
+  It will do the callback.
+
+  Unfortunately this also casts away const for the checkboxes, but this
+  was necessary so non-checkbox menus can really be declared 'const'.
+
+  \param[in]  v   The menu item that was picked by the user.
+
+  \returns    The same Fl_Menu_Item* that was set (\c v).
 */
 const Fl_Menu_Item* Fl_Menu_::picked(const Fl_Menu_Item* v) {
   if (v) {
@@ -298,6 +397,7 @@ const Fl_Menu_Item* Fl_Menu_::picked(const Fl_Menu_Item* v) {
     } else if (v != value_) { // normal item
       set_changed();
     }
+    prev_value_ = value_;
     value_ = v;
     if (when()&(FL_WHEN_CHANGED|FL_WHEN_RELEASE)) {
       if (changed() || when()&FL_WHEN_NOT_CHANGED) {
@@ -384,17 +484,21 @@ void Fl_Menu_Item::setonly(Fl_Menu_Item const* first) {
  and label string.  menu() is initialized to null.
  */
 Fl_Menu_::Fl_Menu_(int X,int Y,int W,int H,const char* l)
-: Fl_Widget(X,Y,W,H,l) {
+: Fl_Widget(X,Y,W,H,l),
+  menu_(NULL),
+  value_(NULL),
+  prev_value_(NULL),
+  alloc(0),
+  down_box_(FL_NO_BOX),
+  menu_box_(FL_NO_BOX),
+  textfont_(FL_HELVETICA),
+  textsize_(FL_NORMAL_SIZE),
+  textcolor_(FL_FOREGROUND_COLOR)
+{
   set_flag(SHORTCUT_LABEL);
   box(FL_UP_BOX);
   when(FL_WHEN_RELEASE_ALWAYS);
-  value_ = menu_ = 0;
-  alloc = 0;
   selection_color(FL_SELECTION_COLOR);
-  textfont(FL_HELVETICA);
-  textsize(FL_NORMAL_SIZE);
-  textcolor(FL_FOREGROUND_COLOR);
-  down_box(FL_NO_BOX);
 }
 
 /**
@@ -417,6 +521,7 @@ int Fl_Menu_::size() const {
 */
 void Fl_Menu_::menu(const Fl_Menu_Item* m) {
   clear();
+  prev_value_ = NULL;
   value_ = menu_ = (Fl_Menu_Item*)m;
 }
 
@@ -456,8 +561,33 @@ Fl_Menu_* fl_menu_array_owner = 0;
 */
 void Fl_Menu_::clear() {
   if (alloc) {
-    if (alloc>1) for (int i = size(); i--;)
-      if (menu_[i].text) free((void*)menu_[i].text);
+
+    if (alloc > 1) {
+
+      // See GitHub issue #875: we can't release "everything"
+      // for several reasons. Maybe we can do better if we create
+      // a new menu system based on Fl_Widget in 1.5.0 or later.
+
+      // Fl_Image's and Fl_Multi_Label's and their linked objects
+      // can't be released automatically. However, we must take care
+      // not to free() images or Fl_Multi_Label's because they can
+      // either be static or are allocated by operator new.
+
+      for (int i = size(); i--;) {
+        if (!menu_[i].text)
+          continue;
+        switch(menu_[i].labeltype_) {
+          case _FL_IMAGE_LABEL:
+            break;
+          case _FL_MULTI_LABEL:
+            break;
+          default:
+            free((void*)menu_[i].text);
+            break;
+        }
+      }
+    }
+
     if (this == fl_menu_array_owner)
       fl_menu_array_owner = 0;
     else
@@ -465,7 +595,7 @@ void Fl_Menu_::clear() {
     alloc = 0;
   }
   menu_ = 0;
-  value_ = 0;
+  value_ = prev_value_ = 0;
 }
 
 /**

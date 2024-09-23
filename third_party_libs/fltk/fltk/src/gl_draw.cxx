@@ -336,9 +336,12 @@ static gl_texture_fifo *gl_fifo = NULL; // points to the texture pile class inst
 // displays a pre-computed texture on the GL scene
 void gl_texture_fifo::display_texture(int rank)
 {
+  // GL_TRANSFORM_BIT for GL_PROJECTION and GL_MODELVIEW
+  // GL_ENABLE_BIT for GL_DEPTH_TEST, GL_LIGHTING
+  // GL_TEXTURE_BIT for GL_TEXTURE_RECTANGLE_ARB
+  // GL_COLOR_BUFFER_BIT for GL_BLEND and glBlendFunc,
+  glPushAttrib(GL_TRANSFORM_BIT | GL_ENABLE_BIT | GL_TEXTURE_BIT | GL_COLOR_BUFFER_BIT);
   //setup matrices
-  GLint matrixMode;
-  glGetIntegerv (GL_MATRIX_MODE, &matrixMode);
   glMatrixMode (GL_PROJECTION);
   glPushMatrix();
   glLoadIdentity ();
@@ -347,8 +350,6 @@ void gl_texture_fifo::display_texture(int rank)
   glLoadIdentity ();
   float winw = Fl_Gl_Window_Driver::gl_scale * Fl_Window::current()->w();
   float winh = Fl_Gl_Window_Driver::gl_scale * Fl_Window::current()->h();
-  // GL_COLOR_BUFFER_BIT for glBlendFunc, GL_ENABLE_BIT for glEnable / glDisable
-  glPushAttrib(GL_ENABLE_BIT | GL_TEXTURE_BIT | GL_COLOR_BUFFER_BIT);
   glDisable (GL_DEPTH_TEST); // ensure text is not removed by depth buffer test.
   glEnable (GL_BLEND); // for text fading
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -381,13 +382,12 @@ void gl_texture_fifo::display_texture(int rank)
   glTexCoord2f ((GLfloat)width, 0.0f); // draw lower right in world coordinates
   glVertex2f (ox + width, oy);
   glEnd ();
-  glPopAttrib();
 
   // reset original matrices
   glPopMatrix(); // GL_MODELVIEW
   glMatrixMode (GL_PROJECTION);
   glPopMatrix();
-  glMatrixMode (matrixMode);
+  glPopAttrib(); // GL_TRANSFORM_BIT | GL_ENABLE_BIT | GL_TEXTURE_BIT | GL_COLOR_BUFFER_BIT
 #if HAVE_GL_GLU_H
   //set the raster position to end of string
   pos[0] += width;
@@ -510,6 +510,11 @@ void Fl_Gl_Window_Driver::draw_string_legacy(const char* str, int n)
 /** draws a utf8 string using an OpenGL texture */
 void Fl_Gl_Window_Driver::draw_string_with_texture(const char* str, int n)
 {
+  // Check if the raster pos is valid.
+  // If it's not, then drawing it results in undefined behaviour (#1006, #1007).
+  GLint valid;
+  glGetIntegerv(GL_CURRENT_RASTER_POSITION_VALID, &valid);
+  if (!valid) return;
   Fl_Gl_Window *gwin = Fl_Window::current()->as_gl_window();
   gl_scale = (gwin ? gwin->pixels_per_unit() : 1);
   if (!gl_fifo) gl_fifo = new gl_texture_fifo();

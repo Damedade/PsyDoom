@@ -172,17 +172,19 @@ static void innards(const uchar *buf, int X, int Y, int W, int H,
   static U32* buffer;
   static long buffer_size;
   int blocking = h;
-  {int size = linesize*h;
-  // when printing, don't limit buffer size not to get a crash in StretchDIBits
-  if (size > MAXBUFFER && !fl_graphics_driver->has_feature(Fl_Graphics_Driver::PRINTER)) {
-    size = MAXBUFFER;
-    blocking = MAXBUFFER/linesize;
+  {
+    int size = linesize * h;
+    // when printing, don't limit buffer size not to get a crash in StretchDIBits
+    if (size > MAXBUFFER && !fl_graphics_driver->has_feature(Fl_Graphics_Driver::PRINTER)) {
+      size = MAXBUFFER;
+      blocking = MAXBUFFER / linesize;
+    }
+    if (size > buffer_size) {
+      delete[] buffer;
+      buffer_size = size;
+      buffer = new U32[(size + 3) / 4];
+    }
   }
-  if (size > buffer_size) {
-    delete[] buffer;
-    buffer_size = size;
-    buffer = new U32[(size+3)/4];
-  }}
   bmi.bmiHeader.biHeight = blocking;
   static U32* line_buffer;
   if (!buf) {
@@ -212,7 +214,6 @@ static void innards(const uchar *buf, int X, int Y, int W, int H,
           monodither(to, from, w, delta);
         else
           dither(to, from, w, delta);
-        to += w;
       } else
 #endif
       {
@@ -251,7 +252,8 @@ static void innards(const uchar *buf, int X, int Y, int W, int H,
             break;
         }
       }
-    }
+    } // for (k = 0; j<h && k<blocking ...)
+
     if (fl_graphics_driver->has_feature(Fl_Graphics_Driver::PRINTER)) {
       // if print context, device and logical units are not equal, so SetDIBitsToDevice
       // does not do the expected job, whereas StretchDIBits does it.
@@ -278,8 +280,8 @@ static void innards(const uchar *buf, int X, int Y, int W, int H,
                         DIB_RGB_COLORS
 #endif
                         );
-      }
-  }
+    }
+  } // for (int j=0; j<h; )
 }
 
 void Fl_GDI_Graphics_Driver::draw_image_unscaled(const uchar* buf, int x, int y, int w, int h, int d, int l){
@@ -619,7 +621,7 @@ void Fl_GDI_Graphics_Driver::draw_rgb(Fl_RGB_Image *rgb, int XP, int YP, int WP,
   if ( (rgb->d() % 2) == 0 ) {
     alpha_blend_(this->floor(XP), this->floor(YP), WP, HP, new_gc, 0, 0, rgb->data_w(), rgb->data_h());
   } else {
-    SetStretchBltMode(gc_, HALFTONE);
+    SetStretchBltMode(gc_, (Fl_Image::scaling_algorithm() == FL_RGB_SCALING_BILINEAR ? HALFTONE : BLACKONWHITE));
     StretchBlt(gc_, this->floor(XP), this->floor(YP), WP, HP, new_gc, 0, 0, rgb->data_w(), rgb->data_h(), SRCCOPY);
   }
   RestoreDC(new_gc, save);
@@ -735,7 +737,7 @@ void Fl_GDI_Graphics_Driver::draw_fixed(Fl_Pixmap *pxm, int X, int Y, int W, int
  this color value in need_pixmap_bg_color. As a result, the transparent areas of the image
  are correcty handled by the printing operation. Variable need_pixmap_bg_color is ultimately
  reset to 0.
- Fl_GDI_Graphics_Driver::make_unused_color_() which does the color computation mentionned
+ Fl_GDI_Graphics_Driver::make_unused_color_() which does the color computation mentioned
  above is implemented in file src/fl_draw_pixmap.cxx
  */
 void Fl_GDI_Printer_Graphics_Driver::draw_pixmap(Fl_Pixmap *pxm, int XP, int YP, int WP, int HP, int cx, int cy) {

@@ -22,9 +22,12 @@
 
 
 Fl_Wayland_Copy_Surface_Driver::Fl_Wayland_Copy_Surface_Driver(int w, int h) : Fl_Copy_Surface_Driver(w, h) {
-  int os_scale =
-    (Fl_Wayland_Window_Driver::wld_window && Fl_Wayland_Window_Driver::wld_window->output ?
-                  Fl_Wayland_Window_Driver::wld_window->output->wld_scale : 1);
+  struct Fl_Wayland_Window_Driver::surface_output *s_output = NULL;
+  if (Fl_Wayland_Window_Driver::wld_window &&
+      !wl_list_empty(&Fl_Wayland_Window_Driver::wld_window->outputs)) {
+    s_output = wl_container_of(Fl_Wayland_Window_Driver::wld_window->outputs.next, s_output, link);
+  }
+  int os_scale = (s_output ? s_output->output->wld_scale : 1);
   img_surf = new Fl_Image_Surface(w * os_scale, h * os_scale);
   driver(img_surf->driver());
   driver()->scale(os_scale);
@@ -43,7 +46,7 @@ Fl_Wayland_Copy_Surface_Driver::~Fl_Wayland_Copy_Surface_Driver() {
 
 void Fl_Wayland_Copy_Surface_Driver::set_current() {
   Fl_Surface_Device::set_current();
-  ((Fl_Wayland_Graphics_Driver*)driver())->set_buffer((struct fl_wld_buffer *)img_surf->offscreen());
+  ((Fl_Wayland_Graphics_Driver*)driver())->set_cairo((cairo_t*)img_surf->offscreen());
 }
 
 

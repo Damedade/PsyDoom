@@ -2,7 +2,7 @@
 // Timeout support functions for the Fast Light Tool Kit (FLTK).
 //
 // Author: Albrecht Schlosser
-// Copyright 2021-2023 by Bill Spitzak and others.
+// Copyright 2021-2024 by Bill Spitzak and others.
 //
 // This library is free software. Distribution and use rights are outlined in
 // the file "COPYING" which should have been included with this file.  If this
@@ -15,10 +15,17 @@
 //     https://www.fltk.org/bugs.php
 //
 
+#include <config.h>
+
 #include "Fl_Timeout.h"
 #include "Fl_System_Driver.H"
 
 #include <stdio.h>
+#include <math.h> // for trunc()
+
+#if !HAVE_TRUNC
+static inline double trunc(double x) { return x >= 0 ? floor(x) : ceil(x); }
+#endif // !HAVE_TRUNC
 
 /**
   \file Fl_Timeout.cxx
@@ -35,7 +42,7 @@ static int num_timers = 0;    // DEBUG
 #endif
 
 /**
- Set a time stamp at this point in time.
+ Set a time stamp at this point in time with optional signed offset in seconds.
 
  The time stamp is an opaque type and does not represent the time of day or
  some time and date in the calendar. It is used with Fl::seconds_between() and
@@ -54,6 +61,9 @@ static int num_timers = 0;    // DEBUG
  Function seconds_since() below uses this to subtract two timestamps which is
  always a correct delta time with milliseconds or microseconds resolution.
 
+ \param offset optional signed offset in seconds added to the current time
+ \return this moment in time offset by \p offset as an opaque time stamp
+
  \todo Fl::system_driver()->gettime() was implemented for the Forms library and
  has a limited resolution (on Windows: milliseconds). On POSIX platforms it uses
  gettimeofday() with microsecond resolution.
@@ -61,22 +71,34 @@ static int num_timers = 0;    // DEBUG
  timers which requires a new dependency: winmm.lib (dll). This could be a future
  improvement, maybe set as a build option or generally (requires Win95 or 98?).
 
- \return this moment in time as an opaque time stamp
-
  \see Fl::seconds_since(Fl_Timestamp& then)
-    Fl::seconds_between(Fl_Timestamp& back, Fl_Timestamp& further_back)
-    Fl::ticks_since(Fl_Timestamp& then)
-    Fl::ticks_between(Fl_Timestamp& back, Fl_Timestamp& further_back)
+ \see Fl::seconds_between(Fl_Timestamp& back, Fl_Timestamp& further_back)
+ \see Fl::ticks_since(Fl_Timestamp& then)
+ \see Fl::ticks_between(Fl_Timestamp& back, Fl_Timestamp& further_back)
  */
-Fl_Timestamp Fl::now() {
+Fl_Timestamp Fl::now(double offset) {
   Fl_Timestamp ts;
   time_t sec;
   int usec;
   Fl::system_driver()->gettime(&sec, &usec);
-  ts.sec = (long)sec;
+  ts.sec = sec;
   ts.usec = usec;
+  if (offset) {
+    sec = (time_t)trunc(offset);
+    usec = int((offset - sec) * 1000000);
+    ts.sec += sec;
+    if (usec + ts.usec >= 1000000) {
+      ts.sec++;
+      ts.usec += (usec - 1000000);
+    } else if (usec + ts.usec < 0) {
+      ts.sec--;
+      ts.usec += (usec + 1000000);
+    } else
+      ts.usec += usec;
+  }
   return ts; // C++ will copy the result into the lvalue for us
 }
+
 
 /**
  Return the time in seconds between now and a previously taken time stamp.
@@ -85,7 +107,7 @@ Fl_Timestamp Fl::now() {
  \return elapsed seconds and fractions of a second
 
  \see Fl::seconds_between(Fl_Timestamp& back, Fl_Timestamp& further_back)
-    Fl::now()
+    \see Fl::now()  \see Fl::distant_past()
  */
 double Fl::seconds_since(Fl_Timestamp& then) {
   Fl_Timestamp ts_now = Fl::now();
@@ -99,7 +121,7 @@ double Fl::seconds_since(Fl_Timestamp& then) {
  \param[in] further_back an even earlier time stamp
  \return elapsed seconds and fractions of a second
 
- \see Fl::seconds_since(Fl_Timestamp& then), Fl::now()
+ \see Fl::seconds_since(Fl_Timestamp& then) \see  Fl::now()
  */
 double Fl::seconds_between(Fl_Timestamp& back, Fl_Timestamp& further_back) {
   return double((back.sec - further_back.sec) + (back.usec - further_back.usec) / 1000000.);
@@ -115,7 +137,7 @@ double Fl::seconds_between(Fl_Timestamp& back, Fl_Timestamp& further_back) {
  \param[in] then a previously taken time stamp
  \return elapsed ticks in 60th of a second
 
- \see Fl::ticks_between(Fl_Timestamp& back, Fl_Timestamp& further_back), Fl::now()
+ \see Fl::ticks_between(Fl_Timestamp& back,  Fl_Timestamp& further_back) \see  Fl::now()
  */
 long Fl::ticks_since(Fl_Timestamp& then) {
   Fl_Timestamp ts_now = Fl::now();
@@ -129,10 +151,10 @@ long Fl::ticks_since(Fl_Timestamp& then) {
  \param[in] further_back an even earlier time stamp
  \return elapsed ticks in 60th of a second
 
- \see Fl::ticks_since(Fl_Timestamp& then), Fl::now()
+ \see Fl::ticks_since(Fl_Timestamp& then) \see  Fl::now()
  */
 long Fl::ticks_between(Fl_Timestamp& back, Fl_Timestamp& further_back) {
-  return (back.sec-further_back.sec)*60 + (back.usec-further_back.usec)/16666;
+  return long((back.sec-further_back.sec)*60 + (back.usec-further_back.usec)/16666);
 }
 
 
@@ -188,7 +210,9 @@ void Fl_Timeout::insert() {
   \retval   0   not found
   \retval   1   found
 
-  Implements Fl::has_timeout(Fl_Timeout_Handler cb, void *data)
+  Implements:
+
+      int Fl::has_timeout(Fl_Timeout_Handler cb, void *data)
 
   \see Fl::has_timeout(Fl_Timeout_Handler cb, void *data)
 */
@@ -210,7 +234,9 @@ int Fl_Timeout::has_timeout(Fl_Timeout_Handler cb, void *data) {
   \param[in]  cb      callback function
   \param[in]  data    optional user data (default: \p NULL)
 
-  Implements Fl::add_timeout(double time, Fl_Timeout_Handler cb, void *data)
+  Implements:
+
+      void Fl::add_timeout(double time, Fl_Timeout_Handler cb, void *data)
 
   \see Fl::add_timeout(double time, Fl_Timeout_Handler cb, void *data)
 */
@@ -228,7 +254,9 @@ void Fl_Timeout::add_timeout(double time, Fl_Timeout_Handler cb, void *data) {
   \param[in]  cb      callback function
   \param[in]  data    optional user data (default: \p NULL)
 
-  Implements Fl::repeat_timeout(double time, Fl_Timeout_Handler cb, void *data)
+  Implements:
+
+      void Fl::repeat_timeout(double time, Fl_Timeout_Handler cb, void *data)
 
   \see Fl::repeat_timeout(double time, Fl_Timeout_Handler cb, void *data)
 */
@@ -254,7 +282,9 @@ void Fl_Timeout::repeat_timeout(double time, Fl_Timeout_Handler cb, void *data) 
   \param[in]  cb    Timer callback to be removed (must match)
   \param[in]  data  Wildcard if NULL, must match otherwise
 
-  Implements Fl::remove_timeout(Fl_Timeout_Handler cb, void *data)
+  Implements:
+
+      void Fl::remove_timeout(Fl_Timeout_Handler cb, void *data)
 
   \see Fl::remove_timeout(Fl_Timeout_Handler cb, void *data)
 */
@@ -269,6 +299,49 @@ void Fl_Timeout::remove_timeout(Fl_Timeout_Handler cb, void *data) {
       p = &(t->next);
     }
   }
+}
+
+/**
+  Remove the next matching timeout callback and return its \p data pointer.
+
+  Implements:
+
+      int Fl::remove_next_timeout(Fl_Timeout_Handler cb, void *data, void **data_return)
+
+  \param[in]    cb    Timer callback to be removed (must match)
+  \param[in]    data  Wildcard if NULL, must match otherwise
+  \param[inout] data_return  pointer to void * to receive the data value
+
+  \return       non-zero if a timer was found and removed
+  \retval   0   no matching timer was found
+  \retval   1   the last matching timeout was found and removed
+  \retval  N>1  a matching timeout was removed and there are\n
+                (N - 1) matching timeouts pending
+
+  For details
+  \see Fl::remove_next_timeout(Fl_Timeout_Handler cb, void *data, void **data_return)
+*/
+int Fl_Timeout::remove_next_timeout(Fl_Timeout_Handler cb, void *data, void **data_return) {
+  int ret = 0;
+  for (Fl_Timeout** p = &first_timeout; *p;) { // scan all timeouts
+    Fl_Timeout* t = *p;
+    if (t->callback == cb && (t->data == data || !data)) { // timeout matches
+      ret++;
+      if (ret == 1) { // first timeout: remove
+        if (data_return)
+          *data_return = t->data;
+        *p = t->next;
+        t->next = free_timeout;
+        free_timeout = t;
+        continue;
+      }
+      p = &(t->next);
+    } // timeout matches
+    else { // no match
+      p = &(t->next);
+    }
+  } // scan all timeouts
+  return ret;
 }
 
 /**

@@ -1,8 +1,8 @@
 //
 // Preferences methods for the Fast Light Tool Kit (FLTK).
 //
-// Copyright 2011-2022 by Bill Spitzak and others.
 // Copyright 2002-2010 by Matthias Melcher.
+// Copyright 2011-2024 by Bill Spitzak and others.
 //
 // This library is free software. Distribution and use rights are outlined in
 // the file "COPYING" which should have been included with this file.  If this
@@ -19,16 +19,18 @@
 #include "Fl_System_Driver.H"
 #include <FL/Fl_Preferences.H>
 #include <FL/Fl_Plugin.H>
-#include <FL/Fl_String.H>
 #include <FL/filename.H>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
 #include <FL/fl_utf8.h>
 #include <FL/fl_string_functions.h>
 #include "flstring.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+
+#if (FLTK_USE_STD)
+#include <string>
+#endif
 
 char Fl_Preferences::nameBuffer[128];
 char Fl_Preferences::uuidBuffer[40];
@@ -233,7 +235,9 @@ Fl_Preferences::Root Fl_Preferences::filename( char *buffer, size_t buffer_size,
  <tt>\<null\>/Library/Preferences/\$(vendor)/\$(application).prefs</tt>,
  which would silently fail to create a preference file.
 
- \param[in] root can be \c USER_L or \c SYSTEM_L for user specific or system wide preferences
+ \param[in] root can be \c USER_L or \c SYSTEM_L for user specific or system
+            wide preferences, add the \c CLEAR flag to start with a clean set of
+            preferences instead of reading them from a preexisting database
  \param[in] vendor unique text describing the company or author of this file, must be a valid filepath segment
  \param[in] application unique text describing the application, must be a valid filepath segment
 
@@ -243,23 +247,67 @@ Fl_Preferences::Fl_Preferences( Root root, const char *vendor, const char *appli
   node = new Node( "." );
   rootNode = new RootNode( this, root, vendor, application );
   node->setRoot(rootNode);
+  if (root & CLEAR)
+    clear();
 }
 
 /**
-   \brief Use this constructor to create or read a preference file at an
-   arbitrary position in the file system.
+ \brief Deprecated: Use this constructor to create or read a preference file at an
+ arbitrary position in the file system.
 
-   The file name is generated in the form <tt>\$(path)/\$(application).prefs</tt>.
-   If \p application is \c NULL, \p path is taken literally as the file path and name.
+ This constructor should no longer be used because the generated database uses
+ the current locale, making it impossible to exchange floating point settings
+ between machines with different language settings.
 
-   \param[in] path path to the directory that contains the preference file
-   \param[in] vendor unique text describing the company or author of this file, must be a valid filepath segment
-   \param[in] application unique text describing the application, must be a valid filepath segment
+ Use `Fl_Preferences(path, vendor, application, Fl_Preferences::C_LOCALE)` in
+ new projects and `Fl_Preferences(path, vendor, application, 0)` if you must
+ keep backward compatibility.
+
+ \see Fl_Preferences( const char *path, const char *vendor, const char *application, Root flags )
  */
 Fl_Preferences::Fl_Preferences( const char *path, const char *vendor, const char *application ) {
   node = new Node( "." );
-  rootNode = new RootNode( this, path, vendor, application );
+  rootNode = new RootNode( this, path, vendor, application, (Root)0 );
   node->setRoot(rootNode);
+}
+
+/**
+ \brief Use this constructor to create or read a preference file at an
+ arbitrary position in the file system.
+
+ The file name is generated in the form <tt>\$(path)/\$(application).prefs</tt>.
+ If \p application is \c NULL, \p path is taken literally as the file
+ path and name.
+
+ ```
+ // Example: read from an existing database and write modifications when flushed
+ // or destructor is called
+ Fl_Preferences database("/user/matt/test.prefs", "org.fltk.test", NULL,
+                         Fl_Preferences::C_LOCALE);
+
+ // Example: create a new preferences file with an empty data set
+ Fl_Preferences database("/user/matt/test.prefs", "org.fltk.test", NULL,
+      (Fl_Preferences::Root)(Fl_Preferences::C_LOCALE|Fl_Preferences::CLEAR));
+ ```
+
+ \note the C_LOCALE flag is is not set by default for backward compatibility,
+    but it is highly recommended to set it when opening a database.
+
+ \param[in] path path to the directory that contains the preference file
+ \param[in] vendor unique text describing the company or author of this file,
+    must be a valid file path segment
+ \param[in] application unique text describing the application, must be a valid
+    filename or NULL
+ \param[in] flags C_LOCALE to make the preferences file independent of the
+    current locale, add the CLEAR flag to start with a clean set of preferences
+    instead of reading from the database
+ */
+Fl_Preferences::Fl_Preferences( const char *path, const char *vendor, const char *application, Root flags ) {
+  node = new Node( "." );
+  rootNode = new RootNode( this, path, vendor, application, flags );
+  node->setRoot(rootNode);
+  if (flags & CLEAR)
+    clear();
 }
 
 /**
@@ -799,6 +847,8 @@ char Fl_Preferences::get( const char *key, char *&text, const char *defaultValue
   return ( v != defaultValue );
 }
 
+#if (FLTK_USE_STD)
+
 /**
  Reads an entry from the group. A default value must be
  supplied. The return value indicates if the value was available
@@ -809,7 +859,7 @@ char Fl_Preferences::get( const char *key, char *&text, const char *defaultValue
  \param[in] defaultValue default value to be used if no preference was set
  \return 0 if the default value was used
  */
-char Fl_Preferences::get( const char *key, Fl_String &value, const Fl_String &defaultValue ) {
+char Fl_Preferences::get( const char *key, std::string &value, const std::string &defaultValue ) {
   const char *v = node->get( key );
   if (v) {
     if ( strchr( v, '\\' ) ) {
@@ -825,6 +875,8 @@ char Fl_Preferences::get( const char *key, Fl_String &value, const Fl_String &de
     return 0;
   }
 }
+
+#endif
 
 /**
  Sets an entry (name/value pair). The return value indicates if there
@@ -996,6 +1048,8 @@ char Fl_Preferences::set( const char *key, const void *data, int dsize ) {
   return 1;
 }
 
+#if (FLTK_USE_STD)
+
 /**
  Sets an entry (name/value pair). The return value indicates if there
  was a problem storing the data in memory. However it does not
@@ -1005,10 +1059,11 @@ char Fl_Preferences::set( const char *key, const void *data, int dsize ) {
  \param[in] value set this entry to value (stops at the first nul character).
  \return 0 if setting the value failed
  */
-char Fl_Preferences::set( const char *entry, const Fl_String &value ) {
+char Fl_Preferences::set( const char *entry, const std::string &value ) {
   return set(entry, value.c_str());
 }
 
+#endif // FLTK_USE_STD
 
 /**
  Returns the size of the value part of an entry.
@@ -1168,23 +1223,24 @@ Fl_Preferences::RootNode::RootNode( Fl_Preferences *prefs, Root root, const char
   filename_(0L),
   vendor_(0L),
   application_(0L),
-  root_type_(root)
+  root_type_((Root)(root & ~CLEAR))
 {
   char *filename = Fl::system_driver()->preference_rootnode(prefs, root, vendor, application);
   filename_    = filename ? fl_strdup(filename) : 0L;
   vendor_      = fl_strdup(vendor);
   application_ = fl_strdup(application);
-  read();
+  if ( (root & CLEAR) == 0 )
+    read();
 }
 
 // create the root node
 // - construct the name of the file that will hold our preferences
-Fl_Preferences::RootNode::RootNode( Fl_Preferences *prefs, const char *path, const char *vendor, const char *application )
+Fl_Preferences::RootNode::RootNode( Fl_Preferences *prefs, const char *path, const char *vendor, const char *application, Root flags )
 : prefs_(prefs),
   filename_(0L),
   vendor_(0L),
   application_(0L),
-  root_type_(Fl_Preferences::USER)
+  root_type_( (Root)(USER | (flags & C_LOCALE) ))
 {
 
   if (!vendor)
@@ -1199,7 +1255,8 @@ Fl_Preferences::RootNode::RootNode( Fl_Preferences *prefs, const char *path, con
   }
   vendor_      = fl_strdup(vendor);
   application_ = fl_strdup(application);
-  read();
+  if ( (flags & CLEAR) == 0 )
+    read();
 }
 
 // create a root node that exists only on RAM and can not be read or written to
@@ -1235,7 +1292,11 @@ Fl_Preferences::RootNode::~RootNode() {
 
 // read a preference file and construct the group tree and all entry leaves
 int Fl_Preferences::RootNode::read() {
-  if (!filename_)   // RUNTIME preferences, or filename could not be created
+  if ( (root_type_&Fl_Preferences::ROOT_MASK)==Fl_Preferences::MEMORY ) {
+    prefs_->node->clearDirtyFlags();
+    return 0;
+  }
+  if (!filename_ || !filename_[0])   // filename could not be created
     return -1;
   if ( (root_type_ & Fl_Preferences::CORE) && !(fileAccess_ & Fl_Preferences::CORE_READ_OK) ) {
     prefs_->node->clearDirtyFlags();
@@ -1267,13 +1328,13 @@ int Fl_Preferences::RootNode::read() {
       size_t end = strcspn( buf+1, "\n\r" );
       if ( end != 0 ) {                         // if entry is not empty
         buf[ end+1 ] = 0;
-        nd->add( buf+1 );
+        if (nd) nd->add( buf+1 );
       }
     } else {                                     // read a name/value pair
       size_t end = strcspn( buf, "\n\r" );
       if ( end != 0 ) {                         // if entry is not empty
         buf[ end ] = 0;
-        nd->set( buf );
+        if (nd) nd->set( buf );
       }
     }
   }
@@ -1284,7 +1345,11 @@ int Fl_Preferences::RootNode::read() {
 
 // write the group tree and all entry leaves
 int Fl_Preferences::RootNode::write() {
-  if (!filename_)   // RUNTIME preferences, or filename could not be created
+  if ( (root_type_&Fl_Preferences::ROOT_MASK)==Fl_Preferences::MEMORY ) {
+    prefs_->node->clearDirtyFlags();
+    return 0;
+  }
+  if (!filename_ || !filename_[0])   // filename could not be created
     return -1;
   if ( (root_type_ & Fl_Preferences::CORE) && !(fileAccess_ & Fl_Preferences::CORE_WRITE_OK) )
     return -1;
@@ -1921,15 +1986,19 @@ int Fl_Plugin_Manager::load(const char *filename) {
 }
 
 /**
- \brief Use this function to load a whole directory full of modules.
+ Use this function to load a whole directory full of modules.
+ \param dirpath Pathname of a directory. It \b must end with the platform's directory separator character
+ (i.e., '\\' under Windows, '/' otherwise).
+ \param pattern A filename pattern to catch all modules of interest in the targeted directory
+ (e.g., "{*.so,*.dll,*.dylib}"), or NULL to catch all files in the directory.
  */
-int Fl_Plugin_Manager::loadAll(const char *filepath, const char *pattern) {
+int Fl_Plugin_Manager::loadAll(const char *dirpath, const char *pattern) {
   struct dirent **dir;
-  int i, n = fl_filename_list(filepath, &dir);
+  int i, n = fl_filename_list(dirpath, &dir);
   for (i=0; i<n; i++) {
     struct dirent *e = dir[i];
     if (pattern==0 || fl_filename_match(e->d_name, pattern)) {
-      load(Fl_Preferences::Name("%s%s", filepath, e->d_name));
+      load(Fl_Preferences::Name("%s%s", dirpath, e->d_name));
     }
     free(e);
   }

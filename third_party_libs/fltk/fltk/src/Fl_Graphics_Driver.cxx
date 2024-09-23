@@ -1,7 +1,7 @@
 //
 // Fl_Graphics_Driver class for the Fast Light Tool Kit (FLTK).
 //
-// Copyright 2010-2022 by Bill Spitzak and others.
+// Copyright 2010-2023 by Bill Spitzak and others.
 //
 // This library is free software. Distribution and use rights are outlined in
 // the file "COPYING" which should have been included with this file.  If this
@@ -14,24 +14,26 @@
 //     https://www.fltk.org/bugs.php
 //
 
+/** \file Fl_Graphics_Driver.cxx
+\brief Implementation of class Fl_Graphics_Driver.
+*/
+#include <config.h> // for HAVE_GL
+#include <FL/Fl_Graphics_Driver.H>
+/** Points to the driver that currently receives all graphics requests */
+FL_EXPORT Fl_Graphics_Driver *fl_graphics_driver;
+
 /**
  \cond DriverDev
  \addtogroup DriverDeveloper
  \{
  */
 
-#include <config.h>
-#include <FL/Fl.H>
-#include <FL/Fl_Graphics_Driver.H>
 #include "Fl_Screen_Driver.H"
-#include <FL/Fl_Image.H>
-#include <FL/fl_draw.H>
 #include <FL/Fl_Image_Surface.H>
-#include <FL/math.h>
-#include <FL/platform.H>
+#include <FL/math.h> // for fabs(), sqrt()
+#include <FL/platform.H> // for fl_open_display()
 #include <stdlib.h>
 
-FL_EXPORT Fl_Graphics_Driver *fl_graphics_driver; // the current driver of graphics operations
 
 const Fl_Graphics_Driver::matrix Fl_Graphics_Driver::m0 = {1, 0, 0, 1, 0, 0};
 
@@ -598,6 +600,14 @@ void Fl_Graphics_Driver::arc(int x, int y, int w, int h, double a1, double a2) {
 /** see fl_pie() */
 void Fl_Graphics_Driver::pie(int x, int y, int w, int h, double a1, double a2) {}
 
+/** see fl_draw_circle() */
+void Fl_Graphics_Driver::draw_circle(int x, int y, int d, Fl_Color c) {
+  Fl_Color current_c = color();
+  if (c != current_c) color(c);
+  pie(x, y, d, d, 0., 360.);
+  if (c != current_c) color(current_c);
+}
+
 /** see fl_line_style() */
 void Fl_Graphics_Driver::line_style(int style, int width, char* dashes) {}
 
@@ -735,15 +745,16 @@ Fl_Font_Descriptor::Fl_Font_Descriptor(const char* name, Fl_Fontsize Size) {
 
 Fl_Scalable_Graphics_Driver::Fl_Scalable_Graphics_Driver() : Fl_Graphics_Driver() {
   line_width_ = 0;
+  fontsize_ = -1;
 }
 
 void Fl_Scalable_Graphics_Driver::rect(int x, int y, int w, int h)
 {
   if (w > 0 && h > 0) {
-    xyline(x, y, x+w-1);
-    yxline(x, y, y+h-1);
-    yxline(x+w-1, y, y+h-1);
-    xyline(x, y+h-1, x+w-1);
+    int s = (int)scale()/2;
+    rect_unscaled(this->floor(x) + s, this->floor(y) + s,
+                  this->floor(x + w - 1) - this->floor(x),
+                  this->floor(y + h - 1) - this->floor(y));
   }
 }
 
@@ -783,6 +794,7 @@ void Fl_Scalable_Graphics_Driver::xyline(int x, int y, int x1) {
   } else {
     y = this->floor(y);
     if (line_width_ <= s_int) y += int(s/2.f);
+    else y += s_int/2;
     xyline_unscaled(this->floor(xx), y, this->floor(xx1+1) - 1);
   }
 }
@@ -802,6 +814,7 @@ void Fl_Scalable_Graphics_Driver::yxline(int x, int y, int y1) {
   } else {
     x = this->floor(x);
     if (line_width_ <= s_int) x += int(s/2.f);
+    else x += s_int/2;
     yxline_unscaled(x, this->floor(yy), this->floor(yy1+1) - 1);
   }
 }
@@ -852,6 +865,7 @@ void Fl_Scalable_Graphics_Driver::circle(double x, double y, double r) {
 void Fl_Scalable_Graphics_Driver::font(Fl_Font face, Fl_Fontsize size) {
   if (!font_descriptor()) fl_open_display(); // to catch the correct initial value of scale_
   font_unscaled(face, Fl_Fontsize(size * scale()));
+  fontsize_ = size;
 }
 
 Fl_Font Fl_Scalable_Graphics_Driver::font() {
@@ -868,7 +882,7 @@ double Fl_Scalable_Graphics_Driver::width(unsigned int c) {
 
 Fl_Fontsize Fl_Scalable_Graphics_Driver::size() {
   if (!font_descriptor() ) return -1;
-  return Fl_Fontsize(size_unscaled()/scale());
+  return fontsize_;
 }
 
 void Fl_Scalable_Graphics_Driver::text_extents(const char *str, int n, int &dx, int &dy, int &w, int &h) {
@@ -929,6 +943,45 @@ void Fl_Scalable_Graphics_Driver::pie(int x,int y,int w,int h,double a1,double a
   h = floor(y+h) - yy;
   pie_unscaled(xx, yy, w, h, a1, a2);
 }
+
+
+void Fl_Scalable_Graphics_Driver::draw_circle(int x0, int y0, int d, Fl_Color c) {
+  Fl_Color saved = color();
+  color(c);
+
+  // make circles nice on scaled display
+  float s = scale();
+  int scaled_d = (s > 1.0) ? (int)(d * s) : d;
+
+  // draw the circle
+  switch (scaled_d) {
+      // Larger circles draw fine...
+    default:
+      pie(x0, y0, d, d, 0.0, 360.0);
+      break;
+
+      // Small circles don't draw well on many systems...
+    case 6:
+      rectf(x0 + 2, y0, d - 4, d);
+      rectf(x0 + 1, y0 + 1, d - 2, d - 2);
+      rectf(x0, y0 + 2, d, d - 4);
+      break;
+
+    case 5:
+    case 4:
+    case 3:
+      rectf(x0 + 1, y0, d - 2, d);
+      rectf(x0, y0 + 1, d, d - 2);
+      break;
+
+    case 2:
+    case 1:
+      rectf(x0, y0, d, d);
+      break;
+  }
+  color(saved);
+}
+
 
 void Fl_Scalable_Graphics_Driver::line_style(int style, int width, char* dashes) {
   if (width == 0) line_width_ = int(scale() < 2 ? 0 : scale());
@@ -1023,14 +1076,13 @@ Fl_Region Fl_Scalable_Graphics_Driver::scale_clip(float f) { return 0; }
 
 void Fl_Scalable_Graphics_Driver::point_unscaled(float x, float y) {}
 
+void Fl_Scalable_Graphics_Driver::rect_unscaled(int x, int y, int w, int h) {}
+
 void Fl_Scalable_Graphics_Driver::rectf_unscaled(int x, int y, int w, int h) {}
 
 void Fl_Scalable_Graphics_Driver::line_unscaled(int x, int y, int x1, int y1) {}
 
-void Fl_Scalable_Graphics_Driver::line_unscaled(int x, int y, int x1, int y1, int x2, int y2) {
-  line_unscaled(x, y, x1, y1);
-  line_unscaled(x1, y1, x2, y2);
-}
+void Fl_Scalable_Graphics_Driver::line_unscaled(int x, int y, int x1, int y1, int x2, int y2) {}
 
 void Fl_Scalable_Graphics_Driver::xyline_unscaled(int x, int y, int x1) {}
 

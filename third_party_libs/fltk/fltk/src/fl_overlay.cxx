@@ -75,22 +75,86 @@ static void erase_current_rect() {
 }
 
 /**
-  Erase a selection rectangle without drawing a new one
-  */
+ Erase a selection rectangle without drawing a new one.
+
+ \see fl_overlay_rect(int x, int y, int w, int h)
+ */
 void fl_overlay_clear() {
   if (pw > 0) {erase_current_rect(); pw = 0;}
 }
 
 /**
-  Draws a selection rectangle, erasing a previous one by XOR'ing it first.
-  */
+ Draw a transient dotted selection rectangle.
+
+ This function saves the current screen content and then draws a dotted
+ selection rectangle into the front screen buffer. If another selection
+ rectangle was drawn earlier, the previous screen graphics are restored first.
+
+ To clear the selection rectangle, call `fl_overlay_clear()`.
+
+ The typical (and only) use for this function is to draw a selection rectangle
+ during a mouse drag event sequence without having to redraw the entire content
+ of the widget.
+
+ Your event handle should look similar to this (also see `test/mandelbrot.cxx`):
+ ```
+  int MyWidget::handle(int event) {
+    static int ix, iy;
+    switch (event) {
+      case FL_PUSH:
+        ix = Fl::event_x(); iy = Fl::event_y();
+        return 1;
+      case FL_DRAG:
+        this->make_current();
+        fl_overlay_rect(ix, iy, ix-Fl::event_x(), iy-Fl::event_y());
+        return 1;
+      case FL_RELEASE:
+        this->make_current();
+        fl_overlay_clear();
+        // select the element under the rectangle
+        return 1;
+    }
+    return MySuperWidget::handle(event);
+  }
+ ```
+
+ \note Between drawing an overlay rect and clearing it, the content of the
+    widget must not change.
+
+ \note fl_overlay_rect() and fl_overlay_clear() should be called when the actual
+    event occurs, and *not* within `MyWidget::draw()`.
+
+ \note fl_overlay_rect() and fl_overlay_clear() should not be mixed with
+    Fl_Overlay_Window. Fl_Overlay_Window provides an entirely different way of
+    drawing selection outlines and is not limited to rectangles.
+
+ \param x, y, w, h position and size of the overlay rectangle.
+
+ \see fl_overlay_clear()
+ */
 void fl_overlay_rect(int x, int y, int w, int h) {
-  if (w < 0) {x += w; w = -w;} else if (!w) w = 1;
-  if (h < 0) {y += h; h = -h;} else if (!h) h = 1;
+  // If there is already another overlay rect, erase it now
   if (pw > 0) {
     if (x==px && y==py && w==pw && h==ph) return;
     erase_current_rect();
   }
+  // Width and hight must be positive, swap with coordinates if needed
+  if (w < 0) {x += w; w = -w;}
+  if (h < 0) {y += h; h = -h;}
+  // Clip the overlay to the window rect, or reading the background will fail
+  Fl_Window *win = Fl_Window::current();
+  if (win) {
+    int d;
+    d = -x; if (d>0) { x += d; w -= d; }
+    d = (x+w)-win->w(); if (d>0) { w -= d; }
+    d = -y; if (d>0) { y += d; h -= d; }
+    d = (y+h)-win->h(); if (d>0) { h -= d; }
+  }
+  //
+  if (w<1) w = 1;
+  if (h<1) h = 1;
+  // Store the rect in global variables so we can erase it later
   px = x; py = y; pw = w; ph = h;
+  // Draw it
   draw_current_rect();
 }

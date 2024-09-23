@@ -1,7 +1,7 @@
 //
 // implementation of classes Fl_Surface_Device and Fl_Display_Device for the Fast Light Tool Kit (FLTK).
 //
-// Copyright 2010-2023 by Bill Spitzak and others.
+// Copyright 2010-2024 by Bill Spitzak and others.
 //
 // This library is free software. Distribution and use rights are outlined in
 // the file "COPYING" which should have been included with this file.  If this
@@ -46,17 +46,23 @@
                   |
                   +- Fl_Posix_Printer_Driver: Fl_Printer uses that under Posix platforms
                   +- Fl_GTK_Printer_Driver: Fl_Printer uses that under Posix+GTK platforms
+              +- Fl_PDF_File_Surface: draw into a PDF file
+                  +- Fl_PDF_GDI_File_Surface: Windows-specific helper class interfacing FLTK with PDF operations
+                  +- Fl_PDF_Pango_File_Surface: Linux/Unix-specific helper class interfacing FLTK with PDF operations
+                  +- Fl_PDF_Cocoa_File_Surface: macOS-specific helper class interfacing FLTK with PDF operations
+
 
   +- Fl_Graphics_Driver -> directed to an Fl_Surface_Device object
       |
-      +- Fl_PostScript_Graphics_Driver: platform-independent graphics driver for PostScript drawing
+      +- Fl_PostScript_Graphics_Driver: platform-independent graphics driver for PostScript/EPS drawing
       +- Fl_SVG_Graphics_Driver: platform-independent graphics driver for Scalable Vector Graphics drawing
       +- Fl_Quartz_Graphics_Driver: platform-specific graphics driver (MacOS)
           +- Fl_Quartz_Printer_Graphics_Driver: MacOS-specific, for drawing to printers
       +- Fl_Scalable_Graphics_Driver: helper class to support GUI scaling
           +- Fl_Xlib_Graphics_Driver: X11-specific graphics driver
           +- Fl_GDI_Graphics_Driver: Windows-specific graphics driver
-              +- Fl_GDI_Printer_Graphics_Driver: re-implements a few member functions especially for output to printer
+              +- Fl_GDIplus_Graphics_Driver: overrides oblique lines, arcs and circles
+              +- Fl_GDI_Printer_Graphics_Driver: overrides a few member functions especially for output to printer
       +- Fl_Cairo_Graphics_Driver: full FLTK drawing API based on Cairo and Pango
           +- Fl_Wayland_Graphics_Driver: Wayland-specific graphics driver
           +- Fl_X11_Cairo_Graphics_Driver: used by X11 leg of hybrid Wayland/X11 platform
@@ -154,3 +160,28 @@ Fl_Device_Plugin *Fl_Device_Plugin::opengl_plugin() {
   }
   return pi;
 }
+
+#if !defined(FL_NO_PRINT_SUPPORT)
+
+#include <FL/Fl_PDF_File_Surface.H>
+
+Fl_PDF_File_Surface::Fl_PDF_File_Surface() {
+  platform_surface_ = new_platform_pdf_surface_(&out_filename_);
+  driver(platform_surface_->driver());
+}
+
+
+Fl_PDF_File_Surface::~Fl_PDF_File_Surface() {
+  delete platform_surface_;
+}
+
+#endif // !defined(FL_NO_PRINT_SUPPORT)
+
+/** Localizable text of the "PDF document settings" dialog */
+const char * Fl_PDF_File_Surface::format_dialog_title = "PDF document settings";
+/** Localizable text of the "PDF document settings" dialog */
+const char * Fl_PDF_File_Surface::format_dialog_page_size = "Page Size:";
+/** Localizable text of the "PDF document settings" dialog */
+const char * Fl_PDF_File_Surface::format_dialog_default = "Set as default";
+/** Localizable text of the "PDF document settings" dialog */
+const char * Fl_PDF_File_Surface::format_dialog_orientation = "Orientation:";

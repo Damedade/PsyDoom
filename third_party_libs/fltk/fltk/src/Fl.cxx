@@ -1,7 +1,7 @@
 //
 // Main event handling code for the Fast Light Tool Kit (FLTK).
 //
-// Copyright 1998-2023 by Bill Spitzak and others.
+// Copyright 1998-2024 by Bill Spitzak and others.
 //
 // This library is free software. Distribution and use rights are outlined in
 // the file "COPYING" which should have been included with this file.  If this
@@ -14,9 +14,9 @@
 //     https://www.fltk.org/bugs.php
 //
 
-/** \file
- Implementation of the member functions of class Fl.
- */
+/** \file src/Fl.cxx
+  Implementation of the member functions of class Fl.
+*/
 
 #include <FL/Fl.H>
 #include <FL/platform.H>
@@ -344,23 +344,68 @@ int Fl::has_timeout(Fl_Timeout_Handler cb, void *data) {
 }
 
 /**
-  Removes a timeout callback from the timer queue.
+  Remove one or more matching timeout callbacks from the timer queue.
 
-  This method removes all matching timeouts, not just the first one.
-  This may change in the future.
+  This method removes \b all matching timeouts, not just the first one.
 
   If the \p data argument is \p NULL (the default!) only the callback
   \p cb must match, i.e. all timer entries with this callback are removed.
 
   It is harmless to remove a timeout callback that no longer exists.
 
+  If you want to remove only the next matching timeout you can use
+  Fl::remove_next_timeout(Fl_Timeout_Handler cb, void *data, void **data_return)
+  (available since FLTK 1.4.0).
+
   \param[in]  cb    Timer callback to be removed (must match)
   \param[in]  data  Wildcard if NULL (default), must match otherwise
+
+  \see Fl::remove_next_timeout(Fl_Timeout_Handler cb, void *data, void **data_return)
 */
 void Fl::remove_timeout(Fl_Timeout_Handler cb, void *data) {
   Fl_Timeout::remove_timeout(cb, data);
 }
 
+
+/**
+  Remove the next matching timeout callback and return its \p data pointer.
+
+  This method removes only the next matching timeout and returns in
+  \p data_return (if non-NULL) the \p data member given when the timeout
+  was scheduled.
+
+  This method is useful if you remove a timeout before it is scheduled
+  and you need to get and use its data value, for instance to free() or
+  delete the data associated with the timeout.
+
+  This method returns non-zero if a matching timeout was found and zero
+  if no timeout matched the request.
+
+  If the return value is \c N \> 1 then there are N - 1 more matching
+  timeouts pending.
+
+  If you need to remove all timeouts with a particular callback \p cb
+  you must repeat this call until it returns 1 (all timeouts removed)
+  or zero (no matching timeout), whichever occurs first.
+
+
+  \param[in]    cb    Timer callback to be removed (must match)
+  \param[in]    data  Wildcard if NULL, must match otherwise
+  \param[inout] data_return  Pointer to (void *) to receive the data value
+
+  \return       non-zero if a timer was found and removed
+  \retval   0   no matching timer was found
+  \retval   1   the last matching timeout was found and removed
+  \retval  N>1  a matching timeout was removed and there are \n
+                (N - 1) matching timeouts pending
+
+  \see Fl::remove_timeout(Fl_Timeout_Handler cb, void *data)
+
+  \since 1.4.0
+*/
+int Fl::remove_next_timeout(Fl_Timeout_Handler cb, void *data, void **data_return) {
+  return Fl_Timeout::remove_next_timeout(cb, data, data_return);
+}
 
 
 ////////////////////////////////////////////////////////////////
@@ -634,9 +679,9 @@ int Fl::wait() {
 
   \code
   while (!calculation_done()) {
-  calculate();
-  Fl::check();
-  if (user_hit_abort_button()) break;
+    calculate();
+    Fl::check();
+    if (user_hit_abort_button()) break;
   }
   \endcode
 
@@ -672,11 +717,14 @@ int Fl::ready()
   return system_driver()->ready();
 }
 
-/** Hide all visible window to make FLTK leav Fl::run().
- Fl:run() will run as long as there are visible windows. Call hide_all_windows()
- will hide all windows, effectively terminating the Fl::run() loop.
- \see Fl::run()
- */
+/** Hide all visible windows to make FLTK leave Fl::run().
+
+  Fl:run() will run as long as there are visible windows.
+  Call Fl::hide_all_windows() to hide (close) all currently shown
+  (visible) windows, effectively terminating the Fl::run() loop.
+  \see Fl::run()
+  \since 1.4.0
+*/
 void Fl::hide_all_windows() {
   while (Fl::first_window()) {
     Fl::first_window()->hide();
@@ -824,6 +872,34 @@ void Fl::add_handler(Fl_Event_Handler ha) {
 }
 
 
+/** Returns the last function installed by a call to Fl::add_handler() */
+Fl_Event_Handler Fl::last_handler() {
+  return handlers ? handlers->handle : NULL;
+}
+
+
+/** Install a function to parse unrecognized events with less priority than another function.
+ Install function \p ha to handle unrecognized events
+ giving it the priority just lower than that of function \p before
+ which was previously installed.
+ \see Fl::add_handler(Fl_Event_Handler)
+ \see Fl::last_handler()
+ */
+void Fl::add_handler(Fl_Event_Handler ha, Fl_Event_Handler before) {
+  if (!before) return Fl::add_handler(ha);
+  handler_link *l = handlers;
+  while (l) {
+    if (l->handle == before) {
+      handler_link *p = l->next, *q = new handler_link;
+      q->handle = ha;
+      q->next = p;
+      l->next = q;
+      return;
+    }
+    l = l->next;
+  }
+}
+
 /**
  Removes a previously added event handler.
  \see Fl::handle(int, Fl_Window*)
@@ -884,6 +960,7 @@ static system_handler_link *sys_handlers = 0;
    - X11: XEvent
    - Windows: MSG
    - OS X: NSEvent
+   - Wayland: NULL (FLTK runs the event handler(s) just before calling \e wl_display_dispatch())
 
  \param ha The event handler function to register
  \param data User data to include on each call
@@ -939,6 +1016,10 @@ Fl_Widget* fl_oldfocus; // kludge for Fl_Group...
 
 /**
     Sets the widget that will receive FL_KEYBOARD events.
+
+    Use this function inside the \c handle(int) member function of a widget of yours
+    to give focus to the widget, for example when it receives the FL_FOCUS or the FL_PUSH event.
+    Otherwise, use Fl_Widget::take_focus() to give focus to a widget;
 
     If you change Fl::focus(), the previous widget and all
     parents (that don't contain the new widget) are sent FL_UNFOCUS
@@ -1140,12 +1221,12 @@ void fl_throw_focus(Fl_Widget *o) {
 // the inactive widget and all inactive parent groups.
 //
 // This is used to send FL_SHORTCUT events to the Fl::belowmouse() widget
-// in case the target widget itself is inactive_r(). In this case the event
+// in case the target widget itself is !active_r(). In this case the event
 // is sent to the first active_r() parent.
 //
 // This prevents sending events to inactive widgets that might get the
 // input focus otherwise. The search is fast and light and avoids calling
-// inactive_r() multiple times.
+// !active_r() multiple times.
 // See STR #3216.
 //
 // Returns: first active_r() widget "above" the widget wi or NULL if
@@ -1359,7 +1440,7 @@ int Fl::handle_(int e, Fl_Window* window)
       ret = (wi && send_event(e, wi, window));
       if (pbm != belowmouse()) {
 #ifdef DEBUG
-        printf("Fl::handle(e=%d, window=%p);\n", e, window);
+        printf("Fl::handle(e=%d, window=%p) -- Fl_Tooltip::enter(%p);\n", e, window, belowmouse());
 #endif // DEBUG
         Fl_Tooltip::enter(belowmouse());
       }
@@ -1367,19 +1448,44 @@ int Fl::handle_(int e, Fl_Window* window)
     }
 
   case FL_RELEASE: {
-//    printf("FL_RELEASE: window=%p, pushed() = %p, grab() = %p, modal() = %p\n",
-//           window, pushed(), grab(), modal());
+
+    // Mouse drag release mode - Jul 14, 2023, Albrecht-S (WIP):
+    //   0 = old: *first* mouse button release ("up") turns drag mode off
+    //   1 = new: *last* mouse button release ("up") turns drag mode off
+    // The latter enables dragging with two or more pressed mouse buttons
+    // and to continue dragging (i.e. sending FL_DRAG) until the *last*
+    // mouse button is released.
+    // See fltk.general, thread started on Jul 12, 2023
+    // "Is handling simultaneous Left-click and Right-click drags supported?"
+
+    static const int drag_release = 1; // should be 1 => new behavior since Jul 2023
+
+    // Implementation notes:
+    // (1) Mode 1 (new): only if *all* mouse buttons have been released, the
+    //     Fl::pushed_ widget is reset to 0 (NULL) so subsequent system "move"
+    //     events are no longer sent as FL_DRAG events.
+    // (2) Mode 0 (old): Fl::pushed_ was reset on the *first* mouse button release.
+    // (3) The constant 'drag_release' should be removed once the new mode has been
+    //     confirmed to work correctly and no side effects have been observed.
+    //     Hint: remove condition "!drag_release || " twice (below).
+
+    // printf("FL_RELEASE: window=%p, pushed() = %p, grab() = %p, modal() = %p, drag_release = %d, buttons = 0x%x\n",
+    //        window, pushed(), grab(), modal(), drag_release, Fl::event_buttons()>>24);
 
     if (grab()) {
       wi = grab();
-      pushed_ = 0; // must be zero before callback is done!
+      if (!drag_release || !Fl::event_buttons())
+        pushed_ = 0; // must be zero before callback is done!
     } else if (pushed()) {
       wi = pushed();
-      pushed_ = 0; // must be zero before callback is done!
-    } else if (modal() && wi != modal()) return 0;
+      if (!drag_release || !Fl::event_buttons())
+        pushed_ = 0; // must be zero before callback is done!
+    } else if (modal() && wi != modal())
+      return 0;
     int r = send_event(e, wi, window);
     fl_fix_focus();
-    return r;}
+    return r;
+  }
 
   case FL_UNFOCUS:
     window = 0;
@@ -1904,15 +2010,22 @@ void Fl::clear_widget_pointer(Fl_Widget const *w)
 /**
  \brief FLTK library options management.
 
- This function needs to be documented in more detail. It can be used for more
- optional settings, such as using a native file chooser instead of the FLTK one
+ Options provide a way for the user to modify the behavior of an FLTK
+ application. For example, clearing the `OPTION_SHOW_TOOLTIPS` will disable
+ tooltips for all FLTK applications.
+
+ Options are set by the user or the administrator on user or machine level.
+ In 1.3, FLUID has an Options dialog for that. In 1.4, there is an app named
+ `fltk-options` that can be used from the command line or as a GUI tool.
+ The machine level setting is read first, and the user setting can override
+ the machine setting.
+
+ This function is used throughout FLTK to quickly query the user's wishes.
+ There are options for using a native file chooser instead of the FLTK one
  wherever possible, disabling tooltips, disabling visible focus, disabling
  FLTK file chooser preview, etc. .
 
- There should be a command line option interface.
-
- There should be an application that manages options system wide, per user, and
- per application.
+ See `Fl::Fl_Option` for a list of available options.
 
  Example:
  \code
@@ -1922,13 +2035,14 @@ void Fl::clear_widget_pointer(Fl_Widget const *w)
          { ..off..  }
  \endcode
 
- \note As of FLTK 1.3.0, options can be managed within fluid, using the menu
- <i>Edit/Global FLTK Settings</i>.
+ \note Options can be managed with the \c fltk-options program, new in
+ FLTK 1.4.0. In 1.3.x, options can be set in FLUID.
 
  \param opt which option
  \return true or false
  \see enum Fl::Fl_Option
  \see Fl::option(Fl_Option, bool)
+ \see fltk-options application in command line and GUI mode
 
  \since FLTK 1.3.0
  */
@@ -1958,8 +2072,12 @@ bool Fl::option(Fl_Option opt)
 
       opt_prefs.get("ShowZoomFactor", tmp, 1);                  // default: on
       options_[OPTION_SHOW_SCALING] = tmp;
-      opt_prefs.get("UseZenity", tmp, 1);                      // default: on
+      opt_prefs.get("UseZenity", tmp, 0);                       // default: off
       options_[OPTION_FNFC_USES_ZENITY] = tmp;
+      opt_prefs.get("UseKdialog", tmp, 0);                      // default: off
+      options_[OPTION_FNFC_USES_KDIALOG] = tmp;
+      opt_prefs.get("SimpleZoomShortcut", tmp, 0);              // default: off
+      options_[OPTION_SIMPLE_ZOOM_SHORTCUT] = tmp;
     }
     { // next, check the user preferences
       // override system options only, if the option is set ( >= 0 )
@@ -1986,6 +2104,10 @@ bool Fl::option(Fl_Option opt)
       if (tmp >= 0) options_[OPTION_SHOW_SCALING] = tmp;
       opt_prefs.get("UseZenity", tmp, -1);
       if (tmp >= 0) options_[OPTION_FNFC_USES_ZENITY] = tmp;
+      opt_prefs.get("UseKdialog", tmp, -1);
+      if (tmp >= 0) options_[OPTION_FNFC_USES_KDIALOG] = tmp;
+      opt_prefs.get("SimpleZoomShortcut", tmp, -1);
+      if (tmp >= 0) options_[OPTION_SIMPLE_ZOOM_SHORTCUT] = tmp;
     }
     { // now, if the developer has registered this app, we could ask for per-application preferences
     }
@@ -1999,7 +2121,12 @@ bool Fl::option(Fl_Option opt)
 /**
  \brief Override an option while the application is running.
 
- This function does not change any system or user settings.
+ Apps can override the machine settings and the user settings by calling
+ `Fl::option(option, bool)`. The override takes effect immediately for this
+ option for all widgets in the app for the life time of the app.
+
+ The override is not saved anywhere, and relaunching the app will restore the
+ old settings.
 
  Example:
  \code
@@ -2009,6 +2136,7 @@ bool Fl::option(Fl_Option opt)
 
  \param opt which option
  \param val set to true or false
+
  \see enum Fl::Fl_Option
  \see bool Fl::option(Fl_Option)
  */
@@ -2017,7 +2145,7 @@ void Fl::option(Fl_Option opt, bool val)
   if (opt<0 || opt>=OPTION_LAST)
     return;
   if (!options_read_) {
-    // first read this option, so we don't override our setting later
+    // make sure that the options_ array is filled in
     option(opt);
   }
   options_[opt] = val;
@@ -2144,12 +2272,19 @@ void Fl::disable_im()
  Opens the display.
  Automatically called by the library when the first window is show()'n.
  Does nothing if the display is already open.
+ \note Requires \#include <FL/platform.H>
  */
 void fl_open_display()
 {
   Fl::screen_driver()->open_display();
 }
 
+/** Closes the connection to the windowing system when that's possible.
+You do \e not need to call this to exit, and in fact it is faster to not do so. It may be
+useful to call this if you want your program to continue without
+a GUI. You cannot open the display again, and cannot call any FLTK functions.
+ \note Requires \#include <FL/platform.H>
+*/
 void fl_close_display()
 {
   Fl::screen_driver()->close_display();
@@ -2216,8 +2351,13 @@ float Fl::screen_scale(int n) {
  Also sets the scale factor value of all windows mapped to screen number \p n, if any.
  */
 void Fl::screen_scale(int n, float factor) {
-  if (!Fl::screen_scaling_supported() || n < 0 || n >= Fl::screen_count()) return;
-  Fl::screen_driver()->rescale_all_windows_from_screen(n, factor);
+  Fl_Screen_Driver::APP_SCALING_CAPABILITY capability = Fl::screen_driver()->rescalable();
+  if (!capability || n < 0 || n >= Fl::screen_count()) return;
+  if (capability == Fl_Screen_Driver::SYSTEMWIDE_APP_SCALING) {
+    for (int s = 0; s < Fl::screen_count(); s++) {
+      Fl::screen_driver()->rescale_all_windows_from_screen(s, factor, factor);
+    }
+  } else Fl::screen_driver()->rescale_all_windows_from_screen(n, factor, factor);
 }
 
 /**
@@ -2259,3 +2399,76 @@ FL_EXPORT const char* fl_local_shift = Fl::system_driver()->shift_name();
 FL_EXPORT const char* fl_local_meta  = Fl::system_driver()->meta_name();
 FL_EXPORT const char* fl_local_alt   = Fl::system_driver()->alt_name();
 FL_EXPORT const char* fl_local_ctrl  = Fl::system_driver()->control_name();
+
+/**
+  Convert Windows commandline arguments to UTF-8.
+
+  \note This function does nothing on other (non-Windows) platforms, hence
+    you may call it on all platforms or only on Windows by using platform
+    specific code like <tt>'\#ifdef _WIN32'</tt> etc. - it's your choice.
+    Calling it on other platforms returns quickly w/o wasting much CPU time.
+
+  This function <i>must be called <b>on Windows platforms</b></i> in \c main()
+  before the array \c argv is used if your program uses any commandline
+  argument strings (these should be UTF-8 encoded).
+  This applies also to standard FLTK commandline arguments like
+  "-name" (class name) and "-title" (window title in the title bar).
+
+  Unfortunately Windows \b neither provides commandline arguments in UTF-8
+  encoding \b nor as Windows "Wide Character" strings in the standard
+  \c main() and/or the Windows specific \c WinMain() function.
+
+  On Windows platforms (no matter which build system) this function calls
+  a Windows specific function to retrieve commandline arguments as Windows
+  "Wide Character" strings, converts these strings to an internally allocated
+  buffer (or multiple buffers) and returns the result in \c argv.
+  For implementation details please refer to the source code; however these
+  details may be changed in the future.
+
+  Note that \c argv is provided by reference so it can be overwritten.
+
+  In the recommended simple form the function overwrites the variable
+  \c argv and allocates a new array of strings pointed to by \c argv.
+  You may use this form on all platforms and it is as simple as adding
+  one line to old programs to make them work with international (UTF-8)
+  commandline arguments.
+
+  \code
+    int main(int argc, char **argv) {
+      Fl::args_to_utf8(argc, argv);   // add this line
+      // ... use argc and argv, e.g. for commandline parsing
+      window->show(argc, argv);
+      return Fl::run();
+    }
+  \endcode
+
+  For an example see 'examples/howto-parse-args.cxx' in the FLTK sources.
+
+  If you want to retain the original \c argc and \c argv variables the
+  following slightly longer and more complicated code works as well on
+  all platforms.
+
+  \code
+    int main(int argc, char **argv) {
+      char **argvn = argv;            // must copy argv to work on all platforms
+      int argcn = Fl::args_to_utf8(argc, argvn);
+      // ... use argcn and argvn, e.g. for commandline parsing
+      window->show(argcn, argvn);
+      return Fl::run();
+    }
+  \endcode
+
+  \param[in]    argc    used only on non-Windows platforms
+  \param[out]   argv    modified only on Windows platforms
+  \returns  argument count (always the same as argc)
+
+  \since 1.4.0
+
+  \internal This function must not open the display, otherwise
+    commandline processing (e.g. by fluid) would open the display.
+    OTOH calling it when the display is opened wouldn't work either
+    for the same reasons ('fluid -c' doesn't open the display).
+*/
+int Fl::args_to_utf8(int argc, char ** &argv) {
+  return Fl::system_driver()->args_to_utf8(argc, argv);
+}
