@@ -2,5 +2,6 @@ Note: I have stripped out some stuff which is not needed to use this library.
 The full version is available at the link below.
 
 Commit:
-    https://github.com/Tencent/rapidjson/tree/973dc9c06dcd3d035ebd039cfb9ea457721ec213
-    (May 17, 2023)
+    https://github.com/Tencent/rapidjson/tree/7c73dd7de7c4f14379b781418c6e947ad464c818
+    https://github.com/Tencent/rapidjson/archive/7c73dd7de7c4f14379b781418c6e947ad464c818.zip
+    (August 16th, 2024)
