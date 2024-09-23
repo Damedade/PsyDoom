@@ -118,6 +118,17 @@ static bool isRiffDataChunk(const RiffChunk& chunk, ByteInputStream chunkData) n
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
+// Helper: searches for and returns a stream to a 'RIFF' chunk with form type 'WAVE'.
+// The returned stream is minus the 'WAVE' form type prefix, it contains just the data for the 'WAVE' chunk.
+// Returns an invalid stream if the chunk was not found.
+//------------------------------------------------------------------------------------------------------------------------------------------
+ByteInputStream findWaveRiffChunk(const ByteInputStream inputStream) noexcept {
+    ByteInputStream waveChunk = findNextRiffChunk(inputStream, isRiffWaveChunk);
+    waveChunk.skipBytes(4); // Skip past the 4-byte form type (which has the value 'WAVE')
+    return waveChunk;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
 // Read the audio data from a .wav file which is 16-bit PCM encoded.
 // If the file is in another format then reading will fail.
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -130,9 +141,7 @@ AudioData readWav_Pcm16(const std::byte* const pBytes, const size_t numBytes) no
 
     try {
         // Find a 'RIFF' chunk with form type 'WAVE':
-        const ByteInputStream fileInputStream = ByteInputStream(pBytes, numBytes);
-        ByteInputStream waveChunkData = findNextRiffChunk(ByteInputStream(fileInputStream), isRiffWaveChunk);
-        waveChunkData.skipBytes(4); // Skip past the 4-byte form type (which has the value 'WAVE')
+        const ByteInputStream waveChunkData = findWaveRiffChunk(ByteInputStream(pBytes, numBytes));
 
         // Find the 'fmt' chunk and read the 'FormatChunkBaseData' from it:
         const ByteInputStream fmtChunkData = findNextRiffChunk(ByteInputStream(waveChunkData), isRiffFmtChunk);
