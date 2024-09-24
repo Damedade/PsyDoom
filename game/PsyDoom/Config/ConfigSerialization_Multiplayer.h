@@ -15,6 +15,7 @@ struct Config_Multiplayer {
     ConfigField     dmExitDisabled;
     ConfigField     coopPreserveAmmoFactor;
     ConfigField     coopPreserveKeys;
+    ConfigField     coopPreserveWeapons;
     ConfigField     coopForceSpawnDeathmatchThings;
     ConfigField     dmActivateBossSpecialSectors;
 

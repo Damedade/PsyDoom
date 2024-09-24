@@ -16,11 +16,11 @@
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Game version:            1.2.0+
-// Demo file version:       16
-// Net protocol version:    34
+// Demo file version:       17
+// Net protocol version:    35
 //------------------------------------------------------------------------------------------------------------------------------------------
-static_assert(DemoCommon::DEMO_FILE_VERSION == 16, "Update the comment here after bumping the current demo file version!");
-static_assert(NET_PROTOCOL_VERSION == 34, "Update the comment here after bumping the net protocol version!");
+static_assert(DemoCommon::DEMO_FILE_VERSION == 17, "Update the comment here after bumping the current demo file version!");
+static_assert(NET_PROTOCOL_VERSION == 35, "Update the comment here after bumping the net protocol version!");
 
 typedef GameSettings GameSettingsV3;
 
@@ -160,6 +160,7 @@ static void byteSwapGameSettings(GameSettingsT& settings) noexcept {
 
     if constexpr (GameSettingsT::VERSION >= 3) {
         Endian::byteSwapInPlace(settings.bFixCoopNoFriendlyFireTargeting);
+        Endian::byteSwapInPlace(settings.bCoopPreserveWeapons);
     }
 }
 
@@ -220,6 +221,7 @@ static void migrateGameSettings(OldGameSettingsT& oldSettings, GameSettings& new
 
     if constexpr (OldGameSettingsT::VERSION >= 3) {
         COPY_GAME_SETTINGS_FIELD(bFixCoopNoFriendlyFireTargeting);
+        COPY_GAME_SETTINGS_FIELD(bCoopPreserveWeapons);
     }
 
     #undef COPY_GAME_SETTINGS_FIELD
@@ -276,10 +278,10 @@ int32_t getGameSettingsVersionForDemoFileVersion(const int32_t demoFileVersion) 
     switch (demoFileVersion) {
         case 11:    return 1;
         case 14:    return 2;
-        case 16:    return 3;
+        case 17:    return 3;
     }
 
-    static_assert(DemoCommon::DEMO_FILE_VERSION == 16, "Update the code here after bumping the current demo file version!");
+    static_assert(DemoCommon::DEMO_FILE_VERSION == 17, "Update the code here after bumping the current demo file version!");
 
     ASSERT_FAIL_F("No 'GameSettings' mapping for demo file version '%d'! Support might need to be added here...", demoFileVersion);
     return -1;

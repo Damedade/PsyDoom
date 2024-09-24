@@ -221,6 +221,7 @@ void getUserGameSettings(GameSettings& settings) noexcept {
 
     settings.viewBobbingStrengthFixed           = (int32_t)(std::clamp(Config::gViewBobbingStrength, 0.0f, 64.0f) * (float) FRACUNIT);    // Cap this to a reasonable number, won't make much difference going above this!
     settings.dmFragLimit                        = Config::gDmFragLimit;
+    settings.bCoopPreserveWeapons               = Config::gbCoopPreserveWeapons;
     settings.coopPreserveAmmoFactor             = Config::gCoopPreserveAmmoFactor;
     settings.bSinglePlayerForceSpawnDmThings    = Config::gbSinglePlayerForceSpawnDmThings;
 }
@@ -272,6 +273,7 @@ void getClassicDemoGameSettings(GameSettings& settings) noexcept {
     settings.viewBobbingStrengthFixed           = FRACUNIT;
     settings.dmFragLimit                        = 0;
     settings.coopPreserveAmmoFactor             = 0;
+    settings.bCoopPreserveWeapons               = false;
     settings.bSinglePlayerForceSpawnDmThings    = false;
 }
 

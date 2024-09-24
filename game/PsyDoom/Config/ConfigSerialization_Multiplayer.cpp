@@ -53,6 +53,14 @@ void initCfgSerialization_Multiplayer() noexcept {
         false
     );
 
+    cfg.coopPreserveWeapons = makeConfigField(
+        "CoopPreserveWeapons",
+        "Cooperative: preserve collected weapons on respawn?\n"
+        "Note: this setting is ignored during demos and networked games where you are not the host/server.",
+        gbCoopPreserveWeapons,
+        false
+    );
+
     cfg.coopPreserveAmmoFactor = makeConfigField(
         "CoopPreserveAmmoFactor",
         "Cooperative: how much ammo should be preserved when respawning.\n"

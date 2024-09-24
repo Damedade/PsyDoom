@@ -240,6 +240,7 @@ void G_PlayerReborn(const int32_t playerIdx) noexcept {
         bool bCoopSetYellowSkull = false;
         bool bCoopSetRedCard = false;
         bool bCoopSetRedSkull = false;
+        bool bCoopPreserveWeapon[NUMWEAPONS] = {};
 
         // Co-op: preserve ammo, keys, and the backpack after death and respawn if the appropriate settings are enabled
         if ((gNetGame == gt_coop) && (player.playerstate == PST_REBORN)) {
@@ -260,6 +261,12 @@ void G_PlayerReborn(const int32_t playerIdx) noexcept {
                 bCoopSetYellowSkull = player.cards[it_yellowskull];
                 bCoopSetRedCard = player.cards[it_redcard];
                 bCoopSetRedSkull = player.cards[it_redskull];
+            }
+
+            if (Game::gSettings.bCoopPreserveWeapons) {
+                for (int32_t i = 0; i < NUMWEAPONS; ++i) {
+                    bCoopPreserveWeapon[i] = player.weaponowned[i];
+                }
             }
         }
     #endif  // #if PSYDOOM_MODS
@@ -314,6 +321,12 @@ void G_PlayerReborn(const int32_t playerIdx) noexcept {
             player.cards[it_yellowskull] = bCoopSetYellowSkull;
             player.cards[it_redcard] = bCoopSetRedCard;
             player.cards[it_redskull] = bCoopSetRedSkull;
+
+            for (int32_t i = 0; i < NUMWEAPONS; ++i) {
+                if (bCoopPreserveWeapon[i]) {
+                    player.weaponowned[i] = true;
+                }
+            }
         }
     #endif  // #if PSYDOOM_MODS
 }

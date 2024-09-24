@@ -134,6 +134,7 @@ bool        gbDmExitDisabled;
 int32_t     gDmFragLimit;
 int32_t     gCoopPreserveAmmoFactor;
 bool        gbCoopPreserveKeys;
+bool        gbCoopPreserveWeapons;
 bool        gbCoopForceSpawnDeathmatchThings;
 bool        gbDmActivateBossSpecialSectors;
 

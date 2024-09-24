@@ -10,8 +10,8 @@
 // These numbers should normally be incremented at the same time for a public facing release of PsyDoom.
 // A change in network game behavior normally implies a change in demo behavior, and new game settings to enable/disable the modified behavior.
 static_assert(
-    (NET_PROTOCOL_VERSION == 34) &&
-    (DemoCommon::DEMO_FILE_VERSION == 16)
+    (NET_PROTOCOL_VERSION == 35) &&
+    (DemoCommon::DEMO_FILE_VERSION == 17)
 );
 
 BEGIN_NAMESPACE(DemoCommon)

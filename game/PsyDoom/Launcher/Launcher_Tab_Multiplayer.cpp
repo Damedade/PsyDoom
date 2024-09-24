@@ -23,7 +23,7 @@ BEGIN_NAMESPACE(Launcher)
 static void makeCoopSection(const int x, const int y) noexcept {
     // Container frame
     new Fl_Box(FL_NO_BOX, x, y, 376, 30, "Cooperative");
-    new Fl_Box(FL_THIN_DOWN_BOX, x, y + 30, 376, 160, "");
+    new Fl_Box(FL_THIN_DOWN_BOX, x, y + 30, 376, 190, "");
     
     // Friendly fire toggle
     {
@@ -46,13 +46,20 @@ static void makeCoopSection(const int x, const int y) noexcept {
         pCheck->tooltip(ConfigSerialization::gConfig_Multiplayer.coopPreserveKeys.comment);
     }
 
+    // Preserve weapons on respawn
+    {
+        const auto pCheck = makeFl_Check_Button(x + 20, y + 130, 150, 30, "  Preserve weapons on respawn");
+        bindConfigField<Config::gbCoopPreserveWeapons, Config::gbNeedSave_Multiplayer>(*pCheck);
+        pCheck->tooltip(ConfigSerialization::gConfig_Multiplayer.coopPreserveWeapons.comment);
+    }
+
     // Preserve ammo on respawn
     {
-        const auto pLabel = new Fl_Box(FL_NO_BOX, x + 20, y + 140, 120, 26, "Preserve ammo on respawn");
+        const auto pLabel = new Fl_Box(FL_NO_BOX, x + 20, y + 170, 120, 26, "Preserve ammo on respawn");
         pLabel->align(FL_ALIGN_LEFT | FL_ALIGN_INSIDE);
         pLabel->tooltip(ConfigSerialization::gConfig_Multiplayer.coopPreserveAmmoFactor.comment);
 
-        const auto pChoice = new Fl_Choice(x + 250, y + 140, 100, 26);
+        const auto pChoice = new Fl_Choice(x + 250, y + 170, 100, 26);
         pChoice->add("None");
         pChoice->add("All");
         pChoice->add("Half");
@@ -125,7 +132,7 @@ void populateMultiplayerTab(Context& ctx) noexcept {
 
     const RectExtents tabRect = getRectExtents(*tab.pTab);
     makeCoopSection((tabRect.lx + tabRect.rx) / 2 - 188, tabRect.ty + 20);
-    makeDeathmatchSection((tabRect.lx + tabRect.rx) / 2 - 188, tabRect.ty + 220);
+    makeDeathmatchSection((tabRect.lx + tabRect.rx) / 2 - 188, tabRect.ty + 250);
 }
 
 END_NAMESPACE(Launcher)
