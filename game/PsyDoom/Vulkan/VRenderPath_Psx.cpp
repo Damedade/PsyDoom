@@ -12,6 +12,7 @@
 #include "VRenderer.h"
 
 #include <algorithm>
+#include <cmath>
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Sets the render path to a default uninitialized state
@@ -219,8 +220,8 @@ void VRenderPath_Psx::endFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecorder
         blitRegion.srcOffsets[1].z = 1;
         blitRegion.dstOffsets[0].x = std::clamp<int32_t>((int32_t) blitDstX, 0, screenWidth);
         blitRegion.dstOffsets[0].y = std::clamp<int32_t>((int32_t) blitDstY, 0, screenHeight);
-        blitRegion.dstOffsets[1].x = std::clamp<int32_t>((int32_t)(blitDstX + blitDstW), 0, screenWidth);
-        blitRegion.dstOffsets[1].y = std::clamp<int32_t>((int32_t)(blitDstY + blitDstH), 0, screenHeight);
+        blitRegion.dstOffsets[1].x = std::clamp<int32_t>((int32_t)(blitDstX + std::ceil(blitDstW)), 0, screenWidth);
+        blitRegion.dstOffsets[1].y = std::clamp<int32_t>((int32_t)(blitDstY + std::ceil(blitDstH)), 0, screenHeight);
         blitRegion.dstOffsets[1].z = 1;
 
         cmdRec.blitImage(
