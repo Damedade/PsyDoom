@@ -1,5 +1,6 @@
 #include "o_main.h"
 
+#include "displayopt_main.h"
 #include "Doom/Base/i_main.h"
 #include "Doom/Base/i_misc.h"
 #include "Doom/Base/i_texcache.h"
@@ -9,6 +10,7 @@
 #include "Doom/Game/g_game.h"
 #include "Doom/Game/p_tick.h"
 #include "Doom/Renderer/r_data.h"
+#include "inputopt_main.h"
 #include "m_main.h"
 #include "PsyDoom/Config/Config.h"
 #include "PsyDoom/Game.h"
@@ -20,7 +22,6 @@
 #include "PsyDoom/Vulkan/VRenderer.h"
 #include "saveroot_main.h"
 #include "Wess/psxspu.h"
-#include "xoptions_main.h"
 
 #include <algorithm>
 #include <cmath>
@@ -29,12 +30,13 @@
 enum option_t : int32_t {
     opt_music,
     opt_sound,
-// PsyDoom: Removing the psx controller configuration menu and replacing with an 'extra options' menu.
+// PsyDoom: Removing the psx controller configuration menu and replacing with an additional settings menus.
 // The previous 'password' slot now also directs to a load and save menu.
 #if PSYDOOM_MODS
     opt_load,
     opt_load_save,
-    opt_extra_options,
+    opt_display_options,
+    opt_input_options,
 #else
     opt_password,
     opt_config,
@@ -51,7 +53,8 @@ const char gOptionNames[][16] = {
 #if PSYDOOM_MODS
     { "Load Game"       },
     { "Load And Save"   },
-    { "Extra Options"   },
+    { "Display Options" },
+    { "Input Options"   },
 #else
     { "Password"        },
     { "Configuration"   },
@@ -68,18 +71,22 @@ struct menuitem_t {
 };
 
 static const menuitem_t gOptMenuItems_MainMenu[] = {
-    { opt_music,            62, 65  },
-    { opt_sound,            62, 105 },
 // PsyDoom: Removing the psx controller configuration menu and replacing with an 'extra options' menu.
 // The previous 'password' menu item now also directs to a load and save menu.
 #if PSYDOOM_MODS
-    { opt_load,             62, 145 },
-    { opt_extra_options,    62, 170 },
+    { opt_music,            62, 50  },
+    { opt_sound,            62, 90  },
+    { opt_load,             62, 130 },
+    { opt_display_options,  62, 152 },
+    { opt_input_options,    62, 174 },
+    { opt_main_menu,        62, 210 },
 #else
+    { opt_music,            62, 65  },
+    { opt_sound,            62, 105 },
     { opt_password,         62, 145 },
     { opt_config,           62, 170 },
-#endif
     { opt_main_menu,        62, 195 },
+#endif
 };
 
 static const menuitem_t gOptMenuItems_Single[] = {
@@ -87,22 +94,25 @@ static const menuitem_t gOptMenuItems_Single[] = {
     { opt_sound,            62, 90  },
 // PsyDoom: Removing the psx controller configuration menu and replacing with an 'extra options' menu.
 // The previous 'password' menu item now also directs to a load and save menu.
+// Note: moving the 'restart' option also to the load/save menu for single player to save room.
 #if PSYDOOM_MODS
     { opt_load_save,        62, 130 },
-    { opt_extra_options,    62, 155 },
+    { opt_display_options,  62, 152 },
+    { opt_input_options,    62, 174 },
+    { opt_main_menu,        62, 210 },
 #else
     { opt_password,         62, 130 },
     { opt_config,           62, 155 },
-#endif
     { opt_main_menu,        62, 180 },
     { opt_restart,          62, 205 },
+#endif
 };
 
 static const menuitem_t gOptMenuItems_NetGame[] = {
     { opt_music,        62, 70  },
     { opt_sound,        62, 110 },
     { opt_main_menu,    62, 150 },
-    { opt_restart,      62, 175 },
+    { opt_restart,      62, 172 },
 };
 
 // Currently in-use options menu layout: items list and size
@@ -378,12 +388,20 @@ gameaction_t O_Control() noexcept {
             }   break;
         #endif
 
-            // PsyDoom: Adding a new 'extra options' menu
-            case opt_extra_options: {
+        #if PSYDOOM_MODS
+            // PsyDoom: Adding new display and input option menus
+            case opt_display_options: {
                 if (bMenuOk) {
-                    MiniLoop(XOptions_Init, XOptions_Shutdown, XOptions_Update, XOptions_Draw);
+                    MiniLoop(DisplayOpt_Init, DisplayOpt_Shutdown, DisplayOpt_Update, DisplayOpt_Draw);
                 }
             }   break;
+
+            case opt_input_options: {
+                if (bMenuOk) {
+                    MiniLoop(InputOpt_Init, InputOpt_Shutdown, InputOpt_Update, InputOpt_Draw);
+                }
+            }   break;
+        #endif
 
         // PsyDoom: Removing the psx controller configuration menu
         #if !PSYDOOM_MODS

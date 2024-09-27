@@ -1,11 +1,10 @@
 //------------------------------------------------------------------------------------------------------------------------------------------
-// This is an entirely new menu added for PsyDoom.
-// It provides extra options for turn sensitivity, autorun and renderer etc.
+// This is an entirely new menu added for PsyDoom: it provides extra input related options.
 // It is not available in multiplayer, similar to other nested menus in the options screen.
 //------------------------------------------------------------------------------------------------------------------------------------------
 #if PSYDOOM_MODS
 
-#include "xoptions_main.h"
+#include "inputopt_main.h"
 
 #include "Doom/Base/i_main.h"
 #include "Doom/Base/i_misc.h"
@@ -29,11 +28,6 @@
 enum MenuItem : int32_t {
     menu_turn_speed,
     menu_always_run,
-    menu_stat_display,
-    menu_uncapped_framerate,
-#if PSYDOOM_VULKAN_RENDERER
-    menu_renderer,
-#endif
     menu_exit,
     num_menu_items
 };
@@ -57,7 +51,7 @@ static void DrawCursor(const int16_t cursorX, const int16_t cursorY) noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Initializes the menu
 //------------------------------------------------------------------------------------------------------------------------------------------
-void XOptions_Init() noexcept {
+void InputOpt_Init() noexcept {
     S_StartSound(nullptr, sfx_pistol);
 
     // Initialize cursor position and vblanks until move
@@ -69,14 +63,14 @@ void XOptions_Init() noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Shuts down the menu
 //------------------------------------------------------------------------------------------------------------------------------------------
-void XOptions_Shutdown([[maybe_unused]] const gameaction_t exitAction) noexcept {
+void InputOpt_Shutdown([[maybe_unused]] const gameaction_t exitAction) noexcept {
     gCursorPos[gCurPlayerIndex] = 0;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Runs update logic for the menu: does menu controls
 //------------------------------------------------------------------------------------------------------------------------------------------
-gameaction_t XOptions_Update() noexcept {
+gameaction_t InputOpt_Update() noexcept {
     // PsyDoom: in all UIs tick only if vblanks are registered as elapsed; this restricts the code to ticking at 30 Hz for NTSC
     const uint32_t playerIdx = gCurPlayerIndex;
 
@@ -180,55 +174,6 @@ gameaction_t XOptions_Update() noexcept {
             }
         }   break;
 
-        // Stat display setting
-        case menu_stat_display: {
-            if (bMenuLeft && (!oldInputs.fMenuLeft()) && (PlayerPrefs::gStatDisplayMode > StatDisplayMode::None)) {
-                PlayerPrefs::gStatDisplayMode = (StatDisplayMode)((int32_t) PlayerPrefs::gStatDisplayMode - 1);
-                S_StartSound(nullptr, sfx_swtchx);
-            }
-            else if (bMenuRight && (!oldInputs.fMenuRight()) && (PlayerPrefs::gStatDisplayMode < StatDisplayMode::MapOnly_KillsSecretsAndItems)) {
-                PlayerPrefs::gStatDisplayMode = (StatDisplayMode)((int32_t) PlayerPrefs::gStatDisplayMode + 1);
-                S_StartSound(nullptr, sfx_swtchx);
-            }
-        }   break;
-
-        // Turn on/off uncapped framerate
-        case menu_uncapped_framerate: {
-            if (bMenuLeft && PlayerPrefs::gbUncapFramerate) {
-                PlayerPrefs::gbUncapFramerate = false;
-                S_StartSound(nullptr, sfx_swtchx);
-            }
-            else if (bMenuRight && (!PlayerPrefs::gbUncapFramerate)) {
-                PlayerPrefs::gbUncapFramerate = true;
-                S_StartSound(nullptr, sfx_swtchx);
-            }
-        }   break;
-
-    #if PSYDOOM_VULKAN_RENDERER
-        // Renderer toggle
-        case menu_renderer: {
-            const bool bCanSwitchRenderers = (Video::gBackendType == Video::BackendType::Vulkan);
-
-            if (bCanSwitchRenderers) {
-                if (bMenuLeft && (!Video::isUsingVulkanRenderPath())) {
-                    VRenderer::switchToMainVulkanRenderPath();
-                    S_StartSound(nullptr, sfx_swtchx);
-                }
-                else if (bMenuRight && Video::isUsingVulkanRenderPath()) {
-                    VRenderer::switchToPsxRenderPath();
-                    S_StartSound(nullptr, sfx_swtchx);
-                }
-            }
-
-            // If renderer switch is not possible and an attempt was made to do so then play this sound
-            if (!bCanSwitchRenderers) {
-                if ((bMenuLeft && (!oldInputs.fMenuLeft())) || (bMenuRight && (!oldInputs.fMenuRight()))) {
-                    S_StartSound(nullptr, sfx_itemup);
-                }
-            }
-        }   break;
-    #endif  // #if PSYDOOM_VULKAN_RENDERER
-
         // Exit to the options menu
         case menu_exit: {
             if (bMenuOk) {
@@ -247,7 +192,7 @@ gameaction_t XOptions_Update() noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Draws the menu
 //------------------------------------------------------------------------------------------------------------------------------------------
-void XOptions_Draw() noexcept {
+void InputOpt_Draw() noexcept {
     // Increment the frame count for the texture cache and draw the background
     I_IncDrawnFrameCount();
     Utils::onBeginUIDrawing();
@@ -256,7 +201,7 @@ void XOptions_Draw() noexcept {
     // Don't do any rendering if we are about to exit the menu
     if (gGameAction == ga_nothing) {
         // Menu title
-        I_DrawString(-1, 20, "Extra Options");
+        I_DrawString(-1, 20, "Input Options");
 
         // Draw the turn speed slider
         int16_t cursorX = 62;
@@ -331,34 +276,11 @@ void XOptions_Draw() noexcept {
             statDisplayStr = "Stat Display K";
         }
 
-        I_DrawString(62, 115, statDisplayStr);
-
-        if (gCursorPos[gCurPlayerIndex] == menu_stat_display) {
-            cursorY = 115;
-        }
-
-        // Draw the uncapped framerate option
-        I_DrawString(62, 140, (PlayerPrefs::gbUncapFramerate) ? "Uncapped FPS" : "Original FPS");
-
-        if (gCursorPos[gCurPlayerIndex] == menu_uncapped_framerate) {
-            cursorY = 140;
-        }
-
-        #if PSYDOOM_VULKAN_RENDERER
-            // Draw the renderer option
-            const bool bIsUsingVulkan = Video::isUsingVulkanRenderPath();
-            I_DrawString(62, 165, (bIsUsingVulkan) ? "Vulkan Renderer" : "Classic Renderer");
-
-            if (gCursorPos[gCurPlayerIndex] == menu_renderer) {
-                cursorY = 165;
-            }
-        #endif
-
         // Draw the exit option
-        I_DrawString(62, 205, "Back");
+        I_DrawString(62, 210, "Back");
 
         if (gCursorPos[gCurPlayerIndex] == menu_exit) {
-            cursorY = 205;
+            cursorY = 210;
         }
 
         // Draw the skull cursor
@@ -366,9 +288,7 @@ void XOptions_Draw() noexcept {
     }
 
     // PsyDoom: draw any enabled performance counters
-    #if PSYDOOM_MODS
-        I_DrawEnabledPerfCounters();
-    #endif
+    I_DrawEnabledPerfCounters();
 
     // Finish up the frame
     I_SubmitGpuCmds();

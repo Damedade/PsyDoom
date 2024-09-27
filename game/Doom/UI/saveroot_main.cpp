@@ -26,6 +26,7 @@ enum MenuItemType : uint32_t {
     menu_load,
     menu_save,
     menu_password,
+    menu_restart,
     menu_back,
     num_menu_item_types
 };
@@ -40,16 +41,17 @@ struct MenuItem {
 
 // Menu layouts: main menu and in-game
 static const MenuItem gMenuItems_MainMenu[] = {
-    { menu_load,        62, 65,  "Load"     },
-    { menu_password,    62, 90,  "Password" },
-    { menu_back,        62, 195, "Back"     },
+    { menu_load,        62, 65,     "Load"     },
+    { menu_password,    62, 90,     "Password" },
+    { menu_back,        62, 210,    "Back"     },
 };
 
 static const MenuItem gMenuItems_InGame[] = {
-    { menu_load,        62, 50,  "Load"     },
-    { menu_save,        62, 75,  "Save"     },
-    { menu_password,    62, 100, "Password" },
-    { menu_back,        62, 195, "Back"     },
+    { menu_load,        62, 50,     "Load"      },
+    { menu_save,        62, 72,     "Save"      },
+    { menu_password,    62, 94,     "Password"  },
+    { menu_restart,     62, 116,    "Restart"   },
+    { menu_back,        62, 210,    "Back"      },
 };
 
 // Currently in-use options menu layout: items list and size
@@ -196,6 +198,11 @@ gameaction_t SaveRoot_Update() noexcept {
                     return ga_warped;
                 }
             }   break;
+
+            // Restart level
+            case menu_restart:
+                S_StartSound(nullptr, sfx_pistol);
+                return ga_restart;
 
             // Exit to the options menu
             case menu_back:
