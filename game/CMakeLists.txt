@@ -240,6 +240,8 @@ set(SOURCE_FILES
     "PsyDoom/GamepadInput.h"
     "PsyDoom/GameSettings.cpp"
     "PsyDoom/GameSettings.h"
+    "PsyDoom/GammaTable.cpp"
+    "PsyDoom/GammaTable.h"
     "PsyDoom/Input.cpp"
     "PsyDoom/Input.h"
     "PsyDoom/InterpFixedT.cpp"

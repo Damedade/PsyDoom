@@ -1,6 +1,9 @@
 #include "VideoSurface_SDL.h"
 
 #include "Asserts.h"
+#include "GammaTable.h"
+#include "PlayerPrefs.h"
+#include "Video.h"
 
 #include <cstring>
 #include <SDL.h>
@@ -40,6 +43,7 @@ uint32_t VideoSurface_SDL::getHeight() const noexcept { return mHeight; }
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Sets the pixels for the surface.
 // Ignores the call if the surface was not successfully initialized.
+// Also applies gamma correction to the surface (if required), since it is meant to be displayed directly.
 //------------------------------------------------------------------------------------------------------------------------------------------
 void VideoSurface_SDL::setPixels(const uint32_t* const pSrcPixels) noexcept {
     ASSERT(pSrcPixels);
@@ -57,13 +61,38 @@ void VideoSurface_SDL::setPixels(const uint32_t* const pSrcPixels) noexcept {
         return;
     }
 
+    // Gamma correct related vars
+    const bool bDoGammaCorrection = (PlayerPrefs::gGamma1000 != PlayerPrefs::GAMMA_DEFAULT);
+    const uint8_t* const pGammaRemapTbl8 = Video::gGammaTbl.remapTbl8;
+
     // Copy the texture data row by row
     const uint32_t* pCurSrcPixels = pSrcPixels;
 
-    for (uint32_t y = 0; y < mHeight; ++y) {
-        std::memcpy(pCurDstRow, pCurSrcPixels, sizeof(uint32_t) * mWidth);
-        pCurSrcPixels += mWidth;
-        pCurDstRow = (char*) pCurDstRow + pitch;
+    if (!bDoGammaCorrection) {
+        // Regular (fast) copy path
+        for (uint32_t y = 0; y < mHeight; ++y) {
+            std::memcpy(pCurDstRow, pCurSrcPixels, sizeof(uint32_t) * mWidth);
+            pCurSrcPixels += mWidth;
+            pCurDstRow = (char*) pCurDstRow + pitch;
+        }
+    }
+    else {
+        // Gamma corrected copy
+        for (uint32_t y = 0; y < mHeight; ++y) {
+            uint32_t* const pCurDstRow32 = reinterpret_cast<uint32_t*>(pCurDstRow);
+
+            for (uint32_t x = 0; x < mWidth; ++x) {
+                const uint32_t srcPixel = pCurSrcPixels[x];
+                const uint8_t r = pGammaRemapTbl8[(uint8_t)(srcPixel)];
+                const uint8_t g = pGammaRemapTbl8[(uint8_t)(srcPixel >> 8)];
+                const uint8_t b = pGammaRemapTbl8[(uint8_t)(srcPixel >> 16)];
+
+                pCurDstRow32[x] = (srcPixel & 0xFF000000) | (b << 16) | (g << 8) | r;
+            }
+
+            pCurSrcPixels += mWidth;
+            pCurDstRow = (char*) pCurDstRow + pitch;
+        }
     }
 
     // Done copying, unlock the texture

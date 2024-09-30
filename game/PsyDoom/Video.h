@@ -4,6 +4,7 @@
 
 #include <cstdint>
 
+struct GammaTable;
 struct SDL_Window;
 
 BEGIN_NAMESPACE(Video)
@@ -33,6 +34,7 @@ extern BackendType  gBackendType;
 extern SDL_Window*  gpSdlWindow;
 extern int32_t      gTopOverscan;
 extern int32_t      gBotOverscan;
+extern GammaTable   gGammaTbl;
 
 void initVideo() noexcept;
 void shutdownVideo() noexcept;

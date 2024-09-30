@@ -151,7 +151,7 @@ gameaction_t InputOpt_Update() noexcept {
             }
             else if (bMenuLeft) {
                 if (PlayerPrefs::gTurnSpeedMult100 > PlayerPrefs::TURN_SPEED_MULT_MIN) {
-                    PlayerPrefs::gTurnSpeedMult100--;;
+                    PlayerPrefs::gTurnSpeedMult100--;
 
                     if ((PlayerPrefs::gTurnSpeedMult100 / 4) & 1) {
                         S_StartSound(nullptr, sfx_stnmov);

@@ -17,15 +17,19 @@
 #include "m_main.h"
 #include "o_main.h"
 #include "PsyDoom/Game.h"
+#include "PsyDoom/GammaTable.h"
 #include "PsyDoom/PlayerPrefs.h"
 #include "PsyDoom/Utils.h"
 #include "PsyDoom/Video.h"
 #include "PsyDoom/Vulkan/VRenderer.h"
 
+#include <algorithm>
+#include <cmath>
 #include <cstdio>
 
 // The available menu items
 enum MenuItem : int32_t {
+    menu_gamma_adjust,
     menu_stat_display,
     menu_uncapped_framerate,
 #if PSYDOOM_VULKAN_RENDERER
@@ -138,6 +142,53 @@ gameaction_t DisplayOpt_Update() noexcept {
 
     // Handle option actions and adjustment
     switch ((MenuItem) gCursorPos[playerIdx]) {
+        // Gamma adjustments
+        case menu_gamma_adjust: {
+            if (bMenuLeft || bMenuRight) {
+                const int32_t oldGamma1000 = PlayerPrefs::gGamma1000;
+
+                // Use a logarithmic scale to move the slider evenly (perceptually) in both the positive and negative directions
+                const float logGammaMin = std::log((float) PlayerPrefs::GAMMA_MIN / 1000.0f);
+                const float logGammaMax = std::log((float) PlayerPrefs::GAMMA_MAX / 1000.0f);
+                const float logGammaRange = logGammaMax - logGammaMin;
+                const float logGammaStep = logGammaRange / 800.0f; // Allow 800 slider steps
+                const float logOldGamma = std::log((float) oldGamma1000 / 1000.0f);
+
+                const int32_t gammaReduceStep = std::min((int32_t)(std::exp(logOldGamma - logGammaStep) * 1000.0f + 0.5f) - oldGamma1000, -1);
+                const int32_t gammaIncreaseStep = std::max((int32_t)(std::exp(logOldGamma + logGammaStep) * 1000.0f + 0.5f) - oldGamma1000, +1);
+
+                // Note: when crossing the 1.0 gamma threshold snap to it
+                if (bMenuRight) {
+                    int32_t newGamma1000 = std::min(oldGamma1000 + gammaIncreaseStep, PlayerPrefs::GAMMA_MAX);
+                    const bool bSnapToDefaultGamma = ((oldGamma1000 < PlayerPrefs::GAMMA_DEFAULT) && (newGamma1000 > PlayerPrefs::GAMMA_DEFAULT));
+                    newGamma1000 = (bSnapToDefaultGamma) ? PlayerPrefs::GAMMA_DEFAULT : newGamma1000;
+                    PlayerPrefs::gGamma1000 = newGamma1000;
+
+                    if (oldGamma1000 != newGamma1000) {
+                        if ((newGamma1000 / 10) & 1) {
+                            S_StartSound(nullptr, sfx_stnmov);
+                        }
+
+                        Video::gGammaTbl.build((float) newGamma1000 / 1000.0f);
+                    }
+                }
+                else {
+                    int32_t newGamma1000 = std::max(oldGamma1000 + gammaReduceStep, PlayerPrefs::GAMMA_MIN);
+                    const bool bSnapToDefaultGamma = ((oldGamma1000 < PlayerPrefs::GAMMA_DEFAULT) && (newGamma1000 > PlayerPrefs::GAMMA_DEFAULT));
+                    newGamma1000 = (bSnapToDefaultGamma) ? PlayerPrefs::GAMMA_DEFAULT : newGamma1000;
+                    PlayerPrefs::gGamma1000 = newGamma1000;
+
+                    if (oldGamma1000 != newGamma1000) {
+                        if ((newGamma1000 / 10) & 1) {
+                            S_StartSound(nullptr, sfx_stnmov);
+                        }
+
+                        Video::gGammaTbl.build((float) newGamma1000 / 1000.0f);
+                    }
+                }
+            }
+        }   break;
+
         // Stat display setting
         case menu_stat_display: {
             if (bMenuLeft && (!oldInputs.fMenuLeft()) && (PlayerPrefs::gStatDisplayMode > StatDisplayMode::None)) {
@@ -216,9 +267,60 @@ void DisplayOpt_Draw() noexcept {
         // Menu title
         I_DrawString(-1, 20, "Display Settings");
 
-        // Draw the turn speed slider
+        // Draw the gamma adjustment slider
         int16_t cursorX = 62;
         int16_t cursorY = 50;
+
+        {
+            // Draw the label for the slider
+            const int16_t menuItemX = 62;
+            const int16_t menuItemY = 50;
+
+            const int32_t gamma = PlayerPrefs::gGamma1000;
+            char gammaAdjustLabel[32];
+
+            std::snprintf(
+                gammaAdjustLabel,
+                sizeof(gammaAdjustLabel),
+                "Gamma %d.%03d",
+                gamma / 1000,
+                gamma % 1000
+            );
+
+            I_DrawString(menuItemX, menuItemY, gammaAdjustLabel);
+
+            // Draw the slider background
+            I_DrawSprite(
+                gTex_STATUS.texPageId,
+                Game::getTexClut_STATUS(),
+                (int16_t)(menuItemX + 13),
+                (int16_t)(menuItemY + 20),
+                (int16_t)(gTex_STATUS.texPageCoordX + 0),
+                (int16_t)(gTex_STATUS.texPageCoordY + 184),
+                108,
+                11
+            );
+
+            // Draw the slider handle.
+            // Note: use a logarithmic scale to distribute the slider evenly here. 1.0 to 0.5 has much more impact than 1.0 to 1.5 for example!
+            const float logGammaMin = std::log((float) PlayerPrefs::GAMMA_MIN / 1000.0f);
+            const float logGammaMax = std::log((float) PlayerPrefs::GAMMA_MAX / 1000.0f);
+            const float logGammaRange = logGammaMax - logGammaMin;
+            const float logGamma = std::log((float) gamma / 1000.0f);
+
+            const int16_t sliderVal = (int16_t)(((logGamma - logGammaMin) / logGammaRange) * 100.0f + 0.5f);
+
+            I_DrawSprite(
+                gTex_STATUS.texPageId,
+                Game::getTexClut_STATUS(),
+                (int16_t)(menuItemX + 14 + sliderVal),
+                (int16_t)(menuItemY + 20),
+                (int16_t)(gTex_STATUS.texPageCoordX + 108),
+                (int16_t)(gTex_STATUS.texPageCoordY + 184),
+                6,
+                11
+            );
+        }
 
         // Draw the stats display option
         const char* statDisplayStr = "Stat Display Off";
@@ -237,22 +339,26 @@ void DisplayOpt_Draw() noexcept {
             statDisplayStr = "Stat Display K";
         }
 
-        I_DrawString(62, 50, statDisplayStr);
+        I_DrawString(62, 90, statDisplayStr);
+
+        if (gCursorPos[gCurPlayerIndex] == menu_stat_display) {
+            cursorY = 90;
+        }
 
         // Draw the uncapped framerate option
-        I_DrawString(62, 72, (PlayerPrefs::gbUncapFramerate) ? "Uncapped FPS" : "Original FPS");
+        I_DrawString(62, 112, (PlayerPrefs::gbUncapFramerate) ? "Uncapped FPS" : "Original FPS");
 
         if (gCursorPos[gCurPlayerIndex] == menu_uncapped_framerate) {
-            cursorY = 72;
+            cursorY = 112;
         }
 
         #if PSYDOOM_VULKAN_RENDERER
             // Draw the renderer option
             const bool bIsUsingVulkan = Video::isUsingVulkanRenderPath();
-            I_DrawString(62, 94, (bIsUsingVulkan) ? "Vulkan Renderer" : "Classic Renderer");
+            I_DrawString(62, 134, (bIsUsingVulkan) ? "Vulkan Renderer" : "Classic Renderer");
 
             if (gCursorPos[gCurPlayerIndex] == menu_renderer) {
-                cursorY = 94;
+                cursorY = 134;
             }
         #endif
 

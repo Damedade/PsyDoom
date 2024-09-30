@@ -2,7 +2,9 @@
 
 #include "Asserts.h"
 #include "Config/Config.h"
+#include "GammaTable.h"
 #include "Gpu.h"
+#include "PlayerPrefs.h"
 #include "PsxVm.h"
 #include "Video.h"
 #include "VideoSurface_SDL.h"
@@ -213,11 +215,16 @@ void VideoBackend_SDL::unlockFramebufferTexture() noexcept {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// Copies the rendered PSX GPU framebuffer the locked SDL texture, in preparation for blitting to the screen
+// Copies the rendered PSX GPU framebuffer the locked SDL texture, in preparation for blitting to the screen.
+// Also performs gamma correction during the copy, if required.
 //------------------------------------------------------------------------------------------------------------------------------------------
 void VideoBackend_SDL::copyPsxToSdlFramebufferTexture() noexcept {
     // Sanity checks
     ASSERT(mpFramebufferPixels);
+
+    // Gamma correct related vars
+    const bool bDoGammaCorrection = (PlayerPrefs::gGamma1000 != PlayerPrefs::GAMMA_DEFAULT);
+    const uint8_t* const pGammaRemapTbl5 = Video::gGammaTbl.remapTbl5;
 
     // Copy the framebuffer
     Gpu::Core& gpu = PsxVm::gGpu;
@@ -230,14 +237,27 @@ void VideoBackend_SDL::copyPsxToSdlFramebufferTexture() noexcept {
         const uint32_t xEnd = xStart + ORIG_DRAW_RES_X;
         ASSERT(xEnd <= gpu.ramPixelW);
 
-        // Note: don't bother doing multiple pixels at a time - compiler is smart and already optimizes this to use SIMD
-        for (uint32_t x = xStart; x < xEnd; ++x, ++pDstPixel) {
-            const Gpu::Color16 srcPixel = rowPixels[x];
-            const uint32_t r = (uint32_t) srcPixel.getR() << 3;
-            const uint32_t g = (uint32_t) srcPixel.getG() << 3;
-            const uint32_t b = (uint32_t) srcPixel.getB() << 3;
+        if (!bDoGammaCorrection) {
+            // Note: don't bother doing multiple pixels at a time - compiler is smart and already optimizes this to use SIMD
+            for (uint32_t x = xStart; x < xEnd; ++x, ++pDstPixel) {
+                const Gpu::Color16 srcPixel = rowPixels[x];
+                const uint32_t r = (uint32_t) srcPixel.getR() << 3;
+                const uint32_t g = (uint32_t) srcPixel.getG() << 3;
+                const uint32_t b = (uint32_t) srcPixel.getB() << 3;
 
-            *pDstPixel = (0xFF000000 | (b << 16) | (g << 8 ) | (r << 0));
+                *pDstPixel = (0xFF000000 | (b << 16) | (g << 8 ) | r);
+            }
+        }
+        else {
+            // Gamma corrected copy
+            for (uint32_t x = xStart; x < xEnd; ++x, ++pDstPixel) {
+                const Gpu::Color16 srcPixel = rowPixels[x];
+                const uint32_t r = pGammaRemapTbl5[srcPixel.getR()];
+                const uint32_t g = pGammaRemapTbl5[srcPixel.getG()];
+                const uint32_t b = pGammaRemapTbl5[srcPixel.getB()];
+
+                *pDstPixel = (0xFF000000 | (b << 16) | (g << 8 ) | r);
+            }
         }
     }
 }

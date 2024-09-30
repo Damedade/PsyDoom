@@ -33,6 +33,12 @@ constexpr int32_t VOLUME_MAX = 100;
 constexpr int32_t TURN_SPEED_MULT_MIN = 1;
 constexpr int32_t TURN_SPEED_MULT_MAX = 500;
 
+// Minimum, maximum and default values for the gamma setting, where 1000 = 1.0 (no adjustment)
+constexpr int32_t GAMMA_MIN = 250;
+constexpr int32_t GAMMA_MAX = 4000;
+constexpr int32_t GAMMA_DEFAULT = 1000; // No gamma adjustment (1000 = 1.0 gamma)
+
+extern int32_t              gGamma1000;
 extern int32_t              gTurnSpeedMult100;
 extern bool                 gbAlwaysRun;
 extern bool                 gbUncapFramerate;

@@ -5,7 +5,9 @@
 
 #include "Asserts.h"
 #include "Config/Config.h"
+#include "GammaTable.h"
 #include "Gpu.h"
+#include "PlayerPrefs.h"
 #include "ProgArgs.h"
 #include "PsxVm.h"
 #include "Utils.h"
@@ -34,6 +36,7 @@ SDL_Window*     gpSdlWindow;    // The SDL window being used
 BackendType     gBackendType;   // Which type of video backend is in use
 int32_t         gTopOverscan;   // Sanitized config input: number of pixels to discard at the top of the screen in terms of the original 256x240 framebuffer
 int32_t         gBotOverscan;   // Sanitized config input: number of pixels to discard at the bottom of the screen in terms of the original 256x240 framebuffer
+GammaTable      gGammaTbl;      // Gamma remap table
 
 #ifdef __linux__
     // Linux only: an icon to use for the window (raw data)
@@ -160,6 +163,9 @@ void initVideo() noexcept {
     // Set and sanitize overscan settings
     gTopOverscan = std::clamp(Config::gTopOverscanPixels, 0, ORIG_DRAW_RES_Y / 2 - 1);
     gBotOverscan = std::clamp(Config::gBottomOverscanPixels, 0, ORIG_DRAW_RES_Y / 2 - 1);
+
+    // Initialize gamma table
+    gGammaTbl.build((float) PlayerPrefs::gGamma1000 / 1000.0f);
 
     // Decide what display to use
     const uint8_t displayIndex = pickStartupDisplay();
