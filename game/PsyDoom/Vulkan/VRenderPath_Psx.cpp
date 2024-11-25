@@ -236,22 +236,29 @@ void VRenderPath_Psx::endFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecorder
         psxFbTexture.unlock();
     }
 
-    // Get the area of the window to blit the PSX framebuffer to
-    const uint32_t screenWidth = swapchain.getSwapExtentWidth();
-    const uint32_t screenHeight = swapchain.getSwapExtentHeight();
-
-    float blitDstX = {};
-    float blitDstY = {};
-    float blitDstW = {};
-    float blitDstH = {};
-    Video::getClassicFramebufferWindowRect((float) screenWidth, (float) screenHeight, blitDstX, blitDstY, blitDstW, blitDstH);
-
     // Only bother doing further commands if we're going to present.
     // This avoids errors on MacOS/Metal also, where we try to blit to an incompatible destination window size.
     const bool bDoingGammaAdjust = PlayerPrefs::isUsingGammaAdjust();
     
     if (VRenderer::willSkipNextFramePresent())
         return;
+
+    // Get the area of the window to blit the PSX framebuffer to
+    const uint32_t screenWidth = swapchain.getSwapExtentWidth();
+    const uint32_t screenHeight = swapchain.getSwapExtentHeight();
+
+    float blitDstX_f = {};
+    float blitDstY_f = {};
+    float blitDstW_f = {};
+    float blitDstH_f = {};
+    Video::getClassicFramebufferWindowRect((float) screenWidth, (float) screenHeight, blitDstX_f, blitDstY_f, blitDstW_f, blitDstH_f);
+    
+    const int32_t blitDstMinX = std::clamp<int32_t>((int32_t) blitDstX_f, 0, screenWidth);
+    const int32_t blitDstMinY = std::clamp<int32_t>((int32_t) blitDstY_f, 0, screenHeight);
+    const int32_t blitDstMaxX = std::clamp<int32_t>((int32_t)(blitDstX_f + std::ceil(blitDstW_f)), 0, screenWidth);
+    const int32_t blitDstMaxY = std::clamp<int32_t>((int32_t)(blitDstY_f + std::ceil(blitDstH_f)), 0, screenHeight);
+    const int32_t blitW = blitDstMaxX - blitDstMinX;
+    const int32_t blitH = blitDstMaxY - blitDstMinY;
     
     // Wait for uploads to finish then transition the PSX framebuffer for rendering.
     // If we are blitting directly (no gamma adjust) then it becomes transfer source optimal.
@@ -333,10 +340,10 @@ void VRenderPath_Psx::endFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecorder
         mGammaAdjustVerts.beginFrame(ringbufferIdx);
         VVertex_XyUv* const pVerts = mGammaAdjustVerts.allocVerts<VVertex_XyUv>(6);
         
-        const float lx = (blitDstX / (float) screenWidth - 0.5f) * 2.0f;
-        const float rx = ((blitDstX + blitDstW) / (float) screenWidth - 0.5f) * 2.0f;
-        const float ty = (blitDstY / (float) screenHeight - 0.5f) * 2.0f;
-        const float by = ((blitDstY + blitDstH) / (float) screenHeight - 0.5f) * 2.0f;
+        const float lx = ((float) blitDstMinX / (float) screenWidth - 0.5f) * 2.0f;
+        const float rx = ((float) blitDstMaxX / (float) screenWidth - 0.5f) * 2.0f;
+        const float ty = ((float) blitDstMinY / (float) screenHeight - 0.5f) * 2.0f;
+        const float by = ((float) blitDstMaxY / (float) screenHeight - 0.5f) * 2.0f;
         
         const float tv = (float) Video::gTopOverscan / (float) Video::ORIG_DRAW_RES_Y;
         const float bv = (float)(Video::ORIG_DRAW_RES_Y - Video::gBotOverscan) / (float) Video::ORIG_DRAW_RES_Y;
@@ -369,7 +376,7 @@ void VRenderPath_Psx::endFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecorder
         const uint32_t swapchainIdx = swapchain.getAcquiredImageIdx();
         const VkImage swapchainImage = swapchain.getVkImages()[swapchainIdx];
 
-        if ((blitDstW > 0) && (blitDstH > 0)) {
+        if ((blitW > 0) && (blitH > 0)) {
             VkImageBlit blitRegion = {};
             blitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             blitRegion.srcSubresource.layerCount = 1;
@@ -379,10 +386,10 @@ void VRenderPath_Psx::endFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecorder
             blitRegion.srcOffsets[1].x = Video::ORIG_DRAW_RES_X;
             blitRegion.srcOffsets[1].y = Video::ORIG_DRAW_RES_Y - Video::gBotOverscan;
             blitRegion.srcOffsets[1].z = 1;
-            blitRegion.dstOffsets[0].x = std::clamp<int32_t>((int32_t) blitDstX, 0, screenWidth);
-            blitRegion.dstOffsets[0].y = std::clamp<int32_t>((int32_t) blitDstY, 0, screenHeight);
-            blitRegion.dstOffsets[1].x = std::clamp<int32_t>((int32_t)(blitDstX + std::ceil(blitDstW)), 0, screenWidth);
-            blitRegion.dstOffsets[1].y = std::clamp<int32_t>((int32_t)(blitDstY + std::ceil(blitDstH)), 0, screenHeight);
+            blitRegion.dstOffsets[0].x = blitDstMinX;
+            blitRegion.dstOffsets[0].y = blitDstMinY;
+            blitRegion.dstOffsets[1].x = blitDstMaxX;
+            blitRegion.dstOffsets[1].y = blitDstMaxY;
             blitRegion.dstOffsets[1].z = 1;
 
             cmdRec.blitImage(
