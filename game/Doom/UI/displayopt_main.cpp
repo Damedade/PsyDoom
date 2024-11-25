@@ -156,6 +156,17 @@ gameaction_t DisplayOpt_Update() noexcept {
 
                 const int32_t gammaReduceStep = std::min((int32_t)(std::exp(logOldGamma - logGammaStep) * 1000.0f + 0.5f) - oldGamma1000, -1);
                 const int32_t gammaIncreaseStep = std::max((int32_t)(std::exp(logOldGamma + logGammaStep) * 1000.0f + 0.5f) - oldGamma1000, +1);
+                
+                // Helper: called when the gamma setting has changed: rebuilds gamma adjustment LUTs.
+                const auto onGammaSettingChanged = []() noexcept {
+                    Video::gGammaTbl.build((float) PlayerPrefs::gGamma1000 / 1000.0f);
+                    
+                    #if PSYDOOM_VULKAN_RENDERER
+                        if (Video::isUsingVulkanVideoBackend()) {
+                            VRenderer::rebuildGammaAdjustTex();
+                        }
+                    #endif
+                };
 
                 // Note: when crossing the 1.0 gamma threshold snap to it
                 if (bMenuRight) {
@@ -169,7 +180,7 @@ gameaction_t DisplayOpt_Update() noexcept {
                             S_StartSound(nullptr, sfx_stnmov);
                         }
 
-                        Video::gGammaTbl.build((float) newGamma1000 / 1000.0f);
+                        onGammaSettingChanged();
                     }
                 }
                 else {
@@ -183,7 +194,7 @@ gameaction_t DisplayOpt_Update() noexcept {
                             S_StartSound(nullptr, sfx_stnmov);
                         }
 
-                        Video::gGammaTbl.build((float) newGamma1000 / 1000.0f);
+                        onGammaSettingChanged();
                     }
                 }
             }

@@ -161,9 +161,10 @@ void VRenderPath_Main::beginFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecor
     // Sanity checks and getting the device
     ASSERT(mbIsValid);
     ASSERT(mpDevice);
+    ASSERT(mpDevice->isValid());
     ASSERT(swapchain.isValid());
 
-    vgl::LogicalDevice& device = *swapchain.getDevice();
+    vgl::LogicalDevice& device = *mpDevice;
 
     // Transition the swapchain image to transfer destination optimal in preparation for blitting
     const uint32_t swapchainIdx = swapchain.getAcquiredImageIdx();
@@ -349,7 +350,7 @@ bool VRenderPath_Main::initRenderPass() noexcept {
     const bool bMsaaEnabled = (mNumDrawSamples > 1);
 
     // Define the color attachment
-    vgl::RenderPassDef renderPassDef;
+    vgl::RenderPassDef renderPassDef = {};
 
     VkAttachmentDescription& colorAttach = renderPassDef.attachments.emplace_back();
     colorAttach.format = mColorFormat;

@@ -12,6 +12,7 @@ namespace vgl {
     class LogicalDevice;
     class PhysicalDevice;
     class Swapchain;
+    class Texture;
     struct VkFuncs;
 }
 
@@ -49,6 +50,7 @@ extern float                    gPsxNdcOffsetX,  gPsxNdcOffsetY;
 extern vgl::LogicalDevice       gDevice;
 extern vgl::Swapchain           gSwapchain;
 extern vgl::CmdBufferRecorder   gCmdBufferRec;
+extern vgl::Texture             gGammaAdjustTex;
 
 bool isHeadlessPhysicalDeviceSuitable(const vgl::PhysicalDevice& device) noexcept;
 bool isPhysicalDeviceSuitable(const vgl::PhysicalDevice& device, const vgl::DeviceSurfaceCaps& surfaceCaps) noexcept;
@@ -68,6 +70,8 @@ void switchToMainVulkanRenderPath() noexcept;
 void skipNextFramePresent() noexcept;
 bool willSkipNextFramePresent() noexcept;
 bool isSwapchainOutOfDate() noexcept;
+void rebuildGammaAdjustTex() noexcept;
+void setupViewportAndScissors(vgl::CmdBufferRecorder& cmdRec) noexcept;
 
 END_NAMESPACE(VRenderer)
 

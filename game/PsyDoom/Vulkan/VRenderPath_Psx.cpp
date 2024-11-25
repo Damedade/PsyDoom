@@ -4,11 +4,18 @@
 
 #include "Asserts.h"
 #include "CmdBufferRecorder.h"
+#include "DescriptorSet.h"
 #include "Gpu.h"
 #include "LogicalDevice.h"
+#include "Pipeline.h"
+#include "PsyDoom/PlayerPrefs.h"
 #include "PsyDoom/PsxVm.h"
 #include "PsyDoom/Video.h"
+#include "RenderPassDef.h"
+#include "Sampler.h"
 #include "Swapchain.h"
+#include "VDrawing.h"
+#include "VPipelines.h"
 #include "VRenderer.h"
 
 #include <algorithm>
@@ -20,7 +27,11 @@
 VRenderPath_Psx::VRenderPath_Psx() noexcept 
     : mbIsValid(false)
     , mpDevice(nullptr)
+    , mpSwapchain(nullptr)
+    , mGammaAdjustRenderPass()
     , mPsxFramebufferTextures{}
+    , mGammaAdjustFramebuffers()
+    , mGammaAdjustVerts()
 {
 }
 
@@ -34,14 +45,29 @@ VRenderPath_Psx::~VRenderPath_Psx() noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Initializes the render path - this must always succeed
 //------------------------------------------------------------------------------------------------------------------------------------------
-void VRenderPath_Psx::init(vgl::LogicalDevice& device, const VkFormat psxFramebufferFormat) noexcept {
+void VRenderPath_Psx::init(
+    vgl::LogicalDevice& device,
+    vgl::Swapchain& swapchain,
+    const VkFormat presentSurfaceFormat,
+    const VkFormat psxFramebufferFormat
+) noexcept {
     // Sanity checks and remembering the device used
     ASSERT_LOG(!mbIsValid, "Can't initialize twice!");
     ASSERT(device.isValid());
+
     mpDevice = &device;
+    mpSwapchain = &swapchain;
 
     // Only two framebuffer formats are supported
     ASSERT((psxFramebufferFormat == VK_FORMAT_A1R5G5B5_UNORM_PACK16) || (psxFramebufferFormat == VK_FORMAT_B8G8R8A8_UNORM));
+
+    // Create the renderpass used for gamma adjustment
+    if (!initGammaAdjustRenderPass(presentSurfaceFormat))
+        FatalErrors::raise("Failed to create the gamma adjust renderpass for the PSX render path!");
+        
+    // Init the descriptor pool and sets used for gamma adjust
+    if (!initGammaAdjustDescriptorPoolAndSets())
+        FatalErrors::raise("Failed to create the descriptor pool and sets used for gamma adjustment!");
 
     // Initialize the PSX framebuffer textures used to hold the old PSX renderer framebuffer before it is blit to the Vulkan framebuffer.
     // Note: enable these textures to be read/copied from also!
@@ -51,6 +77,9 @@ void VRenderPath_Psx::init(vgl::LogicalDevice& device, const VkFormat psxFramebu
         if (!psxFbTex.initAs2dTexture(device, psxFramebufferFormat, Video::ORIG_DRAW_RES_X, Video::ORIG_DRAW_RES_Y, true))  // N.B: 'true' for copyable!
             FatalErrors::raise("Failed to create a Vulkan texture for the classic PSX renderer's framebuffer!");
     }
+    
+    // Initialize the vertex buffer sets used for doing gamma adjust
+    mGammaAdjustVerts.init<VVertex_XyUv>(device, 6);
 
     // Now initialized
     mbIsValid = true;
@@ -64,21 +93,57 @@ void VRenderPath_Psx::destroy() noexcept {
         return;
 
     mbIsValid = false;
+    mGammaAdjustVerts.destroy();
+    
+    for (vgl::DescriptorSet*& pDescriptorSet : mpGammaAdjustDescriptorSets) {
+        if (pDescriptorSet) {
+            mGammaAdjustDescriptorPool.freeDescriptorSet(*pDescriptorSet);
+            pDescriptorSet = nullptr;
+        }
+    }
+
+    mGammaAdjustDescriptorPool.destroy(true);
+    
+    for (vgl::Framebuffer& framebuffer : mGammaAdjustFramebuffers) {
+        framebuffer.destroy(true);
+    }
+    
+    mGammaAdjustFramebuffers.clear();
 
     for (vgl::Texture& texture : mPsxFramebufferTextures) {
         texture.destroy(true);
     }
 
+    mGammaAdjustRenderPass.destroy();
+
+    mpSwapchain = nullptr;
     mpDevice = nullptr;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// This doesn't need to do anything for the PSX render path.
-// The textures used to hold the original PSX framebuffers are created once on initialization, and their size will never change.
-// Technically these are not framebuffers, as we don't draw to them normally.
+// Creates or recreates the gamma adjust framebuffers for this render path
 //------------------------------------------------------------------------------------------------------------------------------------------
-bool VRenderPath_Psx::ensureValidFramebuffers([[maybe_unused]] const uint32_t fbWidth, [[maybe_unused]] const uint32_t fbHeight) noexcept {
+bool VRenderPath_Psx::ensureValidFramebuffers(const uint32_t fbWidth, const uint32_t fbHeight) noexcept {
     ASSERT(mbIsValid);
+    ASSERT(mpSwapchain->isValid());
+
+    // Only do this if we need to actually create/re-create the gamma adjust framebuffers
+    if (!doGammaAdjustFramebuffersNeedRecreate())
+        return true;
+
+    // Recreate all gamma adjust framebuffers
+    vgl::Swapchain& swapchain = *mpSwapchain;
+    const uint32_t swapchainLen = swapchain.getLength();
+    mGammaAdjustFramebuffers.resize(swapchainLen);
+
+    for (uint32_t swapImgIdx = 0; swapImgIdx < swapchainLen; ++swapImgIdx) {
+        vgl::Framebuffer& framebuffer = mGammaAdjustFramebuffers[swapImgIdx];
+        framebuffer.destroy(true);
+
+        if (!framebuffer.init(mGammaAdjustRenderPass, swapchain, swapImgIdx, {}))
+            return false;
+    }
+
     return true;
 }
 
@@ -88,49 +153,57 @@ bool VRenderPath_Psx::ensureValidFramebuffers([[maybe_unused]] const uint32_t fb
 void VRenderPath_Psx::beginFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecorder& cmdRec) noexcept {
     // Sanity checks
     ASSERT(mbIsValid);
+    ASSERT(mpDevice);
+    ASSERT(mpDevice->isValid());
     ASSERT(swapchain.isValid());
     ASSERT(swapchain.getAcquiredImageIdx() < swapchain.getLength());
+    ASSERT(swapchain.getAcquiredImageIdx() < mGammaAdjustFramebuffers.size());
 
-    // Transition the swapchain image to transfer destination optimal in preparation for blitting
-    const uint32_t swapchainIdx = swapchain.getAcquiredImageIdx();
-    ASSERT(swapchainIdx < swapchain.getLength());
+    // Are we doing a gamma adjust? If so then the frame must be handled differently.
+    // Note that for gamma adjust we'll do all the work in 'endFrame()'
+    if (!PlayerPrefs::isUsingGammaAdjust()) {
+        // Not doing any gamma adjust. PSX framebuffer will be blitted to the swapchain image directly.
+        // Transition the swapchain image to transfer destination optimal in preparation for blitting.
+        const uint32_t swapchainIdx = swapchain.getAcquiredImageIdx();
+        ASSERT(swapchainIdx < swapchain.getLength());
 
-    const VkImage swapchainImage = swapchain.getVkImages()[swapchainIdx];
+        const VkImage swapchainImage = swapchain.getVkImages()[swapchainIdx];
 
-    {
-        VkImageMemoryBarrier imgBarrier = {};
-        imgBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        imgBarrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
-        imgBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
-        imgBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        imgBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-        imgBarrier.image = swapchainImage;
-        imgBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        imgBarrier.subresourceRange.levelCount = 1;
-        imgBarrier.subresourceRange.layerCount = 1;
+        {
+            VkImageMemoryBarrier imgBarrier = {};
+            imgBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            imgBarrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
+            imgBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
+            imgBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            imgBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            imgBarrier.image = swapchainImage;
+            imgBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            imgBarrier.subresourceRange.levelCount = 1;
+            imgBarrier.subresourceRange.layerCount = 1;
 
-        cmdRec.addPipelineBarrier(
-            VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-            VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-            0,
-            nullptr,
-            1,
-            &imgBarrier
-        );
-    }
+            cmdRec.addPipelineBarrier(
+                VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                0,
+                nullptr,
+                1,
+                &imgBarrier
+            );
+        }
 
-    // Clear the swapchain image to opaque black.
-    // This is needed for the classic PSX renderer as not all parts of the image might be filled.
-    {
-        VkClearColorValue clearColor = {};
-        clearColor.float32[3] = 1.0f;
+        // Clear the swapchain image to opaque black.
+        // This is needed for the classic PSX renderer as not all parts of the image might be filled.
+        {
+            VkClearColorValue clearColor = {};
+            clearColor.float32[3] = 1.0f;
 
-        VkImageSubresourceRange imageResRange = {};
-        imageResRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        imageResRange.levelCount = 1;
-        imageResRange.layerCount = 1;
+            VkImageSubresourceRange imageResRange = {};
+            imageResRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            imageResRange.levelCount = 1;
+            imageResRange.layerCount = 1;
 
-        cmdRec.clearColorImage(swapchainImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearColor, 1, &imageResRange);
+            cmdRec.clearColorImage(swapchainImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearColor, 1, &imageResRange);
+        }
     }
 }
 
@@ -175,88 +248,281 @@ void VRenderPath_Psx::endFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecorder
 
     // Only bother doing further commands if we're going to present.
     // This avoids errors on MacOS/Metal also, where we try to blit to an incompatible destination window size.
+    const bool bDoingGammaAdjust = PlayerPrefs::isUsingGammaAdjust();
+    
     if (VRenderer::willSkipNextFramePresent())
         return;
-
-    // Wait for uploads to finish then transition the PSX framebuffer to transfer source optimal
+    
+    // Wait for uploads to finish then transition the PSX framebuffer for rendering.
+    // If we are blitting directly (no gamma adjust) then it becomes transfer source optimal.
+    // If we are doing gamma adjust then it must be shader read-only optimal.
     {
         VkImageMemoryBarrier imgBarrier = {};
         imgBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         imgBarrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
-        imgBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
         imgBarrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imgBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        
+        if (bDoingGammaAdjust) {
+            imgBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            imgBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        } else {
+            imgBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+            imgBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        }
+        
         imgBarrier.image = psxFbTexture.getVkImage();
         imgBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         imgBarrier.subresourceRange.levelCount = 1;
         imgBarrier.subresourceRange.layerCount = 1;
+        
+        const VkPipelineStageFlagBits waitPipelineStages = (bDoingGammaAdjust) ?
+            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT :
+            VK_PIPELINE_STAGE_TRANSFER_BIT;
 
         cmdRec.addPipelineBarrier(
             VK_PIPELINE_STAGE_TRANSFER_BIT,
-            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            waitPipelineStages,
             0,
             nullptr,
             1,
             &imgBarrier
         );
     }
+    
+    // Are we doing gamma adjust?
+    // The method of finishing up the frame differs greatly if so.
+    if (bDoingGammaAdjust) {
+        // Doing gamma adjust: bind the resources used for it to the descriptor set for this frame.
+        // Note: using 2 separate bindings instead of a texture array to appease MoltenVK on macOS.
+        ASSERT(VRenderer::gGammaAdjustTex.isValid());
+        
+        const uint32_t ringbufferIdx = device.getRingbufferMgr().getBufferIndex();
+        const VkSampler gammaAdjustSampler = VPipelines::gSampler_normClampNearest.getVkSampler();
+        vgl::DescriptorSet& gammaAdjustDescSet = *mpGammaAdjustDescriptorSets[ringbufferIdx];
+        
+        VkDescriptorImageInfo imageInfos[2] = {};
+        imageInfos[0].sampler = gammaAdjustSampler;
+        imageInfos[0].imageView = mPsxFramebufferTextures[ringbufferIdx].getVkImageView();
+        imageInfos[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfos[1].sampler = gammaAdjustSampler;
+        imageInfos[1].imageView = VRenderer::gGammaAdjustTex.getVkImageView();
+        imageInfos[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-    // Blit the PSX framebuffer to the swapchain image
-    ASSERT((Video::gTopOverscan >= 0) && (Video::gTopOverscan < Video::ORIG_DRAW_RES_Y / 2));
-    ASSERT((Video::gBotOverscan >= 0) && (Video::gBotOverscan < Video::ORIG_DRAW_RES_Y / 2));
+        gammaAdjustDescSet.bindTextures(0, &imageInfos[0], 1);
+        gammaAdjustDescSet.bindTextures(1, &imageInfos[1], 1);
+    
+        // Render the PSX framebuffer to the swapchain using the gamma adjust shader.
+        // Begin the render pass and clear the swapchain image.
+        const uint32_t swapchainImageIdx = swapchain.getAcquiredImageIdx();
+        vgl::Framebuffer& framebuffer = mGammaAdjustFramebuffers[swapchainImageIdx];
+        VkClearValue framebufferClearValues[1] = {};
 
-    const uint32_t swapchainIdx = swapchain.getAcquiredImageIdx();
-    const VkImage swapchainImage = swapchain.getVkImages()[swapchainIdx];
-
-    if ((blitDstW > 0) && (blitDstH > 0)) {
-        VkImageBlit blitRegion = {};
-        blitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        blitRegion.srcSubresource.layerCount = 1;
-        blitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        blitRegion.dstSubresource.layerCount = 1;
-        blitRegion.srcOffsets[0].y = Video::gTopOverscan;
-        blitRegion.srcOffsets[1].x = Video::ORIG_DRAW_RES_X;
-        blitRegion.srcOffsets[1].y = Video::ORIG_DRAW_RES_Y - Video::gBotOverscan;
-        blitRegion.srcOffsets[1].z = 1;
-        blitRegion.dstOffsets[0].x = std::clamp<int32_t>((int32_t) blitDstX, 0, screenWidth);
-        blitRegion.dstOffsets[0].y = std::clamp<int32_t>((int32_t) blitDstY, 0, screenHeight);
-        blitRegion.dstOffsets[1].x = std::clamp<int32_t>((int32_t)(blitDstX + std::ceil(blitDstW)), 0, screenWidth);
-        blitRegion.dstOffsets[1].y = std::clamp<int32_t>((int32_t)(blitDstY + std::ceil(blitDstH)), 0, screenHeight);
-        blitRegion.dstOffsets[1].z = 1;
-
-        cmdRec.blitImage(
-            psxFbTexture.getVkImage(),
-            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-            swapchainImage,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            1,
-            &blitRegion,
-            VK_FILTER_NEAREST
+        cmdRec.beginRenderPass(
+            mGammaAdjustRenderPass,
+            framebuffer,
+            VK_SUBPASS_CONTENTS_INLINE,
+            0,
+            0,
+            framebuffer.getWidth(),
+            framebuffer.getHeight(),
+            framebufferClearValues,
+            C_ARRAY_SIZE(framebufferClearValues)
         );
+        
+        // Alloc and fill in the vertices for rendering gamma adjust
+        mGammaAdjustVerts.beginFrame(ringbufferIdx);
+        VVertex_XyUv* const pVerts = mGammaAdjustVerts.allocVerts<VVertex_XyUv>(6);
+        
+        const float lx = (blitDstX / (float) screenWidth - 0.5f) * 2.0f;
+        const float rx = ((blitDstX + blitDstW) / (float) screenWidth - 0.5f) * 2.0f;
+        const float ty = (blitDstY / (float) screenHeight - 0.5f) * 2.0f;
+        const float by = ((blitDstY + blitDstH) / (float) screenHeight - 0.5f) * 2.0f;
+        
+        const float tv = (float) Video::gTopOverscan / (float) Video::ORIG_DRAW_RES_Y;
+        const float bv = (float)(Video::ORIG_DRAW_RES_Y - Video::gBotOverscan) / (float) Video::ORIG_DRAW_RES_Y;
+        
+        pVerts[0] = VVertex_XyUv{ lx, ty, 0.0f, tv };
+        pVerts[1] = VVertex_XyUv{ rx, ty, 1.0f, tv };
+        pVerts[2] = VVertex_XyUv{ rx, by, 1.0f, bv };
+        pVerts[3] = VVertex_XyUv{ rx, by, 1.0f, bv };
+        pVerts[4] = VVertex_XyUv{ lx, by, 0.0f, bv };
+        pVerts[5] = VVertex_XyUv{ lx, ty, 0.0f, tv };
+        
+        // Draw the PSX framebuffer to the swapchain with gamma adjustment
+        vgl::Pipeline& drawPipeline = VPipelines::gPipelines[(uint32_t) VPipelineType::GammaAdjust];
+        
+        VRenderer::setupViewportAndScissors(cmdRec);
+        cmdRec.bindVertexBuffer(mGammaAdjustVerts.buffers[ringbufferIdx], 0, 0);
+        cmdRec.bindPipeline(drawPipeline);
+        cmdRec.bindDescriptorSet(*mpGammaAdjustDescriptorSets[ringbufferIdx], drawPipeline, 0);
+        cmdRec.draw(6, 0);
+        
+        // Finish up drawing to the vertex buffer and the render pass
+        mGammaAdjustVerts.endFrame();
+        cmdRec.endRenderPass();
     }
+    else {
+        // Not doing gamma adjust: blit the PSX framebuffer directly to the swapchain image
+        ASSERT((Video::gTopOverscan >= 0) && (Video::gTopOverscan < Video::ORIG_DRAW_RES_Y / 2));
+        ASSERT((Video::gBotOverscan >= 0) && (Video::gBotOverscan < Video::ORIG_DRAW_RES_Y / 2));
 
-    // Transition the swapchain image back to presentation optimal in preparation for presentation
+        const uint32_t swapchainIdx = swapchain.getAcquiredImageIdx();
+        const VkImage swapchainImage = swapchain.getVkImages()[swapchainIdx];
+
+        if ((blitDstW > 0) && (blitDstH > 0)) {
+            VkImageBlit blitRegion = {};
+            blitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            blitRegion.srcSubresource.layerCount = 1;
+            blitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            blitRegion.dstSubresource.layerCount = 1;
+            blitRegion.srcOffsets[0].y = Video::gTopOverscan;
+            blitRegion.srcOffsets[1].x = Video::ORIG_DRAW_RES_X;
+            blitRegion.srcOffsets[1].y = Video::ORIG_DRAW_RES_Y - Video::gBotOverscan;
+            blitRegion.srcOffsets[1].z = 1;
+            blitRegion.dstOffsets[0].x = std::clamp<int32_t>((int32_t) blitDstX, 0, screenWidth);
+            blitRegion.dstOffsets[0].y = std::clamp<int32_t>((int32_t) blitDstY, 0, screenHeight);
+            blitRegion.dstOffsets[1].x = std::clamp<int32_t>((int32_t)(blitDstX + std::ceil(blitDstW)), 0, screenWidth);
+            blitRegion.dstOffsets[1].y = std::clamp<int32_t>((int32_t)(blitDstY + std::ceil(blitDstH)), 0, screenHeight);
+            blitRegion.dstOffsets[1].z = 1;
+
+            cmdRec.blitImage(
+                psxFbTexture.getVkImage(),
+                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                swapchainImage,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                1,
+                &blitRegion,
+                VK_FILTER_NEAREST
+            );
+        }
+
+        // Transition the swapchain image back to presentation optimal in preparation for presentation
+        {
+            VkImageMemoryBarrier imgBarrier = {};
+            imgBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            imgBarrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
+            imgBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
+            imgBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            imgBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+            imgBarrier.image = swapchainImage;
+            imgBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            imgBarrier.subresourceRange.levelCount = 1;
+            imgBarrier.subresourceRange.layerCount = 1;
+
+            cmdRec.addPipelineBarrier(
+                VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                0,
+                nullptr,
+                1,
+                &imgBarrier
+            );
+        }
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Creates the Vulkan render pass used for gamma adjust
+//------------------------------------------------------------------------------------------------------------------------------------------
+bool VRenderPath_Psx::initGammaAdjustRenderPass(const VkFormat presentSurfaceFormat) noexcept {
+    // Sanity checks and some prerequisites
+    ASSERT(mpDevice);
+    vgl::LogicalDevice& device = *mpDevice;
+
+    // Define the output color attachment (the swapchain image)
+    vgl::RenderPassDef renderPassDef = {};
+
+    VkAttachmentDescription& colorAttach = renderPassDef.attachments.emplace_back();
+    colorAttach.format = presentSurfaceFormat;
+    colorAttach.samples = VK_SAMPLE_COUNT_1_BIT;
+    colorAttach.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    colorAttach.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAttach.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAttach.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    colorAttach.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorAttach.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    // Define the single subpass and it's attachments
     {
-        VkImageMemoryBarrier imgBarrier = {};
-        imgBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        imgBarrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
-        imgBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
-        imgBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-        imgBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-        imgBarrier.image = swapchainImage;
-        imgBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        imgBarrier.subresourceRange.levelCount = 1;
-        imgBarrier.subresourceRange.layerCount = 1;
-
-        cmdRec.addPipelineBarrier(
-            VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-            VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-            0,
-            nullptr,
-            1,
-            &imgBarrier
-        );
+        vgl::SubpassDef& subpassDef = renderPassDef.subpasses.emplace_back();
+        VkAttachmentReference& colorAttachRef = subpassDef.colorAttachments.emplace_back();
+        colorAttachRef.attachment = 0;
+        colorAttachRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     }
+
+    // Define external subpass dependencies: these must be manually filled in.
+    {
+        // The draw attachment must wait for any previous drawing or blits to end
+        VkSubpassDependency& dep = renderPassDef.extraSubpassDeps.emplace_back();
+        dep.srcSubpass = VK_SUBPASS_EXTERNAL;
+        dep.dstSubpass = 0;
+        dep.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT;
+        dep.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dep.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+        dep.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    }
+
+    // Finally, create the renderpass
+    return mGammaAdjustRenderPass.init(device, renderPassDef);
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Creates the descriptor pool and descriptor sets used for gamma adjustment
+//-----------------------------------------------------------------------------------------------------------------------------------------
+bool VRenderPath_Psx::initGammaAdjustDescriptorPoolAndSets() noexcept {
+    ASSERT(mpDevice);
+    ASSERT(mpDevice->isValid());
+
+    // Make the descriptor pool
+    VkDescriptorPoolSize poolResourceCount = {};
+    poolResourceCount.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    poolResourceCount.descriptorCount = 2u * vgl::Defines::RINGBUFFER_SIZE;
+
+    if (!mGammaAdjustDescriptorPool.init(*mpDevice, { poolResourceCount }, vgl::Defines::RINGBUFFER_SIZE))
+        return false;
+
+    // Alloc the descriptor sets (these will be filled in fully later)
+    for (vgl::DescriptorSet*& pDescriptorSet : mpGammaAdjustDescriptorSets) {
+        pDescriptorSet = mGammaAdjustDescriptorPool.allocDescriptorSet(VPipelines::gDescSetLayout_gammaAdjust);
+
+        if (!pDescriptorSet)
+            return false;
+    }
+    
+    return true;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Tells if the framebuffers used for gamma adjust need recreation
+//------------------------------------------------------------------------------------------------------------------------------------------
+bool VRenderPath_Psx::doGammaAdjustFramebuffersNeedRecreate() noexcept {
+    // Firstly ensure we have the right amount of framebuffers
+    ASSERT(mbIsValid);
+    vgl::Swapchain& swapchain = *mpSwapchain;
+    const uint32_t swapchainLen = swapchain.getLength();
+
+    if (swapchainLen != mGammaAdjustFramebuffers.size())
+        return true;
+
+    // Make sure each framebuffer is valid and references the correct swapchain image.
+    // Also sanity check the framebuffer dimensions to ensure that they are correct.
+    for (uint32_t swapImgIdx = 0; swapImgIdx < swapchainLen; ++swapImgIdx) {
+        vgl::Framebuffer& framebuffer = mGammaAdjustFramebuffers[swapImgIdx];
+        
+        const bool bValidFramebuffer = (
+            framebuffer.isValid() &&
+            (framebuffer.getAttachmentImages().size() == 1) &&
+            (framebuffer.getAttachmentImages()[0] == swapchain.getVkImages()[swapImgIdx]) &&
+            (framebuffer.getWidth() == swapchain.getSwapExtentWidth()) &&
+            (framebuffer.getHeight() == swapchain.getSwapExtentHeight())
+        );
+
+        if (!bValidFramebuffer)
+            return true;
+    }
+
+    // If we get to here then the framebuffers don't need recreation
+    return false;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------

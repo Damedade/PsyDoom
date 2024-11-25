@@ -16,6 +16,7 @@
 #include "ShaderModule.h"
 #include "VRenderPath_Crossfade.h"
 #include "VRenderPath_Main.h"
+#include "VRenderPath_Psx.h"
 
 BEGIN_NAMESPACE(VPipelines)
 
@@ -23,6 +24,7 @@ BEGIN_NAMESPACE(VPipelines)
 #include "SPIRV_colored_frag.bin.h"
 #include "SPIRV_colored_vert.bin.h"
 #include "SPIRV_crossfade_frag.bin.h"
+#include "SPIRV_gamma_adjust_frag.bin.h"
 #include "SPIRV_msaa_resolve_frag.bin.h"
 #include "SPIRV_msaa_resolve_vert.bin.h"
 #include "SPIRV_sky_frag.bin.h"
@@ -75,6 +77,7 @@ static vgl::ShaderModule    gShader_sky_frag;
 static vgl::ShaderModule    gShader_ndc_textured_vert;
 static vgl::ShaderModule    gShader_ndc_textured_frag;
 static vgl::ShaderModule    gShader_crossfade_frag;
+static vgl::ShaderModule    gShader_gamma_adjust_frag;
 static vgl::ShaderModule    gShader_msaa_resolve_vert;
 static vgl::ShaderModule    gShader_msaa_resolve_frag;
 
@@ -87,6 +90,7 @@ vgl::ShaderModule* const gShaders_world[]       = { &gShader_world_vert, &gShade
 vgl::ShaderModule* const gShaders_sky[]         = { &gShader_sky_vert, &gShader_sky_frag };
 vgl::ShaderModule* const gShaders_ndcTextured[] = { &gShader_ndc_textured_vert, &gShader_ndc_textured_frag };
 vgl::ShaderModule* const gShaders_crossfade[]   = { &gShader_ndc_textured_vert, &gShader_crossfade_frag };
+vgl::ShaderModule* const gShaders_gammaAdjust[] = { &gShader_ndc_textured_vert, &gShader_gamma_adjust_frag };
 vgl::ShaderModule* const gShaders_msaaResolve[] = { &gShader_msaa_resolve_vert, &gShader_msaa_resolve_frag };
 
 // Pipeline samplers
@@ -98,12 +102,14 @@ vgl::DescriptorSetLayout gDescSetLayout_draw;           // Used by all the norma
 vgl::DescriptorSetLayout gDescSetLayout_msaaResolve;    // Used for MSAA resolve
 vgl::DescriptorSetLayout gDescSetLayout_crossfade;      // For drawing crossfades
 vgl::DescriptorSetLayout gDescSetLayout_loadingPlaque;  // For drawing loading plaques
+vgl::DescriptorSetLayout gDescSetLayout_gammaAdjust;    // For doing gamma adjustments
 
 // Pipeline layouts
 vgl::PipelineLayout gPipelineLayout_draw;               // Used by all the normal drawing pipelines
 vgl::PipelineLayout gPipelineLayout_msaaResolve;        // Used for MSAA resolve
 vgl::PipelineLayout gPipelineLayout_crossfade;          // For drawing crossfades
 vgl::PipelineLayout gPipelineLayout_loadingPlaque;      // For drawing loading plaques
+vgl::PipelineLayout gPipelineLayout_gammaAdjust;        // For doing gamma adjustments
 
 // Pipeline input assembly states
 vgl::PipelineInputAssemblyState gInputAS_lineList;      // A list of lines
@@ -168,6 +174,7 @@ static void initShaders(vgl::LogicalDevice& device) noexcept {
     initShader(device, gShader_ndc_textured_vert, VK_SHADER_STAGE_VERTEX_BIT, gSPIRV_ndc_textured_vert, sizeof(gSPIRV_ndc_textured_vert), "ndc_textured_vert");
     initShader(device, gShader_ndc_textured_frag, VK_SHADER_STAGE_FRAGMENT_BIT, gSPIRV_ndc_textured_frag, sizeof(gSPIRV_ndc_textured_frag), "ndc_textured_frag");
     initShader(device, gShader_crossfade_frag, VK_SHADER_STAGE_FRAGMENT_BIT, gSPIRV_crossfade_frag, sizeof(gSPIRV_crossfade_frag), "crossfade_frag");
+    initShader(device, gShader_gamma_adjust_frag, VK_SHADER_STAGE_FRAGMENT_BIT, gSPIRV_gamma_adjust_frag, sizeof(gSPIRV_gamma_adjust_frag), "gamma_adjust_frag");
     initShader(device, gShader_msaa_resolve_vert, VK_SHADER_STAGE_VERTEX_BIT, gSPIRV_msaa_resolve_vert, sizeof(gSPIRV_msaa_resolve_vert), "msaa_resolve_vert");
     initShader(device, gShader_msaa_resolve_frag, VK_SHADER_STAGE_FRAGMENT_BIT, gSPIRV_msaa_resolve_frag, sizeof(gSPIRV_msaa_resolve_frag), "msaa_resolve_frag");
 }
@@ -273,6 +280,27 @@ static void initDescriptorSetLayouts(vgl::LogicalDevice& device) noexcept {
         if (!gDescSetLayout_loadingPlaque.init(device, bindings, C_ARRAY_SIZE(bindings)))
             FatalErrors::raise("Failed to init the 'loading plaque' Vulkan descriptor set layout!");
     }
+    
+    // Gamma adjust
+    {
+        const VkSampler vkSampler = gSampler_normClampNearest.getVkSampler();
+
+        VkDescriptorSetLayoutBinding bindings[2] = {};
+        bindings[0].binding = 0;
+        bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        bindings[0].descriptorCount = 1;
+        bindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        bindings[0].pImmutableSamplers = &vkSampler;
+
+        bindings[1].binding = 1;
+        bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        bindings[1].descriptorCount = 1;
+        bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        bindings[1].pImmutableSamplers = &vkSampler;
+
+        if (!gDescSetLayout_gammaAdjust.init(device, bindings, C_ARRAY_SIZE(bindings)))
+            FatalErrors::raise("Failed to init the 'gamma adjust' Vulkan descriptor set layout!");
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -293,7 +321,7 @@ static void initPipelineLayouts(vgl::LogicalDevice& device) noexcept {
             FatalErrors::raise("Failed to init the 'draw' Vulkan pipeline layout!");
     }
 
-    // MSAA resolve pipeline layout: no push constants needed for this one!
+    // MSAA resolve pipeline layout: no push constants needed for this one
     {
         const VkDescriptorSetLayout vkDescSetLayouts[] = { gDescSetLayout_msaaResolve.getVkLayout() };
 
@@ -314,12 +342,20 @@ static void initPipelineLayouts(vgl::LogicalDevice& device) noexcept {
             FatalErrors::raise("Failed to init the 'crossfade' Vulkan pipeline layout!");
     }
 
-    // Draw loading plaque layout: no push constants for this
+    // Draw loading plaque layout: no push constants needed for this one
     {
         const VkDescriptorSetLayout vkDescSetLayouts[] = { gDescSetLayout_loadingPlaque.getVkLayout() };
 
         if (!gPipelineLayout_loadingPlaque.init(device, vkDescSetLayouts, C_ARRAY_SIZE(vkDescSetLayouts), nullptr, 0))
             FatalErrors::raise("Failed to init the 'loading plaque' Vulkan pipeline layout!");
+    }
+    
+    // Gamma adjust layout: no push constants needed for this one
+    {
+        const VkDescriptorSetLayout vkDescSetLayouts[] = { gDescSetLayout_gammaAdjust.getVkLayout() };
+
+        if (!gPipelineLayout_gammaAdjust.init(device, vkDescSetLayouts, C_ARRAY_SIZE(vkDescSetLayouts), nullptr, 0))
+            FatalErrors::raise("Failed to init the 'gamma adjust' Vulkan pipeline layout!");
     }
 }
 
@@ -560,6 +596,7 @@ void initPipelineComponents(vgl::LogicalDevice& device, const uint32_t numSample
 //------------------------------------------------------------------------------------------------------------------------------------------
 void initPipelines(
     VRenderPath_Main& mainRPath,
+    VRenderPath_Psx& psxRPath,
     VRenderPath_Crossfade& crossfadeRPath,
     const uint32_t numSamples
 ) noexcept {
@@ -631,6 +668,15 @@ void initPipelines(
         gInputAS_triList, gRasterState_noCull,
         gBlendState_noBlend, gDepthState_disabled, gMultisampleState_perSettingsEdgeOnly
     );
+    
+    // Used for doing gamma adjustment
+    initPipeline(
+        VPipelineType::GammaAdjust, psxRPath.getGammaAdjustRenderPass(), 0,
+        gShaders_gammaAdjust, nullptr, gPipelineLayout_gammaAdjust,
+        gVertexBindingDesc_xyUv, gVertexAttribs_xyUv, C_ARRAY_SIZE(gVertexAttribs_xyUv),
+        gInputAS_triList, gRasterState_noCull,
+        gBlendState_noBlend, gDepthState_disabled, gMultisampleState_noMultisample
+    );
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -641,11 +687,13 @@ void shutdown() noexcept {
         pipeline.destroy(true);
     }
 
+    gPipelineLayout_gammaAdjust.destroy(true);
     gPipelineLayout_loadingPlaque.destroy(true);
     gPipelineLayout_crossfade.destroy(true);
     gPipelineLayout_msaaResolve.destroy(true);
     gPipelineLayout_draw.destroy(true);
 
+    gDescSetLayout_gammaAdjust.destroy(true);
     gDescSetLayout_loadingPlaque.destroy(true);
     gDescSetLayout_crossfade.destroy(true);
     gDescSetLayout_msaaResolve.destroy(true);
@@ -656,6 +704,7 @@ void shutdown() noexcept {
 
     gShader_msaa_resolve_frag.destroy(true);
     gShader_msaa_resolve_vert.destroy(true);
+    gShader_gamma_adjust_frag.destroy(true);
     gShader_crossfade_frag.destroy(true);
     gShader_ndc_textured_frag.destroy(true);
     gShader_ndc_textured_vert.destroy(true);

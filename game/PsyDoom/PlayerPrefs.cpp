@@ -304,4 +304,11 @@ bool shouldStartupWithVulkanRenderer() noexcept {
     return gbStartupWithVulkanRenderer;
 }
 
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Tells if gamma is currently being adjusted
+//------------------------------------------------------------------------------------------------------------------------------------------
+bool isUsingGammaAdjust() noexcept {
+    return (gGamma1000 != GAMMA_DEFAULT);
+}
+
 END_NAMESPACE(PlayerPrefs)

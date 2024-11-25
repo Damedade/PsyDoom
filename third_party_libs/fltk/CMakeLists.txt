@@ -524,6 +524,11 @@ if (PLATFORM_WINDOWS)
     target_compile_definitions(${FLTK_TGT_NAME} PRIVATE -D_WIN32_WINNT=0x0603)  # Target Windows 8.1 minimum
 endif()
 
+if (PLATFORM_MAC)
+    FIND_LIBRARY(UTID_FRAMEWORK UniformTypeIdentifiers)
+    target_link_libraries(${FLTK_TGT_NAME} PRIVATE ${UTID_FRAMEWORK})
+endif()
+
 if (PLATFORM_LINUX)
     # Add Freetype2 include files and libraries
     find_package(Freetype REQUIRED)

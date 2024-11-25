@@ -49,6 +49,7 @@ void getClassicFramebufferWindowRect(
 ) noexcept;
 
 void displayFramebuffer() noexcept;
+bool isUsingVulkanVideoBackend() noexcept;
 bool isUsingVulkanRenderPath() noexcept;
 IVideoBackend& getCurrentBackend() noexcept;
 

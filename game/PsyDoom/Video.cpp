@@ -341,6 +341,18 @@ void displayFramebuffer() noexcept {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
+// Tells if the Vulkan video backend is being used.
+// Returns 'false' when only SDL is being used for output; in this case the Vulkan API is not used at all.
+//------------------------------------------------------------------------------------------------------------------------------------------
+bool isUsingVulkanVideoBackend() noexcept {
+    #if PSYDOOM_VULKAN_RENDERER
+        return (gBackendType == BackendType::Vulkan);
+    #else
+        return false;
+    #endif
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
 // Helper: tells if any of the render paths used by the new Vulkan renderer are currently in use.
 // Note: will return 'false' if we are using a Vulkan backend but just outputting the classic PSX renderer via Vulkan.
 //------------------------------------------------------------------------------------------------------------------------------------------

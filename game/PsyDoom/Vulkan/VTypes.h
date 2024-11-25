@@ -30,6 +30,7 @@ enum class VPipelineType : uint8_t {
     Msaa_Resolve,               // Simple shader that resolves MSAA samples
     Crossfade,                  // Used for doing crossfades
     LoadingPlaque,              // Used for drawing loading plaques
+    GammaAdjust,                // Used for gamma adjust
     NUM_TYPES                   // Convenience declaration...
 };
 

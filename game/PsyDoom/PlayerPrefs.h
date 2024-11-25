@@ -56,5 +56,6 @@ void pullSoundAndMusicPrefs() noexcept;
 void pushLastPassword() noexcept;
 void pullLastPassword() noexcept;
 bool shouldStartupWithVulkanRenderer() noexcept;
+bool isUsingGammaAdjust() noexcept;
 
 END_NAMESPACE(PlayerPrefs)

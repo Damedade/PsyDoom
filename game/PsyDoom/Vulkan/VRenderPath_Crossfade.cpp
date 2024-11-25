@@ -122,6 +122,7 @@ void VRenderPath_Crossfade::destroy() noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 bool VRenderPath_Crossfade::ensureValidFramebuffers([[maybe_unused]] const uint32_t fbWidth, [[maybe_unused]] const uint32_t fbHeight) noexcept {
     ASSERT(mbIsValid);
+    ASSERT(mpSwapchain->isValid());
 
     // Only do this if we need to actually create/re-create framebuffers
     if (!doFramebuffersNeedRecreate())
@@ -140,7 +141,6 @@ bool VRenderPath_Crossfade::ensureValidFramebuffers([[maybe_unused]] const uint3
             return false;
     }
 
-    // Nothing to do for this renderpath...
     return true;
 }
 
@@ -200,7 +200,7 @@ bool VRenderPath_Crossfade::initRenderPass() noexcept {
     vgl::LogicalDevice& device = *mpDevice;
 
     // Define the single color attachment
-    vgl::RenderPassDef renderPassDef;
+    vgl::RenderPassDef renderPassDef = {};
 
     VkAttachmentDescription& colorAttach = renderPassDef.attachments.emplace_back();
     colorAttach.format = mPresentSurfaceFormat;
@@ -259,17 +259,20 @@ bool VRenderPath_Crossfade::doFramebuffersNeedRecreate() noexcept {
     if (swapchainLen != mFramebuffers.size())
         return true;
 
-    // Make sure each framebuffer is valid and references the correct swapchain image
+    // Make sure each framebuffer is valid and references the correct swapchain image.
+    // Also sanity check the framebuffer dimensions to ensure that they are correct.
     for (uint32_t swapImgIdx = 0; swapImgIdx < swapchainLen; ++swapImgIdx) {
         vgl::Framebuffer& framebuffer = mFramebuffers[swapImgIdx];
+        
+        const bool bValidFramebuffer = (
+            framebuffer.isValid() &&
+            (framebuffer.getAttachmentImages().size() == 1) &&
+            (framebuffer.getAttachmentImages()[0] == swapchain.getVkImages()[swapImgIdx]) &&
+            (framebuffer.getWidth() == swapchain.getSwapExtentWidth()) &&
+            (framebuffer.getHeight() == swapchain.getSwapExtentHeight())
+        );
 
-        if (!framebuffer.isValid())
-            return true;
-
-        if (framebuffer.getAttachmentImages().size() != 1)
-            return true;
-
-        if (framebuffer.getAttachmentImages()[0] != swapchain.getVkImages()[swapImgIdx])
+        if (!bValidFramebuffer)
             return true;
     }
 

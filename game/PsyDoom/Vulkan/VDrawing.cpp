@@ -71,22 +71,8 @@ static std::vector<DrawCmd> gFrameDrawCmds;
 // Records all drawing commands for the current frame to a Vulkan command buffer
 //------------------------------------------------------------------------------------------------------------------------------------------
 static void recordCmdBuffer(vgl::CmdBufferRecorder& cmdRec) noexcept {
-    // First command in the drawing pass is to setup the viewport. Note that while the view is allowed to extend horizontally if widescreen
-    // is enabled, no extension is allowed vertically; instead, letterboxing will happen. I considered allowing a vertically long display
-    // but it won't work with the UI assets & design that Doom uses. I'm also not sure why someone want to play that way anyway...
-    const bool bAllowWidescreen = Config::gbVulkanWidescreenEnabled;
-    const float viewportX = (bAllowWidescreen) ? 0 : VRenderer::gPsxCoordsFbX;
-    const float viewportY = VRenderer::gPsxCoordsFbY;
-    const float viewportW = (bAllowWidescreen) ? (float) VRenderer::gFramebufferW : VRenderer::gPsxCoordsFbW;
-    const float viewportH = VRenderer::gPsxCoordsFbH;
-
-    const int32_t viewportXInt = (int32_t)(viewportX);
-    const int32_t viewportYInt = (int32_t)(viewportY);
-    const int32_t viewportWInt = (int32_t)(viewportX + viewportW) - viewportXInt;
-    const int32_t viewportHInt = (int32_t)(viewportY + viewportH) - viewportYInt;
-
-    cmdRec.setViewport((float) viewportXInt, (float) viewportYInt, (float) viewportWInt, (float) viewportHInt, 0.0f, 1.0f);
-    cmdRec.setScissors(viewportXInt, viewportYInt, viewportWInt, viewportHInt);
+    // First command in the drawing pass is to configure the viewport and scissors settings
+    VRenderer::setupViewportAndScissors(cmdRec);
 
     // Bind the correct vertex buffer for drawing
     cmdRec.bindVertexBuffer(*gVertexBuffers_Draw.pCurBuffer, 0, 0);

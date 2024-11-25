@@ -14,6 +14,7 @@
 #include "PhysicalDevice.h"
 #include "PhysicalDeviceSelection.h"
 #include "PsyDoom/Config/Config.h"
+#include "PsyDoom/GammaTable.h"
 #include "PsyDoom/PlayerPrefs.h"
 #include "PsyDoom/PsxVm.h"
 #include "PsyDoom/Video.h"
@@ -111,6 +112,11 @@ vgl::Swapchain      gSwapchain;             // The swapchain we present to
 // Command buffer recorder helper object.
 // This begins recording at the start of every frame.
 vgl::CmdBufferRecorder gCmdBufferRec(gVkFuncs);
+
+// A 1D texture used for doing gamma adjustments.
+// The original color component is used to do lookup into the LUT and the output is the gamma adjusted value.
+// Note: if gamma adjustment is not being used then this texture will NOT be valid/created.
+vgl::Texture gGammaAdjustTex;
 
 // Semaphores signalled when the acquired swapchain image is ready.
 // We flip/flop between these when acquiring images, since there can be at most 1 other frame active.
@@ -563,14 +569,20 @@ void init() noexcept {
 
     // Initialize all render paths
     const VkFormat drawColorFormat = (Config::gbUseVulkan32BitShading || (!gbCanVulkanFbUse16BitColor)) ? COLOR_32_FORMAT : COLOR_16_FORMAT;
+    const VkFormat psxFramebufferFormat = (gbCanPsxFbUse16BitColor) ? COLOR_16_FORMAT : COLOR_32_FORMAT;
 
-    gRenderPath_Psx.init(gDevice, (gbCanPsxFbUse16BitColor) ? COLOR_16_FORMAT : COLOR_32_FORMAT);
+    gRenderPath_Psx.init(gDevice, gSwapchain, gPresentSurfaceFormat, psxFramebufferFormat);
     gRenderPath_Main.init(gDevice, gDrawSampleCount, drawColorFormat, COLOR_32_FORMAT);
     gRenderPath_Crossfade.init(gDevice, gSwapchain, gPresentSurfaceFormat, gRenderPath_Main);
     gRenderPath_Blit.init(gDevice);
 
     // Create all of the pipelines needed, these use the previously created pipeline components
-    VPipelines::initPipelines(gRenderPath_Main, gRenderPath_Crossfade, gDrawSampleCount);
+    VPipelines::initPipelines(
+        gRenderPath_Main,
+        gRenderPath_Psx,
+        gRenderPath_Crossfade,
+        gDrawSampleCount
+    );
 
     // Create the 'render done' semaphores
     for (vgl::Semaphore& semaphore : gRenderDoneSemaphores) {
@@ -642,6 +654,9 @@ void init() noexcept {
 
     // Try to init the swapchain and framebuffers
     ensureValidSwapchainAndFramebuffers();
+    
+    // Ensure the texture used for gamma adjustment is valid (if we are doing gamma adjustment)
+    rebuildGammaAdjustTex();
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -682,6 +697,8 @@ void destroy() noexcept {
     for (vgl::Semaphore& semaphore : gSwapImageReadySemaphores) {
         semaphore.destroy();
     }
+    
+    gGammaAdjustTex.destroy();
 
     gRenderPath_Blit.destroy();
     gRenderPath_Crossfade.destroy();
@@ -984,6 +1001,59 @@ bool isSwapchainOutOfDate() noexcept {
     int winW = {}, winH = {};
     SDL_Vulkan_GetDrawableSize(gWindowSurface.getSdlWindow(), &winW, &winH);
     return ((winW != (int) gSwapchain.getSwapExtentWidth()) || (winH != (int) gSwapchain.getSwapExtentHeight()));
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Rebuilds the texture used for gamma adjustment.
+// Should be called whenever the gamma setting is changed, or when the renderer is created.
+// Note: if there is no gamma adjustment then the remap texture is dropped/destroyed.
+//------------------------------------------------------------------------------------------------------------------------------------------
+void rebuildGammaAdjustTex() noexcept {
+    // Easy case: no gamma adjustment, just tear down the texture
+    gGammaAdjustTex.destroy();
+    
+    if (!PlayerPrefs::isUsingGammaAdjust())
+        return;
+    
+    // Rebuild the gamma adjustment texture
+    if (!gGammaAdjustTex.initAs1dTexture(gDevice, VK_FORMAT_R8_UNORM, 256))
+        FatalErrors::raise("Failed to alloc a texture used for gamma adjustment!");
+    
+    if (uint8_t* const pGammaRemapTbl = (uint8_t*) gGammaAdjustTex.lock()) {
+        for (uint32_t i = 0; i < 256u; ++i) {
+            pGammaRemapTbl[i] = Video::gGammaTbl.remapTbl8[i];
+        }
+        
+        gGammaAdjustTex.unlock();
+    }
+    else {
+        FatalErrors::raise("Failed to populate a texture used for gamma adjustment!");
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Should be called at the beginning of drawing.
+// Records commands to configure the viewport and scissors settings using the given command recorder.
+//------------------------------------------------------------------------------------------------------------------------------------------
+void setupViewportAndScissors(vgl::CmdBufferRecorder& cmdRec) noexcept {
+    // Note that while the view is allowed to extend horizontally if widescreen is enabled,
+    // no extension is allowed vertically - instead, letterboxing will happen.
+    //
+    // I considered allowing a vertically long display but it won't work with the UI assets & design that Doom uses.
+    // I'm also not sure why someone want to play that way anyway...
+    const bool bAllowWidescreen = Config::gbVulkanWidescreenEnabled;
+    const float viewportX = (bAllowWidescreen) ? 0 : gPsxCoordsFbX;
+    const float viewportY = gPsxCoordsFbY;
+    const float viewportW = (bAllowWidescreen) ? (float) gFramebufferW : gPsxCoordsFbW;
+    const float viewportH = gPsxCoordsFbH;
+
+    const int32_t viewportXInt = (int32_t)(viewportX);
+    const int32_t viewportYInt = (int32_t)(viewportY);
+    const int32_t viewportWInt = (int32_t)(viewportX + viewportW) - viewportXInt;
+    const int32_t viewportHInt = (int32_t)(viewportY + viewportH) - viewportYInt;
+
+    cmdRec.setViewport((float) viewportXInt, (float) viewportYInt, (float) viewportWInt, (float) viewportHInt, 0.0f, 1.0f);
+    cmdRec.setScissors(viewportXInt, viewportYInt, viewportWInt, viewportHInt);
 }
 
 END_NAMESPACE(VRenderer)
