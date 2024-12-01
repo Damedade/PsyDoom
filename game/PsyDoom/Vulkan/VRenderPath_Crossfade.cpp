@@ -120,7 +120,11 @@ void VRenderPath_Crossfade::destroy() noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Creates or recreates the framebuffers for this render path
 //------------------------------------------------------------------------------------------------------------------------------------------
-bool VRenderPath_Crossfade::ensureValidFramebuffers([[maybe_unused]] const uint32_t fbWidth, [[maybe_unused]] const uint32_t fbHeight) noexcept {
+bool VRenderPath_Crossfade::ensureValidFramebuffers(
+    [[maybe_unused]] const uint32_t fbWidth,
+    [[maybe_unused]] const uint32_t fbHeight,
+    const bool bGpuIsIdle
+) noexcept {
     ASSERT(mbIsValid);
     ASSERT(mpSwapchain->isValid());
 
@@ -129,15 +133,17 @@ bool VRenderPath_Crossfade::ensureValidFramebuffers([[maybe_unused]] const uint3
         return true;
 
     // Recreate all framebuffers
+    const bool bDestroyImmediate = bGpuIsIdle;
+    
     vgl::Swapchain& swapchain = *mpSwapchain;
     const uint32_t swapchainLen = swapchain.getLength();
     mFramebuffers.resize(swapchainLen);
 
     for (uint32_t swapImgIdx = 0; swapImgIdx < swapchainLen; ++swapImgIdx) {
         vgl::Framebuffer& framebuffer = mFramebuffers[swapImgIdx];
-        framebuffer.destroy(true);
+        framebuffer.destroy(bDestroyImmediate);
 
-        if (!framebuffer.init(mRenderPass, swapchain, swapImgIdx, {}))
+        if (!framebuffer.init(mRenderPass, swapchain, swapImgIdx, 0, {}))
             return false;
     }
 

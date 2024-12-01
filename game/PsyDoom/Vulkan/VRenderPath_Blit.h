@@ -23,7 +23,13 @@ public:
 
     void init(vgl::LogicalDevice& device) noexcept;
     void destroy() noexcept;
-    virtual bool ensureValidFramebuffers(const uint32_t fbWidth, const uint32_t fbHeight) noexcept override;
+    
+    virtual bool ensureValidFramebuffers(
+        const uint32_t fbWidth,
+        const uint32_t fbHeight,
+        const bool bGpuIsIdle
+    ) noexcept override;
+    
     virtual void beginFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecorder& cmdRec) noexcept override;
     virtual void endFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecorder& cmdRec) noexcept override;
 

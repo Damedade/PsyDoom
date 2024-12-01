@@ -289,7 +289,7 @@ void RV_DrawAutomap() noexcept {
     // Compute player map transforms, setup the draw transform matrix and switch to drawing lines
     RV_CalcPlayerMapTransforms();
     RV_SetupAutomapTransformMatrix();
-    VDrawing::setDrawPipeline(VPipelineType::Lines);
+    VDrawing::setDrawPipeline(VPipelineType_Main::Lines);
 
     // Draw all automap elements
     RV_DrawMapLines();

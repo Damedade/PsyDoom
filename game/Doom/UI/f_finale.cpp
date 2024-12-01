@@ -886,7 +886,7 @@ void F2_Drawer() noexcept {
                     // Only issue draw commands if rendering is allowed!
                     if (VRenderer::isRendering()) {
                         // Set the correct draw pipeline
-                        VDrawing::setDrawPipeline(VPipelineType::UI_8bpp);
+                        VDrawing::setDrawPipeline(VPipelineType_Main::UI_8bpp);
 
                         // Decide on sprite position and texture coordinates
                         float ul, ur;

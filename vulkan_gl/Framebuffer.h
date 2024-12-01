@@ -27,6 +27,7 @@ public:
         const RenderPass& renderPass,
         const Swapchain& swapchain,
         const uint32_t swapchainImageIdx,
+        const uint32_t swapchainImageAttachmentIdx,
         const std::vector<const BaseTexture*>& otherAttachments
     ) noexcept;
 

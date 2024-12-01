@@ -98,7 +98,7 @@ void RV_DrawBackgroundSky() noexcept {
     VDrawing::setDrawUniforms(uniforms);
 
     // Set the correct draw pipeline
-    VDrawing::setDrawPipeline(VPipelineType::World_Sky);
+    VDrawing::setDrawPipeline(VPipelineType_Main::World_Sky);
 
     // Get the basic texture params for the sky
     uint16_t texWinX, texWinY;
@@ -144,7 +144,7 @@ void RV_AddInfiniteSkyWall(
     const float uOffset = RV_GetSkyUCoordOffset();
 
     // Ensure the correct draw pipeline is set and add the wall
-    VDrawing::setDrawPipeline(VPipelineType::World_Sky);
+    VDrawing::setDrawPipeline(VPipelineType_Main::World_Sky);
     VDrawing::addWorldInfiniteSkyWall(x1, z1, x2, z2, y, bIsUpperSkyWall, uOffset, clutX, clutY, texWinX, texWinY, texWinW, texWinH);
 }
 

@@ -149,7 +149,7 @@ static void determineBackgroundTex(vgl::LogicalDevice& device) noexcept {
         VMsaaResolver& msaaResolver = mainRPath.getMsaaResolver();
         gpBackgroundTex = &msaaResolver.getResolveAttachment(ringbufferIdx ^ 1);
     } else {
-        gpBackgroundTex = &mainRPath.getFramebufferAttachment(ringbufferIdx ^ 1);
+        gpBackgroundTex = &mainRPath.getDrawColorAttachment(ringbufferIdx ^ 1);
     }
 }
 
@@ -276,7 +276,7 @@ void drawPlaque(texture_t& plaqueTex, const int16_t plaqueX, const int16_t plaqu
     // We need the framebuffer images to be populated and in the right Vulkan image layout for this effect to work:
     VRenderPath_Main& mainRenderPath = VRenderer::gRenderPath_Main;
 
-    while (!mainRenderPath.didRenderToAllFramebuffers()) {
+    while (!mainRenderPath.didRenderToAllDrawColorAttachments()) {
         VRenderer::endFrame();
         VRenderer::setNextRenderPath(mainRenderPath);
         VRenderer::beginFrame();
@@ -325,9 +325,10 @@ void drawPlaque(texture_t& plaqueTex, const int16_t plaqueX, const int16_t plaqu
         const uint32_t viewportH = VRenderer::gFramebufferH;
 
         // Setup the viewport, bind the vertex buffer and pipeline used
-        vgl::CmdBufferRecorder& cmdRec = VRenderer::gCmdBufferRec;
-        vgl::Pipeline& pipeline = VPipelines::gPipelines[(uint32_t) VPipelineType::LoadingPlaque];
+        const VPipelineSet<VPipelineType_Main>& pipelineSet = VPipelines::getMainPipelineSet();
+        const vgl::Pipeline& pipeline = pipelineSet.get(VPipelineType_Main::LoadingPlaque);
 
+        vgl::CmdBufferRecorder& cmdRec = VRenderer::gCmdBufferRec;
         cmdRec.setViewport(0.0f, 0.0f, (float) viewportW, (float) viewportH, 0.0f, 1.0f);
         cmdRec.setScissors(0, 0, viewportW, viewportH);
         cmdRec.bindVertexBuffer(gVertexBuffer, 0, 0);

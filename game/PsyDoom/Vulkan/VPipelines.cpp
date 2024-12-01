@@ -12,8 +12,10 @@
 #include "Pipeline.h"
 #include "PipelineLayout.h"
 #include "PsyDoom/Config/Config.h"
+#include "PsyDoom/PlayerPrefs.h"
 #include "Sampler.h"
 #include "ShaderModule.h"
+#include "VRenderer.h"
 #include "VRenderPath_Crossfade.h"
 #include "VRenderPath_Main.h"
 #include "VRenderPath_Psx.h"
@@ -24,13 +26,14 @@ BEGIN_NAMESPACE(VPipelines)
 #include "SPIRV_colored_frag.bin.h"
 #include "SPIRV_colored_vert.bin.h"
 #include "SPIRV_crossfade_frag.bin.h"
-#include "SPIRV_gamma_adjust_frag.bin.h"
+#include "SPIRV_gamma_adjust_blit_frag.bin.h"
+#include "SPIRV_gamma_adjust_post_process_frag.bin.h"
 #include "SPIRV_msaa_resolve_frag.bin.h"
-#include "SPIRV_msaa_resolve_vert.bin.h"
-#include "SPIRV_sky_frag.bin.h"
-#include "SPIRV_sky_vert.bin.h"
+#include "SPIRV_ndc_position_only_vert.bin.h"
 #include "SPIRV_ndc_textured_frag.bin.h"
 #include "SPIRV_ndc_textured_vert.bin.h"
+#include "SPIRV_sky_frag.bin.h"
+#include "SPIRV_sky_vert.bin.h"
 #include "SPIRV_ui_16bpp_frag.bin.h"
 #include "SPIRV_ui_4bpp_frag.bin.h"
 #include "SPIRV_ui_8bpp_frag.bin.h"
@@ -74,42 +77,46 @@ static vgl::ShaderModule    gShader_world_vert;
 static vgl::ShaderModule    gShader_world_frag;
 static vgl::ShaderModule    gShader_sky_vert;
 static vgl::ShaderModule    gShader_sky_frag;
+static vgl::ShaderModule    gShader_ndc_position_only_vert;
 static vgl::ShaderModule    gShader_ndc_textured_vert;
 static vgl::ShaderModule    gShader_ndc_textured_frag;
 static vgl::ShaderModule    gShader_crossfade_frag;
-static vgl::ShaderModule    gShader_gamma_adjust_frag;
-static vgl::ShaderModule    gShader_msaa_resolve_vert;
+static vgl::ShaderModule    gShader_gamma_adjust_blit_frag;
+static vgl::ShaderModule    gShader_gamma_adjust_post_process_frag;
 static vgl::ShaderModule    gShader_msaa_resolve_frag;
 
 // Sets of shader modules
-vgl::ShaderModule* const gShaders_colored[]     = { &gShader_colored_vert, &gShader_colored_frag };
-vgl::ShaderModule* const gShaders_ui_4bpp[]     = { &gShader_ui_vert, &gShader_ui_4bpp_frag };
-vgl::ShaderModule* const gShaders_ui_8bpp[]     = { &gShader_ui_vert, &gShader_ui_8bpp_frag };
-vgl::ShaderModule* const gShaders_ui_16bpp[]    = { &gShader_ui_vert, &gShader_ui_16bpp_frag };
-vgl::ShaderModule* const gShaders_world[]       = { &gShader_world_vert, &gShader_world_frag };
-vgl::ShaderModule* const gShaders_sky[]         = { &gShader_sky_vert, &gShader_sky_frag };
-vgl::ShaderModule* const gShaders_ndcTextured[] = { &gShader_ndc_textured_vert, &gShader_ndc_textured_frag };
-vgl::ShaderModule* const gShaders_crossfade[]   = { &gShader_ndc_textured_vert, &gShader_crossfade_frag };
-vgl::ShaderModule* const gShaders_gammaAdjust[] = { &gShader_ndc_textured_vert, &gShader_gamma_adjust_frag };
-vgl::ShaderModule* const gShaders_msaaResolve[] = { &gShader_msaa_resolve_vert, &gShader_msaa_resolve_frag };
+vgl::ShaderModule* const gShaders_colored[]                 = { &gShader_colored_vert, &gShader_colored_frag };
+vgl::ShaderModule* const gShaders_ui_4bpp[]                 = { &gShader_ui_vert, &gShader_ui_4bpp_frag };
+vgl::ShaderModule* const gShaders_ui_8bpp[]                 = { &gShader_ui_vert, &gShader_ui_8bpp_frag };
+vgl::ShaderModule* const gShaders_ui_16bpp[]                = { &gShader_ui_vert, &gShader_ui_16bpp_frag };
+vgl::ShaderModule* const gShaders_world[]                   = { &gShader_world_vert, &gShader_world_frag };
+vgl::ShaderModule* const gShaders_sky[]                     = { &gShader_sky_vert, &gShader_sky_frag };
+vgl::ShaderModule* const gShaders_ndcTextured[]             = { &gShader_ndc_textured_vert, &gShader_ndc_textured_frag };
+vgl::ShaderModule* const gShaders_crossfade[]               = { &gShader_ndc_textured_vert, &gShader_crossfade_frag };
+vgl::ShaderModule* const gShaders_gammaAdjustBlit[]         = { &gShader_ndc_textured_vert, &gShader_gamma_adjust_blit_frag };
+vgl::ShaderModule* const gShaders_gammaAdjustPostProcess[]  = { &gShader_ndc_position_only_vert, &gShader_gamma_adjust_post_process_frag };
+vgl::ShaderModule* const gShaders_msaaResolve[]             = { &gShader_ndc_position_only_vert, &gShader_msaa_resolve_frag };
 
 // Pipeline samplers
 vgl::Sampler gSampler_draw;
 vgl::Sampler gSampler_normClampNearest;
 
 // Pipeline descriptor set layouts
-vgl::DescriptorSetLayout gDescSetLayout_draw;           // Used by all the normal drawing pipelines
-vgl::DescriptorSetLayout gDescSetLayout_msaaResolve;    // Used for MSAA resolve
-vgl::DescriptorSetLayout gDescSetLayout_crossfade;      // For drawing crossfades
-vgl::DescriptorSetLayout gDescSetLayout_loadingPlaque;  // For drawing loading plaques
-vgl::DescriptorSetLayout gDescSetLayout_gammaAdjust;    // For doing gamma adjustments
+vgl::DescriptorSetLayout gDescSetLayout_draw;                       // Used by all the normal drawing pipelines
+vgl::DescriptorSetLayout gDescSetLayout_msaaResolve;                // Used for MSAA resolve
+vgl::DescriptorSetLayout gDescSetLayout_crossfade;                  // For drawing crossfades
+vgl::DescriptorSetLayout gDescSetLayout_loadingPlaque;              // For drawing loading plaques
+vgl::DescriptorSetLayout gDescSetLayout_gammaAdjustBlit;            // For doing blits with gamma adjustments
+vgl::DescriptorSetLayout gDescSetLayout_gammaAdjustPostProcess;     // For doing post process gamma adjustment
 
 // Pipeline layouts
-vgl::PipelineLayout gPipelineLayout_draw;               // Used by all the normal drawing pipelines
-vgl::PipelineLayout gPipelineLayout_msaaResolve;        // Used for MSAA resolve
-vgl::PipelineLayout gPipelineLayout_crossfade;          // For drawing crossfades
-vgl::PipelineLayout gPipelineLayout_loadingPlaque;      // For drawing loading plaques
-vgl::PipelineLayout gPipelineLayout_gammaAdjust;        // For doing gamma adjustments
+vgl::PipelineLayout gPipelineLayout_draw;                       // Used by all the normal drawing pipelines
+vgl::PipelineLayout gPipelineLayout_msaaResolve;                // Used for MSAA resolve
+vgl::PipelineLayout gPipelineLayout_crossfade;                  // For drawing crossfades
+vgl::PipelineLayout gPipelineLayout_loadingPlaque;              // For drawing loading plaques
+vgl::PipelineLayout gPipelineLayout_gammaAdjustBlit;            // For doing blits with gamma adjustments
+vgl::PipelineLayout gPipelineLayout_gammaAdjustPostProcess;     // For doing post process gamma adjustment
 
 // Pipeline input assembly states
 vgl::PipelineInputAssemblyState gInputAS_lineList;      // A list of lines
@@ -140,7 +147,20 @@ vgl::PipelineColorBlendState gBlendState_subtractive;
 vgl::PipelineDepthStencilState gDepthState_disabled;        // No depth/stencil buffer: Depth write, test and all stencil operations disabled
 
 // The pipelines themselves
-vgl::Pipeline gPipelines[(size_t) VPipelineType::NUM_TYPES];
+VPipelineSet<VPipelineType_Main>        gPipelines_Main_NoGammaAdjust;
+VPipelineSet<VPipelineType_Main>        gPipelines_Main_GammaAdjust;
+VPipelineSet<VPipelineType_Crossfade>   gPipelines_Crossfade;
+VPipelineSet<VPipelineType_PSX>         gPipelines_PSX;
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Helper: destroys all pipelines in the specified pipeline set
+//------------------------------------------------------------------------------------------------------------------------------------------
+template <class PipelineSetT>
+static void destroyPipelineSet(PipelineSetT& pipelineSet) noexcept {
+    for (vgl::Pipeline& pipeline : pipelineSet.pipelines) {
+        pipeline.destroy(true);
+    }
+}
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Initialize a single shader and raise a fatal error if it fails
@@ -171,11 +191,12 @@ static void initShaders(vgl::LogicalDevice& device) noexcept {
     initShader(device, gShader_world_frag, VK_SHADER_STAGE_FRAGMENT_BIT, gSPIRV_world_frag, sizeof(gSPIRV_world_frag), "world_frag");
     initShader(device, gShader_sky_vert, VK_SHADER_STAGE_VERTEX_BIT, gSPIRV_sky_vert, sizeof(gSPIRV_sky_vert), "sky_vert");
     initShader(device, gShader_sky_frag, VK_SHADER_STAGE_FRAGMENT_BIT, gSPIRV_sky_frag, sizeof(gSPIRV_sky_frag), "sky_frag");
+    initShader(device, gShader_ndc_position_only_vert, VK_SHADER_STAGE_VERTEX_BIT, gSPIRV_ndc_position_only_vert, sizeof(gSPIRV_ndc_position_only_vert), "ndc_position_only_vert");
     initShader(device, gShader_ndc_textured_vert, VK_SHADER_STAGE_VERTEX_BIT, gSPIRV_ndc_textured_vert, sizeof(gSPIRV_ndc_textured_vert), "ndc_textured_vert");
     initShader(device, gShader_ndc_textured_frag, VK_SHADER_STAGE_FRAGMENT_BIT, gSPIRV_ndc_textured_frag, sizeof(gSPIRV_ndc_textured_frag), "ndc_textured_frag");
     initShader(device, gShader_crossfade_frag, VK_SHADER_STAGE_FRAGMENT_BIT, gSPIRV_crossfade_frag, sizeof(gSPIRV_crossfade_frag), "crossfade_frag");
-    initShader(device, gShader_gamma_adjust_frag, VK_SHADER_STAGE_FRAGMENT_BIT, gSPIRV_gamma_adjust_frag, sizeof(gSPIRV_gamma_adjust_frag), "gamma_adjust_frag");
-    initShader(device, gShader_msaa_resolve_vert, VK_SHADER_STAGE_VERTEX_BIT, gSPIRV_msaa_resolve_vert, sizeof(gSPIRV_msaa_resolve_vert), "msaa_resolve_vert");
+    initShader(device, gShader_gamma_adjust_blit_frag, VK_SHADER_STAGE_FRAGMENT_BIT, gSPIRV_gamma_adjust_blit_frag, sizeof(gSPIRV_gamma_adjust_blit_frag), "gamma_adjust_blit_frag");
+    initShader(device, gShader_gamma_adjust_post_process_frag, VK_SHADER_STAGE_FRAGMENT_BIT, gSPIRV_gamma_adjust_post_process_frag, sizeof(gSPIRV_gamma_adjust_post_process_frag), "gamma_adjust_post_process_frag");
     initShader(device, gShader_msaa_resolve_frag, VK_SHADER_STAGE_FRAGMENT_BIT, gSPIRV_msaa_resolve_frag, sizeof(gSPIRV_msaa_resolve_frag), "msaa_resolve_frag");
 }
 
@@ -281,7 +302,7 @@ static void initDescriptorSetLayouts(vgl::LogicalDevice& device) noexcept {
             FatalErrors::raise("Failed to init the 'loading plaque' Vulkan descriptor set layout!");
     }
     
-    // Gamma adjust
+    // Gamma adjust blit
     {
         const VkSampler vkSampler = gSampler_normClampNearest.getVkSampler();
 
@@ -298,8 +319,28 @@ static void initDescriptorSetLayouts(vgl::LogicalDevice& device) noexcept {
         bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
         bindings[1].pImmutableSamplers = &vkSampler;
 
-        if (!gDescSetLayout_gammaAdjust.init(device, bindings, C_ARRAY_SIZE(bindings)))
-            FatalErrors::raise("Failed to init the 'gamma adjust' Vulkan descriptor set layout!");
+        if (!gDescSetLayout_gammaAdjustBlit.init(device, bindings, C_ARRAY_SIZE(bindings)))
+            FatalErrors::raise("Failed to init the 'gamma adjust blit' Vulkan descriptor set layout!");
+    }
+    
+    // Gamma adjust post process
+    {
+        const VkSampler vkSampler = gSampler_normClampNearest.getVkSampler();
+
+        VkDescriptorSetLayoutBinding bindings[2] = {};
+        bindings[0].binding = 0;
+        bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+        bindings[0].descriptorCount = 1;
+        bindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        bindings[1].binding = 1;
+        bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        bindings[1].descriptorCount = 1;
+        bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        bindings[1].pImmutableSamplers = &vkSampler;
+
+        if (!gDescSetLayout_gammaAdjustPostProcess.init(device, bindings, C_ARRAY_SIZE(bindings)))
+            FatalErrors::raise("Failed to init the 'gamma adjust post process' Vulkan descriptor set layout!");
     }
 }
 
@@ -350,12 +391,20 @@ static void initPipelineLayouts(vgl::LogicalDevice& device) noexcept {
             FatalErrors::raise("Failed to init the 'loading plaque' Vulkan pipeline layout!");
     }
     
-    // Gamma adjust layout: no push constants needed for this one
+    // Gamma adjust blit layout: no push constants needed for this one
     {
-        const VkDescriptorSetLayout vkDescSetLayouts[] = { gDescSetLayout_gammaAdjust.getVkLayout() };
+        const VkDescriptorSetLayout vkDescSetLayouts[] = { gDescSetLayout_gammaAdjustBlit.getVkLayout() };
 
-        if (!gPipelineLayout_gammaAdjust.init(device, vkDescSetLayouts, C_ARRAY_SIZE(vkDescSetLayouts), nullptr, 0))
-            FatalErrors::raise("Failed to init the 'gamma adjust' Vulkan pipeline layout!");
+        if (!gPipelineLayout_gammaAdjustBlit.init(device, vkDescSetLayouts, C_ARRAY_SIZE(vkDescSetLayouts), nullptr, 0))
+            FatalErrors::raise("Failed to init the 'gamma adjust blit' Vulkan pipeline layout!");
+    }
+    
+    // Gamma adjust post process layout: no push constants needed for this one
+    {
+        const VkDescriptorSetLayout vkDescSetLayouts[] = { gDescSetLayout_gammaAdjustPostProcess.getVkLayout() };
+
+        if (!gPipelineLayout_gammaAdjustPostProcess.init(device, vkDescSetLayouts, C_ARRAY_SIZE(vkDescSetLayouts), nullptr, 0))
+            FatalErrors::raise("Failed to init the 'gamma adjust post process' Vulkan pipeline layout!");
     }
 }
 
@@ -482,7 +531,7 @@ static void initPipelineDepthStencilStates() noexcept {
 // Initializes a single pipeline and raise a fatal error on failure
 //------------------------------------------------------------------------------------------------------------------------------------------
 static void initPipeline(
-    const VPipelineType pipelineType,
+    vgl::Pipeline& pipeline,
     const vgl::RenderPass& renderPass,
     const uint32_t subpassIdx,
     const vgl::ShaderModule* const pShaderModules[2],
@@ -497,7 +546,7 @@ static void initPipeline(
     const vgl::PipelineDepthStencilState& depthStencilState,
     const vgl::PipelineMultisampleState& multisampleState
 ) noexcept {
-    const bool bSuccess = gPipelines[(size_t) pipelineType].initGraphicsPipeline(
+    const bool bSuccess = pipeline.initGraphicsPipeline(
         pipelineLayout,
         renderPass,
         subpassIdx,
@@ -523,8 +572,8 @@ static void initPipeline(
 // Convenience function: initialize a pipeline used for normal drawing and fill in a few parameters that are common to all draw pipelines
 //------------------------------------------------------------------------------------------------------------------------------------------
 static void initDrawPipeline(
-    const VPipelineType pipelineType,
-    VRenderPath_Main& mainRPath,
+    vgl::Pipeline& pipeline,
+    const vgl::RenderPass& renderPass,
     const vgl::ShaderModule* const pShaderModules[2],
     const vgl::PipelineInputAssemblyState& inputAssemblyState,
     const vgl::PipelineRasterizationState& rasterizerState,
@@ -555,8 +604,8 @@ static void initDrawPipeline(
 
     // Create the pipeline
     initPipeline(
-        pipelineType,
-        mainRPath.getRenderPass(),
+        pipeline,
+        renderPass,
         0,
         pShaderModules,
         &specializationInfo,
@@ -569,6 +618,156 @@ static void initDrawPipeline(
         colorBlendState,
         depthStencilState,
         (bEdgeOnlyMsaa) ? gMultisampleState_perSettingsEdgeOnly : gMultisampleState_perSettings
+    );
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Initializes a pipeline set for the main render path
+//------------------------------------------------------------------------------------------------------------------------------------------
+static void initPipelineSet_Main(
+    VPipelineSet<VPipelineType_Main>& pipelineSet,
+    const vgl::RenderPass& renderPass,
+    const uint32_t numSamples,
+    const bool bGammaAdjusted
+) noexcept {
+    // Create all of the main drawing pipelines
+    initDrawPipeline(pipelineSet.get(VPipelineType_Main::Lines), renderPass,
+        gShaders_colored, gInputAS_lineList, gRasterState_noCull, gBlendState_noBlend, gDepthState_disabled, false, true
+    );
+        
+    initDrawPipeline(pipelineSet.get(VPipelineType_Main::Colored), renderPass,
+        gShaders_colored, gInputAS_triList, gRasterState_noCull, gBlendState_noBlend, gDepthState_disabled, false, true
+    );
+    
+    initDrawPipeline(pipelineSet.get(VPipelineType_Main::UI_4bpp), renderPass,
+        gShaders_ui_4bpp, gInputAS_triList, gRasterState_noCull, gBlendState_noBlend, gDepthState_disabled, false, true
+    );
+    
+    initDrawPipeline(pipelineSet.get(VPipelineType_Main::UI_8bpp), renderPass,
+        gShaders_ui_8bpp, gInputAS_triList, gRasterState_noCull, gBlendState_noBlend, gDepthState_disabled, false, true
+    );
+    
+    initDrawPipeline(pipelineSet.get(VPipelineType_Main::UI_8bpp_Add), renderPass,
+        gShaders_ui_8bpp, gInputAS_triList, gRasterState_noCull, gBlendState_additive, gDepthState_disabled, false, true
+    );
+    
+    initDrawPipeline(pipelineSet.get(VPipelineType_Main::UI_16bpp), renderPass,
+        gShaders_ui_16bpp, gInputAS_triList, gRasterState_noCull, gBlendState_noBlend, gDepthState_disabled, false, true
+    );
+    
+    initDrawPipeline(pipelineSet.get(VPipelineType_Main::World_GeomMasked), renderPass,
+        gShaders_world, gInputAS_triList, gRasterState_backFaceCull, gBlendState_noBlend, gDepthState_disabled, true, false
+    );
+    
+    initDrawPipeline(pipelineSet.get(VPipelineType_Main::World_GeomAlpha), renderPass,
+        gShaders_world, gInputAS_triList, gRasterState_backFaceCull, gBlendState_alpha, gDepthState_disabled, true, false
+    );
+    
+    initDrawPipeline(pipelineSet.get(VPipelineType_Main::World_SpriteMasked), renderPass,
+        gShaders_world, gInputAS_triList, gRasterState_noCull, gBlendState_noBlend, gDepthState_disabled, false, false
+    );
+    
+    initDrawPipeline(pipelineSet.get(VPipelineType_Main::World_SpriteAlpha), renderPass,
+        gShaders_world, gInputAS_triList, gRasterState_noCull, gBlendState_alpha, gDepthState_disabled, false, false
+    );
+    
+    initDrawPipeline(pipelineSet.get(VPipelineType_Main::World_SpriteAdditive), renderPass,
+        gShaders_world, gInputAS_triList, gRasterState_noCull, gBlendState_additive, gDepthState_disabled, false, false
+    );
+    
+    initDrawPipeline(pipelineSet.get(VPipelineType_Main::World_SpriteSubtractive), renderPass,
+        gShaders_world, gInputAS_triList, gRasterState_noCull, gBlendState_subtractive, gDepthState_disabled, false, false
+    );
+    
+    initDrawPipeline(pipelineSet.get(VPipelineType_Main::World_Sky), renderPass,
+        gShaders_sky, gInputAS_triList, gRasterState_backFaceCull, gBlendState_noBlend, gDepthState_disabled, true, true
+    );
+    
+    // Used to draw loading plaques, both the background and the plaque itself
+    initPipeline(
+        pipelineSet.get(VPipelineType_Main::LoadingPlaque), renderPass, 0,
+        gShaders_ndcTextured, nullptr, gPipelineLayout_loadingPlaque,
+        gVertexBindingDesc_xyUv, gVertexAttribs_xyUv, C_ARRAY_SIZE(gVertexAttribs_xyUv),
+        gInputAS_triList, gRasterState_noCull,
+        gBlendState_noBlend, gDepthState_disabled, gMultisampleState_perSettingsEdgeOnly
+    );
+
+    // The pipeline to resolve MSAA: only bother creating this if we are doing MSAA.
+    // Specialize the shader to the number of samples also, so that loops can be unrolled.
+    const bool bUsingMsaa = (numSamples > 1);
+    
+    if (bUsingMsaa) {
+        const VkSpecializationMapEntry specializationMapEntries[] = {
+            { 0, 0, sizeof(uint32_t) }
+        };
+
+        VkSpecializationInfo specializationInfo = {};
+        specializationInfo.mapEntryCount = C_ARRAY_SIZE(specializationMapEntries);
+        specializationInfo.pMapEntries = specializationMapEntries;
+        specializationInfo.dataSize = sizeof(uint32_t);
+        specializationInfo.pData = &numSamples;
+
+        initPipeline(
+            pipelineSet.get(VPipelineType_Main::MsaaResolve), renderPass, 1, // Subpass index = 1
+            gShaders_msaaResolve, &specializationInfo, gPipelineLayout_msaaResolve,
+            gVertexBindingDesc_msaaResolve, gVertexAttribs_msaaResolve, C_ARRAY_SIZE(gVertexAttribs_msaaResolve),
+            gInputAS_triList, gRasterState_noCull,
+            gBlendState_noBlend, gDepthState_disabled, gMultisampleState_noMultisample
+        );
+    }
+    
+    // The pipeline used to adjust gamma for an input attachment.
+    // Only define this for the gamma adjusted render pass.
+    if (bGammaAdjusted) {
+        initPipeline(
+            pipelineSet.get(VPipelineType_Main::GammaAdjustPostProcess), renderPass, (bUsingMsaa) ? 2 : 1, // Subpass index = 2 or 1 (depending on MSAA setting)
+            gShaders_gammaAdjustPostProcess, nullptr, gPipelineLayout_gammaAdjustPostProcess,
+            gVertexBindingDesc_xyUv, gVertexAttribs_xyUv, C_ARRAY_SIZE(gVertexAttribs_xyUv),
+            gInputAS_triList, gRasterState_noCull,
+            gBlendState_noBlend, gDepthState_disabled, gMultisampleState_noMultisample
+        );
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Initializes a pipeline set for the crossfade render path
+//------------------------------------------------------------------------------------------------------------------------------------------
+static void initPipelineSet_Crossfade(VPipelineSet<VPipelineType_Crossfade>& pipelineSet, const vgl::RenderPass& renderPass) noexcept {
+    // A pipeline to use during crossfading
+    {
+        const VkSpecializationMapEntry specializationMapEntries[] = {
+            { 0, 0, sizeof(VkBool32) }
+        };
+
+        const VkBool32 bShade16Bit = (!Config::gbUseVulkan32BitShading);
+
+        VkSpecializationInfo specializationInfo = {};
+        specializationInfo.mapEntryCount = C_ARRAY_SIZE(specializationMapEntries);
+        specializationInfo.pMapEntries = specializationMapEntries;
+        specializationInfo.dataSize = sizeof(VkBool32);
+        specializationInfo.pData = &bShade16Bit;
+
+        initPipeline(
+            pipelineSet.get(VPipelineType_Crossfade::Crossfade), renderPass, 0,
+            gShaders_crossfade, &specializationInfo, gPipelineLayout_crossfade,
+            gVertexBindingDesc_xyUv, gVertexAttribs_xyUv, C_ARRAY_SIZE(gVertexAttribs_xyUv),
+            gInputAS_triList, gRasterState_noCull,
+            gBlendState_noBlend, gDepthState_disabled, gMultisampleState_noMultisample
+        );
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Initializes a pipeline set for the PSX render path
+//------------------------------------------------------------------------------------------------------------------------------------------
+static void initPipelineSet_PSX(VPipelineSet<VPipelineType_PSX>& pipelineSet, const vgl::RenderPass& renderPass) noexcept {
+    // Used for doing a gamma adjusted blit
+    initPipeline(
+        pipelineSet.get(VPipelineType_PSX::GammaAdjustBlit), renderPass, 0,
+        gShaders_gammaAdjustBlit, nullptr, gPipelineLayout_gammaAdjustBlit,
+        gVertexBindingDesc_xyUv, gVertexAttribs_xyUv, C_ARRAY_SIZE(gVertexAttribs_xyUv),
+        gInputAS_triList, gRasterState_noCull,
+        gBlendState_noBlend, gDepthState_disabled, gMultisampleState_noMultisample
     );
 }
 
@@ -599,101 +798,32 @@ void initPipelines(
     VRenderPath_Psx& psxRPath,
     VRenderPath_Crossfade& crossfadeRPath,
     const uint32_t numSamples
-) noexcept {
-    // Create all of the main drawing pipelines
-    initDrawPipeline(VPipelineType::Lines, mainRPath, gShaders_colored, gInputAS_lineList, gRasterState_noCull, gBlendState_noBlend, gDepthState_disabled, false, true);
-    initDrawPipeline(VPipelineType::Colored, mainRPath, gShaders_colored, gInputAS_triList, gRasterState_noCull, gBlendState_noBlend, gDepthState_disabled, false, true);
-    initDrawPipeline(VPipelineType::UI_4bpp, mainRPath, gShaders_ui_4bpp, gInputAS_triList, gRasterState_noCull, gBlendState_noBlend, gDepthState_disabled, false, true);
-    initDrawPipeline(VPipelineType::UI_8bpp, mainRPath, gShaders_ui_8bpp, gInputAS_triList, gRasterState_noCull, gBlendState_noBlend, gDepthState_disabled, false, true);
-    initDrawPipeline(VPipelineType::UI_8bpp_Add, mainRPath, gShaders_ui_8bpp, gInputAS_triList, gRasterState_noCull, gBlendState_additive, gDepthState_disabled, false, true);
-    initDrawPipeline(VPipelineType::UI_16bpp, mainRPath, gShaders_ui_16bpp, gInputAS_triList, gRasterState_noCull, gBlendState_noBlend, gDepthState_disabled, false, true);
-    initDrawPipeline(VPipelineType::World_GeomMasked, mainRPath, gShaders_world, gInputAS_triList, gRasterState_backFaceCull, gBlendState_noBlend, gDepthState_disabled, true, false);
-    initDrawPipeline(VPipelineType::World_GeomAlpha, mainRPath, gShaders_world, gInputAS_triList, gRasterState_backFaceCull, gBlendState_alpha, gDepthState_disabled, true, false);
-    initDrawPipeline(VPipelineType::World_SpriteMasked, mainRPath, gShaders_world, gInputAS_triList, gRasterState_noCull, gBlendState_noBlend, gDepthState_disabled, false, false);
-    initDrawPipeline(VPipelineType::World_SpriteAlpha, mainRPath, gShaders_world, gInputAS_triList, gRasterState_noCull, gBlendState_alpha, gDepthState_disabled, false, false);
-    initDrawPipeline(VPipelineType::World_SpriteAdditive, mainRPath, gShaders_world, gInputAS_triList, gRasterState_noCull, gBlendState_additive, gDepthState_disabled, false, false);
-    initDrawPipeline(VPipelineType::World_SpriteSubtractive, mainRPath, gShaders_world, gInputAS_triList, gRasterState_noCull, gBlendState_subtractive, gDepthState_disabled, false, false);
-    initDrawPipeline(VPipelineType::World_Sky, mainRPath, gShaders_sky, gInputAS_triList, gRasterState_backFaceCull, gBlendState_noBlend, gDepthState_disabled, true, true);
-
-    // The pipeline to resolve MSAA: only bother creating this if we are doing MSAA.
-    // Specialize the shader to the number of samples also, so that loops can be unrolled.
-    if (numSamples > 1) {
-        const VkSpecializationMapEntry specializationMapEntries[] = {
-            { 0, 0, sizeof(uint32_t) }
-        };
-
-        VkSpecializationInfo specializationInfo = {};
-        specializationInfo.mapEntryCount = C_ARRAY_SIZE(specializationMapEntries);
-        specializationInfo.pMapEntries = specializationMapEntries;
-        specializationInfo.dataSize = sizeof(uint32_t);
-        specializationInfo.pData = &numSamples;
-
-        initPipeline(
-            VPipelineType::Msaa_Resolve, mainRPath.getRenderPass(), 1,
-            gShaders_msaaResolve, &specializationInfo, gPipelineLayout_msaaResolve,
-            gVertexBindingDesc_msaaResolve, gVertexAttribs_msaaResolve, C_ARRAY_SIZE(gVertexAttribs_msaaResolve),
-            gInputAS_triList, gRasterState_noCull,
-            gBlendState_noBlend, gDepthState_disabled, gMultisampleState_noMultisample
-        );
-    }
-
-    // A pipeline to use during crossfading
-    {
-        const VkSpecializationMapEntry specializationMapEntries[] = {
-            { 0, 0, sizeof(VkBool32) }
-        };
-
-        const VkBool32 bShade16Bit = (!Config::gbUseVulkan32BitShading);
-
-        VkSpecializationInfo specializationInfo = {};
-        specializationInfo.mapEntryCount = C_ARRAY_SIZE(specializationMapEntries);
-        specializationInfo.pMapEntries = specializationMapEntries;
-        specializationInfo.dataSize = sizeof(VkBool32);
-        specializationInfo.pData = &bShade16Bit;
-
-        initPipeline(
-            VPipelineType::Crossfade, crossfadeRPath.getRenderPass(), 0,
-            gShaders_crossfade, &specializationInfo, gPipelineLayout_crossfade,
-            gVertexBindingDesc_xyUv, gVertexAttribs_xyUv, C_ARRAY_SIZE(gVertexAttribs_xyUv),
-            gInputAS_triList, gRasterState_noCull,
-            gBlendState_noBlend, gDepthState_disabled, gMultisampleState_noMultisample
-        );
-    }
-
-    // Used to draw loading plaques, both the background and the plaque itself
-    initPipeline(
-        VPipelineType::LoadingPlaque, mainRPath.getRenderPass(), 0,
-        gShaders_ndcTextured, nullptr, gPipelineLayout_loadingPlaque,
-        gVertexBindingDesc_xyUv, gVertexAttribs_xyUv, C_ARRAY_SIZE(gVertexAttribs_xyUv),
-        gInputAS_triList, gRasterState_noCull,
-        gBlendState_noBlend, gDepthState_disabled, gMultisampleState_perSettingsEdgeOnly
-    );
-    
-    // Used for doing gamma adjustment
-    initPipeline(
-        VPipelineType::GammaAdjust, psxRPath.getGammaAdjustRenderPass(), 0,
-        gShaders_gammaAdjust, nullptr, gPipelineLayout_gammaAdjust,
-        gVertexBindingDesc_xyUv, gVertexAttribs_xyUv, C_ARRAY_SIZE(gVertexAttribs_xyUv),
-        gInputAS_triList, gRasterState_noCull,
-        gBlendState_noBlend, gDepthState_disabled, gMultisampleState_noMultisample
-    );
+) noexcept
+{
+    initPipelineSet_Main(gPipelines_Main_NoGammaAdjust, mainRPath.getRenderPass_NoGammaAdjust(), numSamples, false);
+    initPipelineSet_Main(gPipelines_Main_GammaAdjust, mainRPath.getRenderPass_GammaAdjust(), numSamples, true);
+    initPipelineSet_Crossfade(gPipelines_Crossfade, crossfadeRPath.getRenderPass());
+    initPipelineSet_PSX(gPipelines_PSX, psxRPath.getRenderPass());
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Destroys all pipelines and their components
 //------------------------------------------------------------------------------------------------------------------------------------------
 void shutdown() noexcept {
-    for (vgl::Pipeline& pipeline : gPipelines) {
-        pipeline.destroy(true);
-    }
+    destroyPipelineSet(gPipelines_PSX);
+    destroyPipelineSet(gPipelines_Crossfade);
+    destroyPipelineSet(gPipelines_Main_GammaAdjust);
+    destroyPipelineSet(gPipelines_Main_NoGammaAdjust);
 
-    gPipelineLayout_gammaAdjust.destroy(true);
+    gPipelineLayout_gammaAdjustPostProcess.destroy(true);
+    gPipelineLayout_gammaAdjustBlit.destroy(true);
     gPipelineLayout_loadingPlaque.destroy(true);
     gPipelineLayout_crossfade.destroy(true);
     gPipelineLayout_msaaResolve.destroy(true);
     gPipelineLayout_draw.destroy(true);
 
-    gDescSetLayout_gammaAdjust.destroy(true);
+    gDescSetLayout_gammaAdjustPostProcess.destroy(true);
+    gDescSetLayout_gammaAdjustBlit.destroy(true);
     gDescSetLayout_loadingPlaque.destroy(true);
     gDescSetLayout_crossfade.destroy(true);
     gDescSetLayout_msaaResolve.destroy(true);
@@ -703,11 +833,12 @@ void shutdown() noexcept {
     gSampler_draw.destroy();
 
     gShader_msaa_resolve_frag.destroy(true);
-    gShader_msaa_resolve_vert.destroy(true);
-    gShader_gamma_adjust_frag.destroy(true);
+    gShader_gamma_adjust_post_process_frag.destroy(true);
+    gShader_gamma_adjust_blit_frag.destroy(true);
     gShader_crossfade_frag.destroy(true);
     gShader_ndc_textured_frag.destroy(true);
     gShader_ndc_textured_vert.destroy(true);
+    gShader_ndc_position_only_vert.destroy(true);
     gShader_sky_frag.destroy(true);
     gShader_sky_vert.destroy(true);
     gShader_world_frag.destroy(true);
@@ -718,6 +849,18 @@ void shutdown() noexcept {
     gShader_ui_vert.destroy(true);
     gShader_colored_frag.destroy(true);
     gShader_colored_vert.destroy(true);
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Gets which pipeline set to use for the main renderpass for the current frame.
+// The active set varies depending on whether gamma adjustment is in use or not.
+//------------------------------------------------------------------------------------------------------------------------------------------
+const VPipelineSet<VPipelineType_Main>& getMainPipelineSet() noexcept {
+    if (VRenderer::gbUsingGammaAdjustThisFrame) {
+        return VPipelines::gPipelines_Main_GammaAdjust;
+    } else {
+        return VPipelines::gPipelines_Main_NoGammaAdjust;
+    }
 }
 
 END_NAMESPACE(VRPipelines)

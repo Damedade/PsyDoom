@@ -28,17 +28,17 @@ static void doSetupForVkRendererTexturedDraw(const bool bBlendPrimitive, uint16_
 
         switch (gpu.texFmt) {
             case Gpu::TexFmt::Bpp4:
-                VDrawing::setDrawPipeline(VPipelineType::UI_4bpp);
+                VDrawing::setDrawPipeline(VPipelineType_Main::UI_4bpp);
                 outTexPageX *= 4;
                 break;
 
             case Gpu::TexFmt::Bpp8:
-                VDrawing::setDrawPipeline(VPipelineType::UI_8bpp);
+                VDrawing::setDrawPipeline(VPipelineType_Main::UI_8bpp);
                 outTexPageX *= 2;
                 break;
 
             case Gpu::TexFmt::Bpp16:
-                VDrawing::setDrawPipeline(VPipelineType::UI_16bpp);
+                VDrawing::setDrawPipeline(VPipelineType_Main::UI_16bpp);
                 break;
 
             default:
@@ -52,7 +52,7 @@ static void doSetupForVkRendererTexturedDraw(const bool bBlendPrimitive, uint16_
         // Additive blending: used by the player weapon when the player is invisible
         ASSERT_LOG(gpu.texFmt == Gpu::TexFmt::Bpp8, "Unsupported blend mode and texture format combo!");
 
-        VDrawing::setDrawPipeline(VPipelineType::UI_8bpp_Add);
+        VDrawing::setDrawPipeline(VPipelineType_Main::UI_8bpp_Add);
         outTexPageX *= 2;
         outDrawAlpha = 128;
     }
@@ -320,7 +320,7 @@ void submit(const LINE_F2& line) noexcept {
             ASSERT_LOG(gpu.blendMode == Gpu::BlendMode::Alpha50, "Only alpha blending is supported for PSX renderer lines forwarded to Vulkan!");
 
             if (VRenderer::isRendering()) {
-                VDrawing::setDrawPipeline(VPipelineType::Lines);
+                VDrawing::setDrawPipeline(VPipelineType_Main::Lines);
                 VDrawing::addUILine(
                     drawLine.x1,
                     drawLine.y1,
@@ -423,7 +423,7 @@ void submit(const POLY_F4& poly) noexcept {
             ASSERT_LOG((!bBlendPoly), "Don't support blending for POLY_F4 primitives forwarded to the Vulkan renderer!");
 
             if (VRenderer::isRendering()) {
-                VDrawing::setDrawPipeline(VPipelineType::Colored);
+                VDrawing::setDrawPipeline(VPipelineType_Main::Colored);
                 VDrawing::addFlatColoredQuad(
                     poly.x0, poly.y0, 0.0f,
                     poly.x1, poly.y1, 0.0f,

@@ -28,7 +28,7 @@ VRenderPath_Psx::VRenderPath_Psx() noexcept
     : mbIsValid(false)
     , mpDevice(nullptr)
     , mpSwapchain(nullptr)
-    , mGammaAdjustRenderPass()
+    , mRenderPass()
     , mPsxFramebufferTextures{}
     , mGammaAdjustFramebuffers()
     , mGammaAdjustVerts()
@@ -48,8 +48,8 @@ VRenderPath_Psx::~VRenderPath_Psx() noexcept {
 void VRenderPath_Psx::init(
     vgl::LogicalDevice& device,
     vgl::Swapchain& swapchain,
-    const VkFormat presentSurfaceFormat,
-    const VkFormat psxFramebufferFormat
+    const VkFormat psxFramebufferFormat,
+    const VkFormat presentSurfaceFormat
 ) noexcept {
     // Sanity checks and remembering the device used
     ASSERT_LOG(!mbIsValid, "Can't initialize twice!");
@@ -63,11 +63,11 @@ void VRenderPath_Psx::init(
 
     // Create the renderpass used for gamma adjustment
     if (!initGammaAdjustRenderPass(presentSurfaceFormat))
-        FatalErrors::raise("Failed to create the gamma adjust renderpass for the PSX render path!");
+        FatalErrors::raise("PSX render path: failed to create the gamma adjust renderpass!");
         
     // Init the descriptor pool and sets used for gamma adjust
     if (!initGammaAdjustDescriptorPoolAndSets())
-        FatalErrors::raise("Failed to create the descriptor pool and sets used for gamma adjustment!");
+        FatalErrors::raise("PSX render path: failed to create the gamma adjust descriptor pool and sets!");
 
     // Initialize the PSX framebuffer textures used to hold the old PSX renderer framebuffer before it is blit to the Vulkan framebuffer.
     // Note: enable these textures to be read/copied from also!
@@ -75,7 +75,7 @@ void VRenderPath_Psx::init(
         vgl::Texture& psxFbTex = mPsxFramebufferTextures[i];
         
         if (!psxFbTex.initAs2dTexture(device, psxFramebufferFormat, Video::ORIG_DRAW_RES_X, Video::ORIG_DRAW_RES_Y, true))  // N.B: 'true' for copyable!
-            FatalErrors::raise("Failed to create a Vulkan texture for the classic PSX renderer's framebuffer!");
+            FatalErrors::raise("PSX render path: failed to create a Vulkan texture for the PSX framebuffer!");
     }
     
     // Initialize the vertex buffer sets used for doing gamma adjust
@@ -114,7 +114,7 @@ void VRenderPath_Psx::destroy() noexcept {
         texture.destroy(true);
     }
 
-    mGammaAdjustRenderPass.destroy();
+    mRenderPass.destroy();
 
     mpSwapchain = nullptr;
     mpDevice = nullptr;
@@ -123,7 +123,11 @@ void VRenderPath_Psx::destroy() noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Creates or recreates the gamma adjust framebuffers for this render path
 //------------------------------------------------------------------------------------------------------------------------------------------
-bool VRenderPath_Psx::ensureValidFramebuffers(const uint32_t fbWidth, const uint32_t fbHeight) noexcept {
+bool VRenderPath_Psx::ensureValidFramebuffers(
+    const uint32_t fbWidth,
+    const uint32_t fbHeight,
+    const bool bGpuIsIdle
+) noexcept {
     ASSERT(mbIsValid);
     ASSERT(mpSwapchain->isValid());
 
@@ -132,15 +136,17 @@ bool VRenderPath_Psx::ensureValidFramebuffers(const uint32_t fbWidth, const uint
         return true;
 
     // Recreate all gamma adjust framebuffers
+    const bool bDestroyImmediate = bGpuIsIdle;
+    
     vgl::Swapchain& swapchain = *mpSwapchain;
     const uint32_t swapchainLen = swapchain.getLength();
     mGammaAdjustFramebuffers.resize(swapchainLen);
 
     for (uint32_t swapImgIdx = 0; swapImgIdx < swapchainLen; ++swapImgIdx) {
         vgl::Framebuffer& framebuffer = mGammaAdjustFramebuffers[swapImgIdx];
-        framebuffer.destroy(true);
+        framebuffer.destroy(bDestroyImmediate);
 
-        if (!framebuffer.init(mGammaAdjustRenderPass, swapchain, swapImgIdx, {}))
+        if (!framebuffer.init(mRenderPass, swapchain, swapImgIdx, 0, {}))
             return false;
     }
 
@@ -161,7 +167,7 @@ void VRenderPath_Psx::beginFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecord
 
     // Are we doing a gamma adjust? If so then the frame must be handled differently.
     // Note that for gamma adjust we'll do all the work in 'endFrame()'
-    if (!PlayerPrefs::isUsingGammaAdjust()) {
+    if (!VRenderer::gbUsingGammaAdjustThisFrame) {
         // Not doing any gamma adjust. PSX framebuffer will be blitted to the swapchain image directly.
         // Transition the swapchain image to transfer destination optimal in preparation for blitting.
         const uint32_t swapchainIdx = swapchain.getAcquiredImageIdx();
@@ -238,8 +244,6 @@ void VRenderPath_Psx::endFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecorder
 
     // Only bother doing further commands if we're going to present.
     // This avoids errors on MacOS/Metal also, where we try to blit to an incompatible destination window size.
-    const bool bDoingGammaAdjust = PlayerPrefs::isUsingGammaAdjust();
-    
     if (VRenderer::willSkipNextFramePresent())
         return;
 
@@ -263,6 +267,8 @@ void VRenderPath_Psx::endFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecorder
     // Wait for uploads to finish then transition the PSX framebuffer for rendering.
     // If we are blitting directly (no gamma adjust) then it becomes transfer source optimal.
     // If we are doing gamma adjust then it must be shader read-only optimal.
+    const bool bDoingGammaAdjust = VRenderer::gbUsingGammaAdjustThisFrame;
+    
     {
         VkImageMemoryBarrier imgBarrier = {};
         imgBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -299,7 +305,7 @@ void VRenderPath_Psx::endFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecorder
     // Are we doing gamma adjust?
     // The method of finishing up the frame differs greatly if so.
     if (bDoingGammaAdjust) {
-        // Doing gamma adjust: bind the resources used for it to the descriptor set for this frame.
+        // Doing gamma adjust: bind the resources used for it to the gamma adjust descriptor set for this frame.
         // Note: using 2 separate bindings instead of a texture array to appease MoltenVK on macOS.
         ASSERT(VRenderer::gGammaAdjustTex.isValid());
         
@@ -325,7 +331,7 @@ void VRenderPath_Psx::endFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecorder
         VkClearValue framebufferClearValues[1] = {};
 
         cmdRec.beginRenderPass(
-            mGammaAdjustRenderPass,
+            mRenderPass,
             framebuffer,
             VK_SUBPASS_CONTENTS_INLINE,
             0,
@@ -356,7 +362,7 @@ void VRenderPath_Psx::endFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecorder
         pVerts[5] = VVertex_XyUv{ lx, ty, 0.0f, tv };
         
         // Draw the PSX framebuffer to the swapchain with gamma adjustment
-        vgl::Pipeline& drawPipeline = VPipelines::gPipelines[(uint32_t) VPipelineType::GammaAdjust];
+        vgl::Pipeline& drawPipeline = VPipelines::gPipelines_PSX.get(VPipelineType_PSX::GammaAdjustBlit);
         
         VRenderer::setupViewportAndScissors(cmdRec);
         cmdRec.bindVertexBuffer(mGammaAdjustVerts.buffers[ringbufferIdx], 0, 0);
@@ -470,7 +476,7 @@ bool VRenderPath_Psx::initGammaAdjustRenderPass(const VkFormat presentSurfaceFor
     }
 
     // Finally, create the renderpass
-    return mGammaAdjustRenderPass.init(device, renderPassDef);
+    return mRenderPass.init(device, renderPassDef);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -490,7 +496,7 @@ bool VRenderPath_Psx::initGammaAdjustDescriptorPoolAndSets() noexcept {
 
     // Alloc the descriptor sets (these will be filled in fully later)
     for (vgl::DescriptorSet*& pDescriptorSet : mpGammaAdjustDescriptorSets) {
-        pDescriptorSet = mGammaAdjustDescriptorPool.allocDescriptorSet(VPipelines::gDescSetLayout_gammaAdjust);
+        pDescriptorSet = mGammaAdjustDescriptorPool.allocDescriptorSet(VPipelines::gDescSetLayout_gammaAdjustBlit);
 
         if (!pDescriptorSet)
             return false;

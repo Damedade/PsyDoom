@@ -47,7 +47,11 @@ void VRenderPath_Blit::destroy() noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 // This doesn't need to do anything for this render path since it has no framebuffers of it's own...
 //------------------------------------------------------------------------------------------------------------------------------------------
-bool VRenderPath_Blit::ensureValidFramebuffers([[maybe_unused]] const uint32_t fbWidth, [[maybe_unused]] const uint32_t fbHeight) noexcept {
+bool VRenderPath_Blit::ensureValidFramebuffers(
+    [[maybe_unused]] const uint32_t fbWidth,
+    [[maybe_unused]] const uint32_t fbHeight,
+    [[maybe_unused]] const bool bGpuIsIdle
+) noexcept {
     ASSERT(mbIsValid);
     return true;
 }

@@ -116,7 +116,9 @@ void VMsaaResolver::resolve(vgl::CmdBufferRecorder& cmdRec) noexcept {
     cmdRec.setScissors(0, 0, fbWidth, fbHeight);
 
     // Switch to the correct pipeline and bind the vertex buffer to use
-    vgl::Pipeline& pipeline = VPipelines::gPipelines[(uint32_t) VPipelineType::Msaa_Resolve];
+    const VPipelineSet<VPipelineType_Main>& pipelineSet = VPipelines::getMainPipelineSet();
+    const vgl::Pipeline& pipeline = pipelineSet.get(VPipelineType_Main::MsaaResolve);
+    
     cmdRec.bindPipeline(pipeline);
     cmdRec.bindVertexBuffer(mVertexBuffer, 0, 0);
 

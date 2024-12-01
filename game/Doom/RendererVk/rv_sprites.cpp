@@ -30,18 +30,18 @@
 // This method is used by the recent Doom64 re-release, and is also suggested by John Carmack in his 1997 Doom source release notes.
 //------------------------------------------------------------------------------------------------------------------------------------------
 struct SpriteFrag {
-    int32_t         nextSubsecFragIdx;                  // Index of the next sprite fragment in the linked list for the subsector
-    float           depth;                              // Depth of the sprite fragment
-    float           x1, z1;                             // 1st billboard endpoint: xz world position
-    float           x2, z2;                             // 2nd billboard endpoint: xz world position
-    float           yt, yb;                             // World top and bottom 'y' position
-    float           ul, ur;                             // 'U' Texture coordinate for left and right side of the sprite
-    float           vt, vb;                             // 'V' Texture coordinate for top and bottom of the sprite
-    VPipelineType   drawPipeline;                       // Which pipeline to render the sprite with
-    uint8_t         colR, colG, colB;                   // Color to shade the sprite with
-    uint8_t         stMulR, stMulG, stMulB, stMulA;     // Semi-transparency multiply vector for semi-transparent pixels
-    uint16_t        texWinX, texWinY;                   // Sprite texture window location
-    uint16_t        texWinW, texWinH;                   // Sprite texture window size
+    int32_t             nextSubsecFragIdx;                  // Index of the next sprite fragment in the linked list for the subsector
+    float               depth;                              // Depth of the sprite fragment
+    float               x1, z1;                             // 1st billboard endpoint: xz world position
+    float               x2, z2;                             // 2nd billboard endpoint: xz world position
+    float               yt, yb;                             // World top and bottom 'y' position
+    float               ul, ur;                             // 'U' Texture coordinate for left and right side of the sprite
+    float               vt, vb;                             // 'V' Texture coordinate for top and bottom of the sprite
+    VPipelineType_Main  drawPipeline;                       // Which pipeline to render the sprite with
+    uint8_t             colR, colG, colB;                   // Color to shade the sprite with
+    uint8_t             stMulR, stMulG, stMulB, stMulA;     // Semi-transparency multiply vector for semi-transparent pixels
+    uint16_t            texWinX, texWinY;                   // Sprite texture window location
+    uint16_t            texWinW, texWinH;                   // Sprite texture window size
 };
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -153,10 +153,10 @@ static void RV_InitSpriteFrag(
     uint8_t stMulG = 128;
     uint8_t stMulB = 128;
     uint8_t stMulA = 128;
-    VPipelineType drawPipeline = VPipelineType::World_SpriteMasked;
+    VPipelineType_Main drawPipeline = VPipelineType_Main::World_SpriteMasked;
 
     if (thing.flags & MF_BLEND_MODE_BIT1) {
-        drawPipeline = VPipelineType::World_SpriteAdditive;
+        drawPipeline = VPipelineType_Main::World_SpriteAdditive;
 
         if (thing.flags & MF_BLEND_MODE_BIT2) {
             // Additive blend with 25% opacity
@@ -169,11 +169,11 @@ static void RV_InitSpriteFrag(
     }
     else if (thing.flags & MF_BLEND_MODE_BIT2) {
         // Subtractive blend with 100% opacity
-        drawPipeline = VPipelineType::World_SpriteSubtractive;
+        drawPipeline = VPipelineType_Main::World_SpriteSubtractive;
     }
     else if (thing.flags & MF_BLEND_ON) {
         // Alpha blend with 50% opacity
-        drawPipeline = VPipelineType::World_SpriteAlpha;
+        drawPipeline = VPipelineType_Main::World_SpriteAlpha;
         stMulA = 64;
     }
 
@@ -691,9 +691,9 @@ void RV_DrawWeapon() noexcept {
         const bool bIsTransparent = ((player.mo->flags & MF_ALL_BLEND_FLAGS) != 0);
 
         if (bIsTransparent) {
-            VDrawing::setDrawPipeline(VPipelineType::UI_8bpp_Add);
+            VDrawing::setDrawPipeline(VPipelineType_Main::UI_8bpp_Add);
         } else {
-            VDrawing::setDrawPipeline(VPipelineType::UI_8bpp);
+            VDrawing::setDrawPipeline(VPipelineType_Main::UI_8bpp);
         }
         
         // Get the size and location of the weapon sprite

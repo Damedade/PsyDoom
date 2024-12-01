@@ -16,7 +16,11 @@ public:
     // Ensures there are valid framebuffers for this render path and creates or re-creates them if neccessary.
     // The current global rendering resolution is passed in as information but this may be ignored if required.
     // Returns 'false' if creating the framebuffers fails, in which case the frame should not be started.
-    virtual bool ensureValidFramebuffers(const uint32_t fbWidth, const uint32_t fbHeight) noexcept = 0;
+    virtual bool ensureValidFramebuffers(
+        const uint32_t fbWidth,
+        const uint32_t fbHeight,
+        const bool bGpuIsIdle
+    ) noexcept = 0;
 
     // Called to start the frame for this render path.
     // Should begin any render passes required, prepare for drawing commands etc.

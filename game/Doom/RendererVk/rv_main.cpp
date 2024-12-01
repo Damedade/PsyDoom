@@ -31,13 +31,13 @@
 #include "rv_utils.h"
 #include "rv_walls.h"
 
-float           gViewXf, gViewYf, gViewZf;      // View position in floating point format
-float           gViewAnglef;                    // View angle in radians (float)
-float           gViewCosf, gViewSinf;           // Sin and cosine for view angle
-uint16_t        gClutX, gClutY;                 // X and Y position in VRAM for the current CLUT (16-bit pixel coords)
-Matrix4f        gSpriteBillboardMatrix;         // A transform matrix containing the axis vectors used for sprite billboarding
-Matrix4f        gViewProjMatrix;                // The combined view and projection transform matrix for the scene
-VPipelineType   gOpaqueGeomPipeline;            // The pipeline to use for drawing opaque geometry
+float               gViewXf, gViewYf, gViewZf;  // View position in floating point format
+float               gViewAnglef;                // View angle in radians (float)
+float               gViewCosf, gViewSinf;       // Sin and cosine for view angle
+uint16_t            gClutX, gClutY;             // X and Y position in VRAM for the current CLUT (16-bit pixel coords)
+Matrix4f            gSpriteBillboardMatrix;     // A transform matrix containing the axis vectors used for sprite billboarding
+Matrix4f            gViewProjMatrix;            // The combined view and projection transform matrix for the scene
+VPipelineType_Main  gOpaqueGeomPipeline;        // The pipeline to use for drawing opaque geometry
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Determine various parameters affecting the draw, including view position, projection matrix and so on
@@ -143,9 +143,9 @@ static void RV_DetermineDrawParams() noexcept {
 
     // Determine the pipeline to use for drawing fully opaque geometry
     if (gpViewPlayer->cheats & CF_XRAYVISION) {
-        gOpaqueGeomPipeline = VPipelineType::World_GeomAlpha;
+        gOpaqueGeomPipeline = VPipelineType_Main::World_GeomAlpha;
     } else {
-        gOpaqueGeomPipeline = VPipelineType::World_GeomMasked;
+        gOpaqueGeomPipeline = VPipelineType_Main::World_GeomMasked;
     }
 }
 

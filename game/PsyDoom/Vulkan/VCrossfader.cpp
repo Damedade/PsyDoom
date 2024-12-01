@@ -73,8 +73,8 @@ static void determineCrossfadeTextures(vgl::LogicalDevice& device) noexcept {
         gpCrossfadeTex1 = &msaaResolver.getResolveAttachment(ringbufferIdx ^ 1);
         gpCrossfadeTex2 = &msaaResolver.getResolveAttachment(ringbufferIdx);
     } else {
-        gpCrossfadeTex1 = &mainRPath.getFramebufferAttachment(ringbufferIdx ^ 1);
-        gpCrossfadeTex2 = &mainRPath.getFramebufferAttachment(ringbufferIdx);
+        gpCrossfadeTex1 = &mainRPath.getDrawColorAttachment(ringbufferIdx ^ 1);
+        gpCrossfadeTex2 = &mainRPath.getDrawColorAttachment(ringbufferIdx);
     }
 }
 
@@ -112,9 +112,9 @@ static void drawCrossfadeFrame(const float fadePercentComplete) noexcept {
     const uint32_t viewportH = swapchain.getSwapExtentHeight();
 
     // Record the commands to draw the crossfade
-    vgl::CmdBufferRecorder& cmdRec = VRenderer::gCmdBufferRec;
-    vgl::Pipeline& pipeline = VPipelines::gPipelines[(uint32_t) VPipelineType::Crossfade];
+    vgl::Pipeline& pipeline = VPipelines::gPipelines_Crossfade.get(VPipelineType_Crossfade::Crossfade);
 
+    vgl::CmdBufferRecorder& cmdRec = VRenderer::gCmdBufferRec;
     cmdRec.setViewport(0.0f, 0.0f, (float) viewportW, (float) viewportH, 0.0f, 1.0f);
     cmdRec.setScissors(0, 0, viewportW, viewportH);
     cmdRec.bindPipeline(pipeline);

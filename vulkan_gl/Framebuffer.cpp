@@ -60,6 +60,7 @@ bool Framebuffer::init(
     const RenderPass& renderPass,
     const Swapchain& swapchain,
     const uint32_t swapchainImageIdx,
+    const uint32_t swapchainImageAttachmentIdx,
     const std::vector<const BaseTexture*>& otherAttachments
 ) noexcept {
     ASSERT(renderPass.isValid());
@@ -71,13 +72,12 @@ bool Framebuffer::init(
     const uint32_t fbWidth = swapchain.getSwapExtentWidth();
     const uint32_t fbHeight = swapchain.getSwapExtentHeight();
 
-    // Initialize with all these attachment image views
+    // Initialize with all these attachment image views.
+    // Insert the swapchain image at the specified index, also.
     const uint32_t numAttachments = 1 + (uint32_t) otherAttachments.size();
 
     mAttachmentImages.reserve(numAttachments);
     mAttachmentImageViews.reserve(numAttachments);
-    mAttachmentImages.push_back(swapchain.getVkImages()[swapchainImageIdx]);
-    mAttachmentImageViews.push_back(swapchain.getVkImageViews()[swapchainImageIdx]);
 
     for (const BaseTexture* attachment : otherAttachments) {
         ASSERT(attachment->isValid());
@@ -87,6 +87,10 @@ bool Framebuffer::init(
         mAttachmentImages.push_back(attachment->getVkImage());
         mAttachmentImageViews.push_back(attachment->getVkImageView());
     }
+    
+    const uint32_t swapImgInsertIdx = std::min(swapchainImageAttachmentIdx, (uint32_t) otherAttachments.size());
+    mAttachmentImages.insert(mAttachmentImages.begin() + swapImgInsertIdx, swapchain.getVkImages()[swapchainImageIdx]);
+    mAttachmentImageViews.insert(mAttachmentImageViews.begin() + swapImgInsertIdx, swapchain.getVkImageViews()[swapchainImageIdx]);
 
     return initInternal(renderPass, fbWidth, fbHeight);
 }

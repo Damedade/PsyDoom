@@ -25,18 +25,23 @@ public:
     void init(
         vgl::LogicalDevice& device,
         vgl::Swapchain& swapchain,
-        const VkFormat presentSurfaceFormat,
-        const VkFormat psxFramebufferFormat
+        const VkFormat psxFramebufferFormat,
+        const VkFormat presentSurfaceFormat
     ) noexcept;
 
     void destroy() noexcept;
 
-    virtual bool ensureValidFramebuffers(const uint32_t fbWidth, const uint32_t fbHeight) noexcept override;
+    virtual bool ensureValidFramebuffers(
+        const uint32_t fbWidth,
+        const uint32_t fbHeight,
+        const bool bGpuIsIdle
+    ) noexcept override;
+    
     virtual void beginFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecorder& cmdRec) noexcept override;
     virtual void endFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecorder& cmdRec) noexcept override;
 
     inline bool isValid() const noexcept { return mbIsValid; }
-    inline const vgl::RenderPass& getGammaAdjustRenderPass() const { return mGammaAdjustRenderPass; }
+    inline const vgl::RenderPass& getRenderPass() const { return mRenderPass; }
 
 private:
     bool initGammaAdjustRenderPass(const VkFormat presentSurfaceFormat) noexcept;
@@ -46,10 +51,10 @@ private:
     void copyPsxFramebufferToFbTexture_A1R5G5B5(const uint16_t* const pSrcPixels, uint16_t* pDstPixels) noexcept;
     void copyPsxFramebufferToFbTexture_B8G8R8A8(const uint16_t* const pSrcPixels, uint32_t* pDstPixels) noexcept;
 
-    bool                    mbIsValid;                  // True if the render path has been initialized
-    vgl::LogicalDevice*     mpDevice;                   // The Vulkan device used
-    vgl::Swapchain*         mpSwapchain;                // The swapchain used
-    vgl::RenderPass         mGammaAdjustRenderPass;     // A Vulkan renderpass used for adjusting gamma when using this render path
+    bool                    mbIsValid;      // True if the render path has been initialized
+    vgl::LogicalDevice*     mpDevice;       // The Vulkan device used
+    vgl::Swapchain*         mpSwapchain;    // The swapchain used
+    vgl::RenderPass         mRenderPass;    // A Vulkan renderpass used for adjusting gamma when using this render path
 
     // PSX renderer framebuffer textures, as copied from the PSX GPU.
     // When not doing any gamma adjust these are blitted directly onto the current swapchain image.

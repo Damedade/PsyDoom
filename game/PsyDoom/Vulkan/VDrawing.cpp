@@ -59,7 +59,7 @@ static vgl::DescriptorSet*  gpDescriptorSet;
 static VVertexBufferSet gVertexBuffers_Draw;
 
 // The current pipeline being used by the 'draw' subpass; used to help avoid unneccessary pipeline switches
-static VPipelineType gCurDrawPipelineType;
+static VPipelineType_Main gCurDrawPipelineType;
 
 // Sets of uniforms for the current frame
 static std::vector<VShaderUniforms_Draw> gFrameUniforms;
@@ -80,13 +80,15 @@ static void recordCmdBuffer(vgl::CmdBufferRecorder& cmdRec) noexcept {
     // Clear this flag once we bind the drawing descriptor set - it only needs to be done once since all draw pipeline layouts are compatible
     bool bNeedToBindDescriptorSet = true;
 
+    // Decide which set of pipelines are being used for drawing
+    const VPipelineSet<VPipelineType_Main>& pipelineSet = VPipelines::getMainPipelineSet();
+
     // Handle each draw command
     for (const DrawCmd& drawCmd : gFrameDrawCmds) {
         switch (drawCmd.type) {
             case DrawCmdType::SetPipeline: {
                 // Bind the pipeline
-                ASSERT(drawCmd.arg1 < (uint32_t) VPipelineType::NUM_TYPES);
-                vgl::Pipeline& pipeline = VPipelines::gPipelines[drawCmd.arg1];
+                const vgl::Pipeline& pipeline = pipelineSet.get((VPipelineType_Main) drawCmd.arg1);
                 cmdRec.bindPipeline(pipeline);
 
                 // Do we need to bind the draw descriptor set as well, after setting the pipeline?
@@ -143,7 +145,7 @@ void init(vgl::LogicalDevice& device, vgl::BaseTexture& vramTex) noexcept {
     gVertexBuffers_Draw.init<VVertex_Draw>(device, DRAW_VB_SIZE / sizeof(VVertex_Draw));
 
     // Current draw pipeline in use is undefined initially
-    gCurDrawPipelineType = (VPipelineType) -1;
+    gCurDrawPipelineType = (VPipelineType_Main) -1;
 
     // Prealloc draw buffer memory
     gFrameUniforms.reserve(16);
@@ -176,7 +178,7 @@ void beginFrame(const uint32_t ringbufferIdx) noexcept {
     gVertexBuffers_Draw.beginFrame(ringbufferIdx);
 
     // Expect all this to already have the following state
-    ASSERT(gCurDrawPipelineType == (VPipelineType) -1);
+    ASSERT(gCurDrawPipelineType == (VPipelineType_Main) -1);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -193,17 +195,17 @@ void endFrame(vgl::CmdBufferRecorder& cmdRec) noexcept {
     // Post frame cleanup: clear buffers, the current draw pipeline and ringbuffer index
     gFrameDrawCmds.clear();
     gFrameUniforms.clear();
-    gCurDrawPipelineType = (VPipelineType) -1;
+    gCurDrawPipelineType = (VPipelineType_Main) -1;
     gCurRingbufferIdx = {};
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Set which pipeline is being used for the 'draw' subpass with lazy early out if there is no change
 //------------------------------------------------------------------------------------------------------------------------------------------
-void setDrawPipeline(const VPipelineType type) noexcept {
+void setDrawPipeline(const VPipelineType_Main type) noexcept {
     // Only switch pipelines if we need to
-    ASSERT((uint32_t) type < (uint32_t) VPipelineType::NUM_TYPES);
-    const VPipelineType oldPipelineType = gCurDrawPipelineType;
+    ASSERT((uint32_t) type < (uint32_t) VPipelineType_Main::NUM_TYPES);
+    const VPipelineType_Main oldPipelineType = gCurDrawPipelineType;
 
     if (oldPipelineType == type)
         return;

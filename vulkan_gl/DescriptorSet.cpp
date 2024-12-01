@@ -141,28 +141,6 @@ void DescriptorSet::bindTextureAndSampler(
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// Bind multiple images at a time to the exact specifications
-//------------------------------------------------------------------------------------------------------------------------------------------
-void DescriptorSet::bindTextures(const uint32_t bindingNum, const VkDescriptorImageInfo* const pImageInfos, const uint32_t numImages) noexcept {
-    ASSERT(isValid());
-    ASSERT((numImages == 0) || pImageInfos);
-
-    // Fill in a descriptor write struct
-    VkWriteDescriptorSet writeInfo = {};
-    writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    writeInfo.dstSet = mVkDescriptorSet;
-    writeInfo.dstBinding = bindingNum;
-    writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    writeInfo.descriptorCount = numImages;
-    writeInfo.pImageInfo = pImageInfos;
-
-    // Do the descriptor update
-    LogicalDevice& device = *mpParentPool->getDevice();
-    const VkFuncs& vkFuncs = device.getVkFuncs();
-    vkFuncs.vkUpdateDescriptorSets(device.getVkDevice(), 1, &writeInfo, 0, nullptr);
-}
-
-//------------------------------------------------------------------------------------------------------------------------------------------
 // Bind the specified binding number in the descriptor set to the given input attachment, specified by it's texture.
 // This corresponds to a 'input attachment' descriptor type in Vulkan terms.
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -184,6 +162,51 @@ void DescriptorSet::bindInputAttachment(const uint32_t bindingNum, const BaseTex
     writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
     writeInfo.descriptorCount = 1;
     writeInfo.pImageInfo = &imageInfo;
+
+    // Do the descriptor update
+    LogicalDevice& device = *mpParentPool->getDevice();
+    const VkFuncs& vkFuncs = device.getVkFuncs();
+    vkFuncs.vkUpdateDescriptorSets(device.getVkDevice(), 1, &writeInfo, 0, nullptr);
+}
+
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Bind multiple textures at a time to the exact specifications
+//------------------------------------------------------------------------------------------------------------------------------------------
+void DescriptorSet::bindTextures(const uint32_t bindingNum, const VkDescriptorImageInfo* const pImageInfos, const uint32_t numImages) noexcept {
+    ASSERT(isValid());
+    ASSERT((numImages == 0) || pImageInfos);
+
+    // Fill in a descriptor write struct
+    VkWriteDescriptorSet writeInfo = {};
+    writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writeInfo.dstSet = mVkDescriptorSet;
+    writeInfo.dstBinding = bindingNum;
+    writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    writeInfo.descriptorCount = numImages;
+    writeInfo.pImageInfo = pImageInfos;
+
+    // Do the descriptor update
+    LogicalDevice& device = *mpParentPool->getDevice();
+    const VkFuncs& vkFuncs = device.getVkFuncs();
+    vkFuncs.vkUpdateDescriptorSets(device.getVkDevice(), 1, &writeInfo, 0, nullptr);
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Bind multiple input attachments at a time to the exact specifications
+//------------------------------------------------------------------------------------------------------------------------------------------
+void DescriptorSet::bindInputAttachments(const uint32_t bindingNum, const VkDescriptorImageInfo* const pImageInfos, const uint32_t numImages) noexcept {
+    ASSERT(isValid());
+    ASSERT((numImages == 0) || pImageInfos);
+
+    // Fill in a descriptor write struct
+    VkWriteDescriptorSet writeInfo = {};
+    writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writeInfo.dstSet = mVkDescriptorSet;
+    writeInfo.dstBinding = bindingNum;
+    writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+    writeInfo.descriptorCount = numImages;
+    writeInfo.pImageInfo = pImageInfos;
 
     // Do the descriptor update
     LogicalDevice& device = *mpParentPool->getDevice();

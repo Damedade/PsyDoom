@@ -280,7 +280,7 @@ void RV_ClearSubsecDrawIndexes() noexcept {
 // The status bar looks very strange and sticks out otherwise, and moving it down causes other issues like the weapon feeling too low.
 //------------------------------------------------------------------------------------------------------------------------------------------
 void RV_DrawWidescreenStatusBarLetterbox() noexcept {
-    VDrawing::setDrawPipeline(VPipelineType::Colored);
+    VDrawing::setDrawPipeline(VPipelineType_Main::Colored);
     VDrawing::addFlatColoredQuad(
         -65536.0f,    +200.0f,  0.0f,
         +65536.0f,    +200.0f,  0.0f,

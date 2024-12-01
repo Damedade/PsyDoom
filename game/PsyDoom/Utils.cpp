@@ -247,7 +247,7 @@ void onBeginUIDrawing() noexcept {
             // Note: before setting the transform matrix and other uniforms make sure we are on a compatible pipeline that can accept these push constants.
             // Also make sure to end the current drawing batch, in case draw commands before this are affected by the uniform changes.
             VDrawing::endCurrentDrawBatch();
-            VDrawing::setDrawPipeline(VPipelineType::UI_8bpp);
+            VDrawing::setDrawPipeline(VPipelineType_Main::UI_8bpp);
 
             // Set the draw uniforms, including the transform matrix
             {

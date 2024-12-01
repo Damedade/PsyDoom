@@ -113,6 +113,10 @@ vgl::Swapchain      gSwapchain;             // The swapchain we present to
 // This begins recording at the start of every frame.
 vgl::CmdBufferRecorder gCmdBufferRec(gVkFuncs);
 
+// Whether gamma adjust is being used for the current frame.
+// This can only be changed prior to the start of the frame, since different render passes are used for the gamma and non-gamma adjusted cases.
+bool gbUsingGammaAdjustThisFrame = false;
+
 // A 1D texture used for doing gamma adjustments.
 // The original color component is used to do lookup into the LUT and the output is the gamma adjusted value.
 // Note: if gamma adjustment is not being used then this texture will NOT be valid/created.
@@ -366,9 +370,12 @@ static bool ensureValidSwapchainAndFramebuffers() noexcept {
     ASSERT(gpCurRenderPath);
 
     // No swapchain or invalid swapchain? If that is the case then try to create or re-create...
+    bool bGpuIsIdle = false;
+    
     if ((!gSwapchain.isValid()) || gSwapchain.needsRecreate() || VRenderer::isSwapchainOutOfDate()) {
         // Destroy the old swapchain
         gDevice.waitUntilDeviceIdle();
+        bGpuIsIdle = true;
         gSwapchain.destroy();
 
         // Decide which swap mode to use
@@ -401,7 +408,7 @@ static bool ensureValidSwapchainAndFramebuffers() noexcept {
     // Ensure the current render path has valid framebuffers
     ASSERT(gFramebufferW > 0);
     ASSERT(gFramebufferH > 0);
-    return gpCurRenderPath->ensureValidFramebuffers(gFramebufferW, gFramebufferH);
+    return gpCurRenderPath->ensureValidFramebuffers(gFramebufferW, gFramebufferH, bGpuIsIdle);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -571,8 +578,8 @@ void init() noexcept {
     const VkFormat drawColorFormat = (Config::gbUseVulkan32BitShading || (!gbCanVulkanFbUse16BitColor)) ? COLOR_32_FORMAT : COLOR_16_FORMAT;
     const VkFormat psxFramebufferFormat = (gbCanPsxFbUse16BitColor) ? COLOR_16_FORMAT : COLOR_32_FORMAT;
 
-    gRenderPath_Psx.init(gDevice, gSwapchain, gPresentSurfaceFormat, psxFramebufferFormat);
-    gRenderPath_Main.init(gDevice, gDrawSampleCount, drawColorFormat, COLOR_32_FORMAT);
+    gRenderPath_Psx.init(gDevice, gSwapchain, psxFramebufferFormat, gPresentSurfaceFormat);
+    gRenderPath_Main.init(gDevice, gSwapchain, gDrawSampleCount, drawColorFormat, COLOR_32_FORMAT, gPresentSurfaceFormat);
     gRenderPath_Crossfade.init(gDevice, gSwapchain, gPresentSurfaceFormat, gRenderPath_Main);
     gRenderPath_Blit.init(gDevice);
 
@@ -729,6 +736,7 @@ bool beginFrame() noexcept {
     // Must have ended the frame or not started one previously
     ASSERT(!gbDidBeginFrame);
     gbDidBeginFrame = true;
+    gbUsingGammaAdjustThisFrame = PlayerPrefs::isUsingGammaAdjust();
 
     // Do a render path switch if requested
     gpCurRenderPath = gpNextRenderPath;
@@ -801,7 +809,7 @@ void endFrame() noexcept {
         // MacOS: if the window has been resized just before we present, then skip the frame.
         // Otherwise Metal errors will occur and the GPU driver will start causing issues.
         #if __APPLE__
-            if (isSwapchainOutOfDate()) {
+            if (isSwapchainOutOfDate() || gSwapchain.needsRecreate()) {
                 skipNextFramePresent();
             }
         #endif

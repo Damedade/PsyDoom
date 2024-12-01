@@ -10,10 +10,12 @@
 #include <cstdint>
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// Graphics pipeline type the Vulkan Renderer.
+// Graphics pipeline types for the Vulkan Renderer.
 // Affects the primitive types expected, shaders used, blending mode and so on.
 //------------------------------------------------------------------------------------------------------------------------------------------
-enum class VPipelineType : uint8_t {
+
+// Main renderpath pipelines
+enum class VPipelineType_Main : uint8_t {
     Lines,                      // Solid colored lines, no blending: can be in either 2D or 3D (for debug use for example)
     Colored,                    // Solid colored triangles, no blending: can be in either 2D or 3D (for debug use for example)
     UI_4bpp,                    // 2D/UI: texture mapped with clamping @ 4bpp, masked but no blending
@@ -27,10 +29,21 @@ enum class VPipelineType : uint8_t {
     World_SpriteAdditive,       // 3D world/view: textured with clamping @ 8bpp and lit, masked & additive blended
     World_SpriteSubtractive,    // 3D world/view: textured with clamping @ 8bpp and lit, masked & subtractive blended
     World_Sky,                  // 3D world/view: used to draw the sky, masked but no blending
-    Msaa_Resolve,               // Simple shader that resolves MSAA samples
-    Crossfade,                  // Used for doing crossfades
     LoadingPlaque,              // Used for drawing loading plaques
-    GammaAdjust,                // Used for gamma adjust
+    MsaaResolve,                // Simple shader that resolves MSAA samples
+    GammaAdjustPostProcess,     // Simple shader that does a post-process gamma adjustment
+    NUM_TYPES                   // Convenience declaration...
+};
+
+// Crossfade renderpath pipelines
+enum class VPipelineType_Crossfade : uint8_t {
+    Crossfade,                  // Used for doing crossfades
+    NUM_TYPES                   // Convenience declaration...
+};
+
+// PSX renderpath pipelines
+enum class VPipelineType_PSX : uint8_t {
+    GammaAdjustBlit,            // Used for blitting an image to an output region with gamma adjustment
     NUM_TYPES                   // Convenience declaration...
 };
 

@@ -50,6 +50,7 @@ extern float                    gPsxNdcOffsetX,  gPsxNdcOffsetY;
 extern vgl::LogicalDevice       gDevice;
 extern vgl::Swapchain           gSwapchain;
 extern vgl::CmdBufferRecorder   gCmdBufferRec;
+extern bool                     gbUsingGammaAdjustThisFrame;
 extern vgl::Texture             gGammaAdjustTex;
 
 bool isHeadlessPhysicalDeviceSuitable(const vgl::PhysicalDevice& device) noexcept;

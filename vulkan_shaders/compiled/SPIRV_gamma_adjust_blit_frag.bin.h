@@ -1,4 +1,4 @@
-static const uint32_t gSPIRV_gamma_adjust_frag[] = 
+static const uint32_t gSPIRV_gamma_adjust_blit_frag[] = 
 {0x07230203,0x00010000,0x000d000a,0x00000033,
 0x00000000,0x00020011,0x00000001,0x00020011,
 0x0000002b,0x0006000b,0x00000001,0x4c534c47,

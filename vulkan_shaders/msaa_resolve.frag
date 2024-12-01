@@ -3,6 +3,7 @@
 //----------------------------------------------------------------------------------------------------------------------
 // MSAA resolve shader: fragment.
 // The MSAA resolve shader simply samples from a multi-sampled texture and then averages all of the samples.
+// Uses the 'ndc_position_only' vertex shader.
 //----------------------------------------------------------------------------------------------------------------------
 
 // The number of MSAA samples to resolve

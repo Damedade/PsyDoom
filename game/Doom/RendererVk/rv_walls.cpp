@@ -327,7 +327,7 @@ static void RV_DrawSegBlended(const rvseg_t& seg, const subsector_t& subsec) noe
     const bool bBlend = (line.flags & ML_MIDTRANSLUCENT);
 
     // Draw the wall and make sure we are on the correct alpha blended pipeline before we draw
-    VDrawing::setDrawPipeline(VPipelineType::World_GeomAlpha);
+    VDrawing::setDrawPipeline(VPipelineType_Main::World_GeomAlpha);
     RV_DrawWall(x1, z1, x2, z2, midTy, midBy, u1, u2, vt, vb, frontSec, tex_m, bBlend);
 }
 

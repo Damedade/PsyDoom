@@ -54,8 +54,10 @@ public:
         const Sampler& sampler
     ) noexcept;
 
-    void bindTextures(const uint32_t bindingNum, const VkDescriptorImageInfo* const pImageInfos, const uint32_t numImages) noexcept;
     void bindInputAttachment(const uint32_t bindingNum, const BaseTexture& attachTex) noexcept;
+    
+    void bindTextures(const uint32_t bindingNum, const VkDescriptorImageInfo* const pImageInfos, const uint32_t numImages) noexcept;
+    void bindInputAttachments(const uint32_t bindingNum, const VkDescriptorImageInfo* const pImageInfos, const uint32_t numImages) noexcept;
 
 private:
     // Copy and move assign are disallowed

@@ -1,7 +1,7 @@
 #version 460
 
 //----------------------------------------------------------------------------------------------------------------------
-// Gamma adjustment shader.
+// Gamma adjustment blit shader: blits an image to an output region with gamma adjustment.
 // Does gamma adjustment via a simple 1D texture used as a gamma remapping LUT.
 // Uses the 'ndc_textured' vertex shader to pass along the input uv.
 //----------------------------------------------------------------------------------------------------------------------

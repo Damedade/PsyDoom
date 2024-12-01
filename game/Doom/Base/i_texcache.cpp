@@ -737,7 +737,7 @@ void I_VramViewerDraw(const uint32_t texPageIdx) noexcept {
             if (Video::isUsingVulkanRenderPath()) {
                 // Only issue draw commands if rendering is allowed!
                 if (VRenderer::isRendering()) {
-                    VDrawing::setDrawPipeline(VPipelineType::Lines);
+                    VDrawing::setDrawPipeline(VPipelineType_Main::Lines);
                     VDrawing::addUILine(texLxf, texTyf, texRxf, texTyf, 255, 0, 0);
                     VDrawing::addUILine(texRxf, texTyf, texRxf, texByf, 255, 0, 0);
                     VDrawing::addUILine(texRxf, texByf, texLxf, texByf, 255, 0, 0);

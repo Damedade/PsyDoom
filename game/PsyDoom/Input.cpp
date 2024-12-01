@@ -8,6 +8,11 @@
 #include "PsxVm.h"
 #include "Video.h"
 
+#if PSYDOOM_VULKAN_RENDERER
+#include "PsyDoom/Vulkan/VRenderer.h"
+#include "Swapchain.h"
+#endif
+
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -248,6 +253,15 @@ static void handleSdlEvents() noexcept {
                         SDL_SetRelativeMouseMode(SDL_FALSE);
                         gbWindowFocusJustLost = true;
                         break;
+                        
+                    case SDL_WINDOWEVENT_RESIZED:
+                    case SDL_WINDOWEVENT_SIZE_CHANGED: {
+                        #if PSYDOOM_VULKAN_RENDERER
+                            if (Video::isUsingVulkanVideoBackend()) {
+                                VRenderer::gSwapchain.setNeedsRecreate();
+                            }
+                        #endif
+                    } break;
                 }
             }   break;
 
