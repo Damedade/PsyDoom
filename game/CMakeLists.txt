@@ -445,6 +445,8 @@ if (PSYDOOM_INCLUDE_VULKAN_RENDERER)
         "PsyDoom/Vulkan/VRenderPath_Blit.h"
         "PsyDoom/Vulkan/VRenderPath_Crossfade.cpp"
         "PsyDoom/Vulkan/VRenderPath_Crossfade.h"
+        "PsyDoom/Vulkan/VRenderPath_LoadingPlaque.cpp"
+        "PsyDoom/Vulkan/VRenderPath_LoadingPlaque.h"
         "PsyDoom/Vulkan/VRenderPath_Main.cpp"
         "PsyDoom/Vulkan/VRenderPath_Main.h"
         "PsyDoom/Vulkan/VRenderPath_Psx.cpp"

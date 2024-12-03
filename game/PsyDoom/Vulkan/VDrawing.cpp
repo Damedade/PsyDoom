@@ -74,8 +74,11 @@ static void recordCmdBuffer(vgl::CmdBufferRecorder& cmdRec) noexcept {
     // First command in the drawing pass is to configure the viewport and scissors settings
     VRenderer::setupViewportAndScissors(cmdRec);
 
-    // Bind the correct vertex buffer for drawing
-    cmdRec.bindVertexBuffer(*gVertexBuffers_Draw.pCurBuffer, 0, 0);
+    // Bind the correct vertex buffer for drawing (unless there is nothing to draw)
+    if (!gFrameDrawCmds.empty()) {
+        ASSERT(gVertexBuffers_Draw.pCurBuffer);
+        cmdRec.bindVertexBuffer(*gVertexBuffers_Draw.pCurBuffer, 0, 0);
+    }
 
     // Clear this flag once we bind the drawing descriptor set - it only needs to be done once since all draw pipeline layouts are compatible
     bool bNeedToBindDescriptorSet = true;
@@ -182,12 +185,16 @@ void beginFrame(const uint32_t ringbufferIdx) noexcept {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// Performs end of frame logic for the drawing module
+// Performs end of frame logic for the drawing module.
+// Optionally, draw commands can be skipped if they are not required - if we are not outputting a frame, for example.
 //------------------------------------------------------------------------------------------------------------------------------------------
-void endFrame(vgl::CmdBufferRecorder& cmdRec) noexcept {
-    // Finish the current draw batch then record all drawing commands in the Vulkan command buffer
+void endFrame(vgl::CmdBufferRecorder& cmdRec, const bool bRenderThisFrame) noexcept {
+    // Finish the current draw batch then record all drawing commands in the Vulkan command buffer (unless skipping)
     endCurrentDrawBatch();
-    recordCmdBuffer(cmdRec);
+    
+    if (bRenderThisFrame) {
+        recordCmdBuffer(cmdRec);
+    }
 
     // Upload vertices generated during drawing, so the draw commands can use them
     gVertexBuffers_Draw.endFrame();

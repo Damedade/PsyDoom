@@ -45,9 +45,9 @@ public:
     inline const vgl::RenderPass& getRenderPass_GammaAdjust() const noexcept { return mRenderPass_GammaAdjust; }
     inline VMsaaResolver& getMsaaResolver() noexcept { return mMsaaResolver; }
 
-    inline vgl::RenderTexture& getDrawColorAttachment(const uint32_t idx) noexcept {
-        ASSERT(idx < vgl::Defines::RINGBUFFER_SIZE);
-        return mDrawColorAttachments[idx];
+    inline vgl::RenderTexture& getDrawColorAttachment(const uint32_t ringbufferIdx) noexcept {
+        ASSERT(ringbufferIdx < vgl::Defines::RINGBUFFER_SIZE);
+        return mDrawColorAttachments[ringbufferIdx];
     }
 
     bool didRenderToAllDrawColorAttachments() noexcept;

@@ -28,6 +28,7 @@
 #include "VPlaqueDrawer.h"
 #include "VRenderPath_Blit.h"
 #include "VRenderPath_Crossfade.h"
+#include "VRenderPath_LoadingPlaque.h"
 #include "VRenderPath_Main.h"
 #include "VRenderPath_Psx.h"
 #include "VulkanInstance.h"
@@ -64,10 +65,11 @@ static bool gbCanPsxFbUse16BitColor;
 static bool gbCanVulkanFbUse16BitColor;
 
 // Render paths used
-VRenderPath_Psx         gRenderPath_Psx;
-VRenderPath_Main        gRenderPath_Main;
-VRenderPath_Crossfade   gRenderPath_Crossfade;
-VRenderPath_Blit        gRenderPath_Blit;
+VRenderPath_Psx             gRenderPath_Psx;
+VRenderPath_Main            gRenderPath_Main;
+VRenderPath_Crossfade       gRenderPath_Crossfade;
+VRenderPath_LoadingPlaque   gRenderPath_LoadingPlaque;
+VRenderPath_Blit            gRenderPath_Blit;
 
 // Coord system info: the width and height of the window/swap-chain surface we present to
 uint32_t    gPresentSurfaceW;
@@ -119,7 +121,6 @@ bool gbUsingGammaAdjustThisFrame = false;
 
 // A 1D texture used for doing gamma adjustments.
 // The original color component is used to do lookup into the LUT and the output is the gamma adjusted value.
-// Note: if gamma adjustment is not being used then this texture will NOT be valid/created.
 vgl::Texture gGammaAdjustTex;
 
 // Semaphores signalled when the acquired swapchain image is ready.
@@ -581,6 +582,7 @@ void init() noexcept {
     gRenderPath_Psx.init(gDevice, gSwapchain, psxFramebufferFormat, gPresentSurfaceFormat);
     gRenderPath_Main.init(gDevice, gSwapchain, gDrawSampleCount, drawColorFormat, COLOR_32_FORMAT, gPresentSurfaceFormat);
     gRenderPath_Crossfade.init(gDevice, gSwapchain, gPresentSurfaceFormat, gRenderPath_Main);
+    gRenderPath_LoadingPlaque.init(gDevice, gSwapchain, gPresentSurfaceFormat);
     gRenderPath_Blit.init(gDevice);
 
     // Create all of the pipelines needed, these use the previously created pipeline components
@@ -588,6 +590,7 @@ void init() noexcept {
         gRenderPath_Main,
         gRenderPath_Psx,
         gRenderPath_Crossfade,
+        gRenderPath_LoadingPlaque,
         gDrawSampleCount
     );
 
@@ -662,7 +665,7 @@ void init() noexcept {
     // Try to init the swapchain and framebuffers
     ensureValidSwapchainAndFramebuffers();
     
-    // Ensure the texture used for gamma adjustment is valid (if we are doing gamma adjustment)
+    // Ensure the texture used for gamma adjustment is valid
     rebuildGammaAdjustTex();
 }
 
@@ -708,6 +711,7 @@ void destroy() noexcept {
     gGammaAdjustTex.destroy();
 
     gRenderPath_Blit.destroy();
+    gRenderPath_LoadingPlaque.destroy();
     gRenderPath_Crossfade.destroy();
     gRenderPath_Main.destroy();
     gRenderPath_Psx.destroy();
@@ -1014,16 +1018,10 @@ bool isSwapchainOutOfDate() noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Rebuilds the texture used for gamma adjustment.
 // Should be called whenever the gamma setting is changed, or when the renderer is created.
-// Note: if there is no gamma adjustment then the remap texture is dropped/destroyed.
 //------------------------------------------------------------------------------------------------------------------------------------------
 void rebuildGammaAdjustTex() noexcept {
-    // Easy case: no gamma adjustment, just tear down the texture
     gGammaAdjustTex.destroy();
     
-    if (!PlayerPrefs::isUsingGammaAdjust())
-        return;
-    
-    // Rebuild the gamma adjustment texture
     if (!gGammaAdjustTex.initAs1dTexture(gDevice, VK_FORMAT_R8_UNORM, 256))
         FatalErrors::raise("Failed to alloc a texture used for gamma adjustment!");
     

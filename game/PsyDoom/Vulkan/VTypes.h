@@ -29,7 +29,6 @@ enum class VPipelineType_Main : uint8_t {
     World_SpriteAdditive,       // 3D world/view: textured with clamping @ 8bpp and lit, masked & additive blended
     World_SpriteSubtractive,    // 3D world/view: textured with clamping @ 8bpp and lit, masked & subtractive blended
     World_Sky,                  // 3D world/view: used to draw the sky, masked but no blending
-    LoadingPlaque,              // Used for drawing loading plaques
     MsaaResolve,                // Simple shader that resolves MSAA samples
     GammaAdjustPostProcess,     // Simple shader that does a post-process gamma adjustment
     NUM_TYPES                   // Convenience declaration...
@@ -39,6 +38,13 @@ enum class VPipelineType_Main : uint8_t {
 enum class VPipelineType_Crossfade : uint8_t {
     Crossfade,                  // Used for doing crossfades
     NUM_TYPES                   // Convenience declaration...
+};
+
+// Loading plaque renderpath pipelines
+enum class VPipelineType_LoadingPlaque : uint8_t {
+    LoadingPlaque,                  // Used for drawing loading plaques
+    LoadingPlaqueGammaAdjusted,     // Used for drawing loading plaques (gamma adjusted)
+    NUM_TYPES                       // Convenience declaration...
 };
 
 // PSX renderpath pipelines

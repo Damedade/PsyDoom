@@ -189,7 +189,7 @@ void VMsaaResolver::initDescriptorPoolAndSets(vgl::LogicalDevice& device) noexce
 
     // Make the sets, but don't bind the input msaa attachment yet - do that at the behest of the user of this class
     for (vgl::DescriptorSet*& pDescriptorSet : mpDescriptorSets) {
-        pDescriptorSet = mDescriptorPool.allocDescriptorSet(VPipelines::gDescSetLayout_msaaResolve);
+        pDescriptorSet = mDescriptorPool.allocDescriptorSet(VPipelines::gDescSetLayout_postProcess0Tex);
 
         if (!pDescriptorSet)
             FatalErrors::raise("Failed to allocate a required descriptor set for MSAA resolve!");

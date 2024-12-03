@@ -399,6 +399,9 @@ void Texture::unlock(TransferTask* const pTransferTaskOverride) noexcept {
 
     // We now did a texture upload
     mbDidATextureUpload = true;
+    
+    // Image layout will be shader read only optimal once this upload is done
+    mVkImageLayoutHint = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 }
 
 END_NAMESPACE(vgl)

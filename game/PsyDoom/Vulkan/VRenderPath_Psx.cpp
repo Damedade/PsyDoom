@@ -300,6 +300,8 @@ void VRenderPath_Psx::endFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecorder
             1,
             &imgBarrier
         );
+        
+        psxFbTexture.setVkImageLayoutHint(imgBarrier.newLayout);
     }
     
     // Are we doing gamma adjust?
@@ -496,7 +498,7 @@ bool VRenderPath_Psx::initGammaAdjustDescriptorPoolAndSets() noexcept {
 
     // Alloc the descriptor sets (these will be filled in fully later)
     for (vgl::DescriptorSet*& pDescriptorSet : mpGammaAdjustDescriptorSets) {
-        pDescriptorSet = mGammaAdjustDescriptorPool.allocDescriptorSet(VPipelines::gDescSetLayout_gammaAdjustBlit);
+        pDescriptorSet = mGammaAdjustDescriptorPool.allocDescriptorSet(VPipelines::gDescSetLayout_blit2Tex);
 
         if (!pDescriptorSet)
             return false;

@@ -17,6 +17,7 @@
 #include "ShaderModule.h"
 #include "VRenderer.h"
 #include "VRenderPath_Crossfade.h"
+#include "VRenderPath_LoadingPlaque.h"
 #include "VRenderPath_Main.h"
 #include "VRenderPath_Psx.h"
 
@@ -103,20 +104,19 @@ vgl::Sampler gSampler_draw;
 vgl::Sampler gSampler_normClampNearest;
 
 // Pipeline descriptor set layouts
-vgl::DescriptorSetLayout gDescSetLayout_draw;                       // Used by all the normal drawing pipelines
-vgl::DescriptorSetLayout gDescSetLayout_msaaResolve;                // Used for MSAA resolve
-vgl::DescriptorSetLayout gDescSetLayout_crossfade;                  // For drawing crossfades
-vgl::DescriptorSetLayout gDescSetLayout_loadingPlaque;              // For drawing loading plaques
-vgl::DescriptorSetLayout gDescSetLayout_gammaAdjustBlit;            // For doing blits with gamma adjustments
-vgl::DescriptorSetLayout gDescSetLayout_gammaAdjustPostProcess;     // For doing post process gamma adjustment
+vgl::DescriptorSetLayout gDescSetLayout_draw;               // Used by all the normal drawing pipelines
+vgl::DescriptorSetLayout gDescSetLayout_blit1Tex;           // Used to blit an image using 1 texture
+vgl::DescriptorSetLayout gDescSetLayout_blit2Tex;           // Used to blit an image using 2 textures
+vgl::DescriptorSetLayout gDescSetLayout_postProcess0Tex;    // Post process an input attachment with 0 additional input textures
+vgl::DescriptorSetLayout gDescSetLayout_postProcess1Tex;    // Post process an input attachment with 1 additional input texture
 
 // Pipeline layouts
-vgl::PipelineLayout gPipelineLayout_draw;                       // Used by all the normal drawing pipelines
-vgl::PipelineLayout gPipelineLayout_msaaResolve;                // Used for MSAA resolve
-vgl::PipelineLayout gPipelineLayout_crossfade;                  // For drawing crossfades
-vgl::PipelineLayout gPipelineLayout_loadingPlaque;              // For drawing loading plaques
-vgl::PipelineLayout gPipelineLayout_gammaAdjustBlit;            // For doing blits with gamma adjustments
-vgl::PipelineLayout gPipelineLayout_gammaAdjustPostProcess;     // For doing post process gamma adjustment
+vgl::PipelineLayout gPipelineLayout_draw;               // Used by all the normal drawing pipelines
+vgl::PipelineLayout gPipelineLayout_blit1Tex;           // Used to blit an image using 1 texture
+vgl::PipelineLayout gPipelineLayout_blit2Tex;           // Used to blit an image using 2 textures
+vgl::PipelineLayout gPipelineLayout_postProcess0Tex;    // Post process an input attachment with 0 additional input textures
+vgl::PipelineLayout gPipelineLayout_postProcess1Tex;    // Post process an input attachment with 1 additional input texture
+vgl::PipelineLayout gPipelineLayout_crossfade;          // For drawing crossfades
 
 // Pipeline input assembly states
 vgl::PipelineInputAssemblyState gInputAS_lineList;      // A list of lines
@@ -147,10 +147,11 @@ vgl::PipelineColorBlendState gBlendState_subtractive;
 vgl::PipelineDepthStencilState gDepthState_disabled;        // No depth/stencil buffer: Depth write, test and all stencil operations disabled
 
 // The pipelines themselves
-VPipelineSet<VPipelineType_Main>        gPipelines_Main_NoGammaAdjust;
-VPipelineSet<VPipelineType_Main>        gPipelines_Main_GammaAdjust;
-VPipelineSet<VPipelineType_Crossfade>   gPipelines_Crossfade;
-VPipelineSet<VPipelineType_PSX>         gPipelines_PSX;
+VPipelineSet<VPipelineType_Main>            gPipelines_Main_NoGammaAdjust;
+VPipelineSet<VPipelineType_Main>            gPipelines_Main_GammaAdjust;
+VPipelineSet<VPipelineType_Crossfade>       gPipelines_Crossfade;
+VPipelineSet<VPipelineType_LoadingPlaque>   gPipelines_LoadingPlaque;
+VPipelineSet<VPipelineType_PSX>             gPipelines_PSX;
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Helper: destroys all pipelines in the specified pipeline set
@@ -249,22 +250,25 @@ static void initDescriptorSetLayouts(vgl::LogicalDevice& device) noexcept {
         bindings[0].pImmutableSamplers = vkSamplers;
 
         if (!gDescSetLayout_draw.init(device, bindings, C_ARRAY_SIZE(bindings)))
-            FatalErrors::raise("Failed to init the 'draw' Vulkan descriptor set layout!");
+            FatalErrors::raise("Failed to init the 'Draw' Vulkan descriptor set layout!");
     }
-
-    // MSAA resolve
+    
+    // Blit (1 texture)
     {
+        const VkSampler vkSampler = gSampler_normClampNearest.getVkSampler();
+
         VkDescriptorSetLayoutBinding bindings[1] = {};
         bindings[0].binding = 0;
-        bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+        bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         bindings[0].descriptorCount = 1;
         bindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        bindings[0].pImmutableSamplers = &vkSampler;
 
-        if (!gDescSetLayout_msaaResolve.init(device, bindings, C_ARRAY_SIZE(bindings)))
-            FatalErrors::raise("Failed to init the 'MSAA resolve' Vulkan descriptor set layout!");
+        if (!gDescSetLayout_blit1Tex.init(device, bindings, C_ARRAY_SIZE(bindings)))
+            FatalErrors::raise("Failed to init the 'Blit (1 texture)' Vulkan descriptor set layout!");
     }
-
-    // Crossfading
+    
+    // Blit (2 texture)
     {
         const VkSampler vkSampler = gSampler_normClampNearest.getVkSampler();
 
@@ -283,47 +287,23 @@ static void initDescriptorSetLayouts(vgl::LogicalDevice& device) noexcept {
         bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
         bindings[1].pImmutableSamplers = &vkSampler;
 
-        if (!gDescSetLayout_crossfade.init(device, bindings, C_ARRAY_SIZE(bindings)))
-            FatalErrors::raise("Failed to init the 'crossfade' Vulkan descriptor set layout!");
+        if (!gDescSetLayout_blit2Tex.init(device, bindings, C_ARRAY_SIZE(bindings)))
+            FatalErrors::raise("Failed to init the 'Blit (2 texture)' Vulkan descriptor set layout!");
     }
 
-    // Loading plaque drawing
+    // Post process (0 texture)
     {
-        const VkSampler vkSamplers[] = { gSampler_normClampNearest.getVkSampler() };
-
         VkDescriptorSetLayoutBinding bindings[1] = {};
         bindings[0].binding = 0;
-        bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        bindings[0].descriptorCount = C_ARRAY_SIZE(vkSamplers);
-        bindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        bindings[0].pImmutableSamplers = vkSamplers;
-
-        if (!gDescSetLayout_loadingPlaque.init(device, bindings, C_ARRAY_SIZE(bindings)))
-            FatalErrors::raise("Failed to init the 'loading plaque' Vulkan descriptor set layout!");
-    }
-    
-    // Gamma adjust blit
-    {
-        const VkSampler vkSampler = gSampler_normClampNearest.getVkSampler();
-
-        VkDescriptorSetLayoutBinding bindings[2] = {};
-        bindings[0].binding = 0;
-        bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
         bindings[0].descriptorCount = 1;
         bindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        bindings[0].pImmutableSamplers = &vkSampler;
 
-        bindings[1].binding = 1;
-        bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        bindings[1].descriptorCount = 1;
-        bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        bindings[1].pImmutableSamplers = &vkSampler;
-
-        if (!gDescSetLayout_gammaAdjustBlit.init(device, bindings, C_ARRAY_SIZE(bindings)))
-            FatalErrors::raise("Failed to init the 'gamma adjust blit' Vulkan descriptor set layout!");
+        if (!gDescSetLayout_postProcess0Tex.init(device, bindings, C_ARRAY_SIZE(bindings)))
+            FatalErrors::raise("Failed to init the 'Post process (0 texture)' Vulkan descriptor set layout!");
     }
     
-    // Gamma adjust post process
+    // Post process (1 texture)
     {
         const VkSampler vkSampler = gSampler_normClampNearest.getVkSampler();
 
@@ -339,8 +319,8 @@ static void initDescriptorSetLayouts(vgl::LogicalDevice& device) noexcept {
         bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
         bindings[1].pImmutableSamplers = &vkSampler;
 
-        if (!gDescSetLayout_gammaAdjustPostProcess.init(device, bindings, C_ARRAY_SIZE(bindings)))
-            FatalErrors::raise("Failed to init the 'gamma adjust post process' Vulkan descriptor set layout!");
+        if (!gDescSetLayout_postProcess1Tex.init(device, bindings, C_ARRAY_SIZE(bindings)))
+            FatalErrors::raise("Failed to init the 'Post process (1 texture)' Vulkan descriptor set layout!");
     }
 }
 
@@ -359,20 +339,38 @@ static void initPipelineLayouts(vgl::LogicalDevice& device) noexcept {
         uniformPushConstants.size = sizeof(VShaderUniforms_Draw);
 
         if (!gPipelineLayout_draw.init(device, vkDescSetLayouts, C_ARRAY_SIZE(vkDescSetLayouts), &uniformPushConstants, 1))
-            FatalErrors::raise("Failed to init the 'draw' Vulkan pipeline layout!");
+            FatalErrors::raise("Failed to init the 'Draw' Vulkan pipeline layout!");
     }
-
-    // MSAA resolve pipeline layout: no push constants needed for this one
+    
+    // Standard 'blit' and 'post process' pipeline layouts without any push constants
     {
-        const VkDescriptorSetLayout vkDescSetLayouts[] = { gDescSetLayout_msaaResolve.getVkLayout() };
+        const VkDescriptorSetLayout vkDescSetLayouts[] = { gDescSetLayout_blit1Tex.getVkLayout() };
 
-        if (!gPipelineLayout_msaaResolve.init(device, vkDescSetLayouts, C_ARRAY_SIZE(vkDescSetLayouts), nullptr, 0))
-            FatalErrors::raise("Failed to init the 'msaa resolve' Vulkan pipeline layout!");
+        if (!gPipelineLayout_blit1Tex.init(device, vkDescSetLayouts, C_ARRAY_SIZE(vkDescSetLayouts), nullptr, 0))
+            FatalErrors::raise("Failed to init the 'Blit (1 texture)' Vulkan pipeline layout!");
     }
-
-    // Draw crossfade pipeline layout: uses push constants to set the lerp factor
     {
-        const VkDescriptorSetLayout vkDescSetLayouts[] = { gDescSetLayout_crossfade.getVkLayout() };
+        const VkDescriptorSetLayout vkDescSetLayouts[] = { gDescSetLayout_blit2Tex.getVkLayout() };
+
+        if (!gPipelineLayout_blit2Tex.init(device, vkDescSetLayouts, C_ARRAY_SIZE(vkDescSetLayouts), nullptr, 0))
+            FatalErrors::raise("Failed to init the 'Blit (2 texture)' Vulkan pipeline layout!");
+    }
+    {
+        const VkDescriptorSetLayout vkDescSetLayouts[] = { gDescSetLayout_postProcess0Tex.getVkLayout() };
+
+        if (!gPipelineLayout_postProcess0Tex.init(device, vkDescSetLayouts, C_ARRAY_SIZE(vkDescSetLayouts), nullptr, 0))
+            FatalErrors::raise("Failed to init the 'Post process (0 texture)' Vulkan pipeline layout!");
+    }
+    {
+        const VkDescriptorSetLayout vkDescSetLayouts[] = { gDescSetLayout_postProcess1Tex.getVkLayout() };
+
+        if (!gPipelineLayout_postProcess1Tex.init(device, vkDescSetLayouts, C_ARRAY_SIZE(vkDescSetLayouts), nullptr, 0))
+            FatalErrors::raise("Failed to init the 'Post process (1 texture)' Vulkan pipeline layout!");
+    }
+    
+    // Crossfade pipeline layout: uses push constants to set the lerp factor
+    {
+        const VkDescriptorSetLayout vkDescSetLayouts[] = { gDescSetLayout_blit2Tex.getVkLayout() };
 
         VkPushConstantRange uniformPushConstants = {};
         uniformPushConstants.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -381,30 +379,6 @@ static void initPipelineLayouts(vgl::LogicalDevice& device) noexcept {
 
         if (!gPipelineLayout_crossfade.init(device, vkDescSetLayouts, C_ARRAY_SIZE(vkDescSetLayouts), &uniformPushConstants, 1))
             FatalErrors::raise("Failed to init the 'crossfade' Vulkan pipeline layout!");
-    }
-
-    // Draw loading plaque layout: no push constants needed for this one
-    {
-        const VkDescriptorSetLayout vkDescSetLayouts[] = { gDescSetLayout_loadingPlaque.getVkLayout() };
-
-        if (!gPipelineLayout_loadingPlaque.init(device, vkDescSetLayouts, C_ARRAY_SIZE(vkDescSetLayouts), nullptr, 0))
-            FatalErrors::raise("Failed to init the 'loading plaque' Vulkan pipeline layout!");
-    }
-    
-    // Gamma adjust blit layout: no push constants needed for this one
-    {
-        const VkDescriptorSetLayout vkDescSetLayouts[] = { gDescSetLayout_gammaAdjustBlit.getVkLayout() };
-
-        if (!gPipelineLayout_gammaAdjustBlit.init(device, vkDescSetLayouts, C_ARRAY_SIZE(vkDescSetLayouts), nullptr, 0))
-            FatalErrors::raise("Failed to init the 'gamma adjust blit' Vulkan pipeline layout!");
-    }
-    
-    // Gamma adjust post process layout: no push constants needed for this one
-    {
-        const VkDescriptorSetLayout vkDescSetLayouts[] = { gDescSetLayout_gammaAdjustPostProcess.getVkLayout() };
-
-        if (!gPipelineLayout_gammaAdjustPostProcess.init(device, vkDescSetLayouts, C_ARRAY_SIZE(vkDescSetLayouts), nullptr, 0))
-            FatalErrors::raise("Failed to init the 'gamma adjust post process' Vulkan pipeline layout!");
     }
 }
 
@@ -682,15 +656,6 @@ static void initPipelineSet_Main(
     initDrawPipeline(pipelineSet.get(VPipelineType_Main::World_Sky), renderPass,
         gShaders_sky, gInputAS_triList, gRasterState_backFaceCull, gBlendState_noBlend, gDepthState_disabled, true, true
     );
-    
-    // Used to draw loading plaques, both the background and the plaque itself
-    initPipeline(
-        pipelineSet.get(VPipelineType_Main::LoadingPlaque), renderPass, 0,
-        gShaders_ndcTextured, nullptr, gPipelineLayout_loadingPlaque,
-        gVertexBindingDesc_xyUv, gVertexAttribs_xyUv, C_ARRAY_SIZE(gVertexAttribs_xyUv),
-        gInputAS_triList, gRasterState_noCull,
-        gBlendState_noBlend, gDepthState_disabled, gMultisampleState_perSettingsEdgeOnly
-    );
 
     // The pipeline to resolve MSAA: only bother creating this if we are doing MSAA.
     // Specialize the shader to the number of samples also, so that loops can be unrolled.
@@ -709,7 +674,7 @@ static void initPipelineSet_Main(
 
         initPipeline(
             pipelineSet.get(VPipelineType_Main::MsaaResolve), renderPass, 1, // Subpass index = 1
-            gShaders_msaaResolve, &specializationInfo, gPipelineLayout_msaaResolve,
+            gShaders_msaaResolve, &specializationInfo, gPipelineLayout_postProcess0Tex,
             gVertexBindingDesc_msaaResolve, gVertexAttribs_msaaResolve, C_ARRAY_SIZE(gVertexAttribs_msaaResolve),
             gInputAS_triList, gRasterState_noCull,
             gBlendState_noBlend, gDepthState_disabled, gMultisampleState_noMultisample
@@ -721,7 +686,7 @@ static void initPipelineSet_Main(
     if (bGammaAdjusted) {
         initPipeline(
             pipelineSet.get(VPipelineType_Main::GammaAdjustPostProcess), renderPass, (bUsingMsaa) ? 2 : 1, // Subpass index = 2 or 1 (depending on MSAA setting)
-            gShaders_gammaAdjustPostProcess, nullptr, gPipelineLayout_gammaAdjustPostProcess,
+            gShaders_gammaAdjustPostProcess, nullptr, gPipelineLayout_postProcess1Tex,
             gVertexBindingDesc_xyUv, gVertexAttribs_xyUv, C_ARRAY_SIZE(gVertexAttribs_xyUv),
             gInputAS_triList, gRasterState_noCull,
             gBlendState_noBlend, gDepthState_disabled, gMultisampleState_noMultisample
@@ -758,13 +723,35 @@ static void initPipelineSet_Crossfade(VPipelineSet<VPipelineType_Crossfade>& pip
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
+// Initializes a pipeline set for the loading plaque render path.
+// These are used to draw loading plaques, including the background behind them.
+//------------------------------------------------------------------------------------------------------------------------------------------
+static void initPipelineSet_LoadingPlaque(VPipelineSet<VPipelineType_LoadingPlaque>& pipelineSet, const vgl::RenderPass& renderPass) noexcept {
+    initPipeline(
+        pipelineSet.get(VPipelineType_LoadingPlaque::LoadingPlaque), renderPass, 0,
+        gShaders_ndcTextured, nullptr, gPipelineLayout_blit1Tex,
+        gVertexBindingDesc_xyUv, gVertexAttribs_xyUv, C_ARRAY_SIZE(gVertexAttribs_xyUv),
+        gInputAS_triList, gRasterState_noCull,
+        gBlendState_noBlend, gDepthState_disabled, gMultisampleState_perSettingsEdgeOnly
+    );
+    
+    initPipeline(
+        pipelineSet.get(VPipelineType_LoadingPlaque::LoadingPlaqueGammaAdjusted), renderPass, 0,
+        gShaders_gammaAdjustBlit, nullptr, gPipelineLayout_blit2Tex,
+        gVertexBindingDesc_xyUv, gVertexAttribs_xyUv, C_ARRAY_SIZE(gVertexAttribs_xyUv),
+        gInputAS_triList, gRasterState_noCull,
+        gBlendState_noBlend, gDepthState_disabled, gMultisampleState_perSettingsEdgeOnly
+    );
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
 // Initializes a pipeline set for the PSX render path
 //------------------------------------------------------------------------------------------------------------------------------------------
 static void initPipelineSet_PSX(VPipelineSet<VPipelineType_PSX>& pipelineSet, const vgl::RenderPass& renderPass) noexcept {
     // Used for doing a gamma adjusted blit
     initPipeline(
         pipelineSet.get(VPipelineType_PSX::GammaAdjustBlit), renderPass, 0,
-        gShaders_gammaAdjustBlit, nullptr, gPipelineLayout_gammaAdjustBlit,
+        gShaders_gammaAdjustBlit, nullptr, gPipelineLayout_blit2Tex,
         gVertexBindingDesc_xyUv, gVertexAttribs_xyUv, C_ARRAY_SIZE(gVertexAttribs_xyUv),
         gInputAS_triList, gRasterState_noCull,
         gBlendState_noBlend, gDepthState_disabled, gMultisampleState_noMultisample
@@ -797,12 +784,14 @@ void initPipelines(
     VRenderPath_Main& mainRPath,
     VRenderPath_Psx& psxRPath,
     VRenderPath_Crossfade& crossfadeRPath,
+    VRenderPath_LoadingPlaque& loadingPlaqueRPath,
     const uint32_t numSamples
 ) noexcept
 {
     initPipelineSet_Main(gPipelines_Main_NoGammaAdjust, mainRPath.getRenderPass_NoGammaAdjust(), numSamples, false);
     initPipelineSet_Main(gPipelines_Main_GammaAdjust, mainRPath.getRenderPass_GammaAdjust(), numSamples, true);
     initPipelineSet_Crossfade(gPipelines_Crossfade, crossfadeRPath.getRenderPass());
+    initPipelineSet_LoadingPlaque(gPipelines_LoadingPlaque, loadingPlaqueRPath.getRenderPass());
     initPipelineSet_PSX(gPipelines_PSX, psxRPath.getRenderPass());
 }
 
@@ -811,22 +800,22 @@ void initPipelines(
 //------------------------------------------------------------------------------------------------------------------------------------------
 void shutdown() noexcept {
     destroyPipelineSet(gPipelines_PSX);
+    destroyPipelineSet(gPipelines_LoadingPlaque);
     destroyPipelineSet(gPipelines_Crossfade);
     destroyPipelineSet(gPipelines_Main_GammaAdjust);
     destroyPipelineSet(gPipelines_Main_NoGammaAdjust);
 
-    gPipelineLayout_gammaAdjustPostProcess.destroy(true);
-    gPipelineLayout_gammaAdjustBlit.destroy(true);
-    gPipelineLayout_loadingPlaque.destroy(true);
     gPipelineLayout_crossfade.destroy(true);
-    gPipelineLayout_msaaResolve.destroy(true);
+    gPipelineLayout_postProcess1Tex.destroy(true);
+    gPipelineLayout_postProcess0Tex.destroy(true);
+    gPipelineLayout_blit2Tex.destroy(true);
+    gPipelineLayout_blit1Tex.destroy(true);
     gPipelineLayout_draw.destroy(true);
 
-    gDescSetLayout_gammaAdjustPostProcess.destroy(true);
-    gDescSetLayout_gammaAdjustBlit.destroy(true);
-    gDescSetLayout_loadingPlaque.destroy(true);
-    gDescSetLayout_crossfade.destroy(true);
-    gDescSetLayout_msaaResolve.destroy(true);
+    gDescSetLayout_postProcess1Tex.destroy(true);
+    gDescSetLayout_postProcess0Tex.destroy(true);
+    gDescSetLayout_blit2Tex.destroy(true);
+    gDescSetLayout_blit1Tex.destroy(true);
     gDescSetLayout_draw.destroy(true);
 
     gSampler_normClampNearest.destroy();

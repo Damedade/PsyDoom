@@ -29,6 +29,9 @@ public:
     inline VkImageView getVkImageView() const noexcept { return mVkImageView; }
     inline uint64_t getSizeInBytes() const noexcept { return mSizeInBytes; }
     inline uint64_t getAllocSizeInBytes() const noexcept { return mDeviceMemAlloc.size; }
+    
+    inline VkImageLayout getVkImageLayoutHint() const noexcept { return mVkImageLayoutHint; }
+    inline void setVkImageLayoutHint(const VkImageLayout layout) noexcept { mVkImageLayoutHint = layout; }
 
 protected:
     BaseTexture() noexcept;
@@ -57,7 +60,7 @@ protected:
     ) noexcept;
 
     bool                mbIsValid;
-    VkFormat            mFormat;            // Texture format for the texture surface
+    VkFormat            mFormat;                // Texture format for the texture surface
     uint32_t            mWidth;
     uint32_t            mHeight;
     uint32_t            mDepth;
@@ -66,11 +69,12 @@ protected:
     uint32_t            mNumSamples;
     bool                mbIsCubemap;
     AlphaMode           mAlphaMode;
+    VkImageLayout       mVkImageLayoutHint;     // Can be (optionally) used to help keep track of what layout the image is in
     LogicalDevice*      mpDevice;
     VkImage             mVkImage;
     VkImageView         mVkImageView;
-    uint64_t            mSizeInBytes;       // How many bytes are required to store the image, according to Vulkan
-    DeviceMemAlloc      mDeviceMemAlloc;    // Device memory buffer allocation for the image memory
+    uint64_t            mSizeInBytes;           // How many bytes are required to store the image, according to Vulkan
+    DeviceMemAlloc      mDeviceMemAlloc;        // Device memory buffer allocation for the image memory
 
 private:
     // Copy and move assign disallowed

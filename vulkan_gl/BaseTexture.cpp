@@ -24,6 +24,7 @@ BaseTexture::BaseTexture() noexcept
     , mNumSamples(0)
     , mbIsCubemap(false)
     , mAlphaMode(AlphaMode::UNSPECIFIED)
+    , mVkImageLayoutHint(VK_IMAGE_LAYOUT_UNDEFINED)
     , mpDevice(nullptr)
     , mVkImage(VK_NULL_HANDLE)
     , mVkImageView(VK_NULL_HANDLE)
@@ -46,6 +47,7 @@ BaseTexture::BaseTexture(BaseTexture&& other) noexcept
     , mNumSamples(other.mNumSamples)
     , mbIsCubemap(other.mbIsCubemap)
     , mAlphaMode(other.mAlphaMode)
+    , mVkImageLayoutHint(other.mVkImageLayoutHint)
     , mpDevice(other.mpDevice)
     , mVkImage(other.mVkImage)
     , mVkImageView(other.mVkImageView)
@@ -62,6 +64,7 @@ BaseTexture::BaseTexture(BaseTexture&& other) noexcept
     other.mNumSamples = 0;
     other.mbIsCubemap = false;
     other.mAlphaMode = AlphaMode::UNSPECIFIED;
+    other.mVkImageLayoutHint = VK_IMAGE_LAYOUT_UNDEFINED;
     other.mpDevice = nullptr;
     other.mVkImage = VK_NULL_HANDLE;
     other.mVkImageView = VK_NULL_HANDLE;
@@ -110,6 +113,7 @@ void BaseTexture::destroy() noexcept {
     // Cleanup other stuff
     mSizeInBytes = 0;
     mpDevice = nullptr;
+    mVkImageLayoutHint = VK_IMAGE_LAYOUT_UNDEFINED;
     mAlphaMode = AlphaMode::UNSPECIFIED;
     mbIsCubemap = false;
     mNumSamples = 0;
@@ -183,6 +187,7 @@ bool BaseTexture::initInternal(
     mNumSamples = numSamples;
     mbIsCubemap = bIsCubemap;
     mAlphaMode = alphaMode;
+    mVkImageLayoutHint = vkInitialImageLayout;
     mpDevice = &device;
 
     // Get the image aspect flags for the texture format

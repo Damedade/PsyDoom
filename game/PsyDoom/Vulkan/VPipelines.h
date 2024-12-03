@@ -17,6 +17,7 @@ namespace vgl {
 }
 
 class VRenderPath_Crossfade;
+class VRenderPath_LoadingPlaque;
 class VRenderPath_Main;
 class VRenderPath_Psx;
 
@@ -40,22 +41,22 @@ BEGIN_NAMESPACE(VPipelines)
 extern vgl::Sampler                 gSampler_draw;
 extern vgl::Sampler                 gSampler_normClampNearest;
 extern vgl::DescriptorSetLayout     gDescSetLayout_draw;
-extern vgl::DescriptorSetLayout     gDescSetLayout_msaaResolve;
-extern vgl::DescriptorSetLayout     gDescSetLayout_crossfade;
-extern vgl::DescriptorSetLayout     gDescSetLayout_loadingPlaque;
-extern vgl::DescriptorSetLayout     gDescSetLayout_gammaAdjustBlit;
-extern vgl::DescriptorSetLayout     gDescSetLayout_gammaAdjustPostProcess;
+extern vgl::DescriptorSetLayout     gDescSetLayout_blit1Tex;
+extern vgl::DescriptorSetLayout     gDescSetLayout_blit2Tex;
+extern vgl::DescriptorSetLayout     gDescSetLayout_postProcess0Tex;
+extern vgl::DescriptorSetLayout     gDescSetLayout_postProcess1Tex;
 extern vgl::PipelineLayout          gPipelineLayout_draw;
-extern vgl::PipelineLayout          gPipelineLayout_msaaResolve;
+extern vgl::PipelineLayout          gPipelineLayout_blit1Tex;
+extern vgl::PipelineLayout          gPipelineLayout_blit2Tex;
+extern vgl::PipelineLayout          gPipelineLayout_postProcess0Tex;
+extern vgl::PipelineLayout          gPipelineLayout_postProcess1Tex;
 extern vgl::PipelineLayout          gPipelineLayout_crossfade;
-extern vgl::PipelineLayout          gPipelineLayout_loadingPlaque;
-extern vgl::PipelineLayout          gPipelineLayout_gammaAdjustBlit;
-extern vgl::PipelineLayout          gPipelineLayout_gammaAdjustPostProcess;
 
-extern VPipelineSet<VPipelineType_Main>       gPipelines_Main_NoGammaAdjust;
-extern VPipelineSet<VPipelineType_Main>       gPipelines_Main_GammaAdjust;
-extern VPipelineSet<VPipelineType_Crossfade>  gPipelines_Crossfade;
-extern VPipelineSet<VPipelineType_PSX>        gPipelines_PSX;
+extern VPipelineSet<VPipelineType_Main>             gPipelines_Main_NoGammaAdjust;
+extern VPipelineSet<VPipelineType_Main>             gPipelines_Main_GammaAdjust;
+extern VPipelineSet<VPipelineType_Crossfade>        gPipelines_Crossfade;
+extern VPipelineSet<VPipelineType_LoadingPlaque>    gPipelines_LoadingPlaque;
+extern VPipelineSet<VPipelineType_PSX>              gPipelines_PSX;
 
 void initPipelineComponents(vgl::LogicalDevice& device, const uint32_t numSamples) noexcept;
 
@@ -63,6 +64,7 @@ void initPipelines(
     VRenderPath_Main& mainRPath,
     VRenderPath_Psx& psxRPath,
     VRenderPath_Crossfade& crossfadeRPath,
+    VRenderPath_LoadingPlaque& loadingPlaqueRPath,
     const uint32_t numSamples
 ) noexcept;
 

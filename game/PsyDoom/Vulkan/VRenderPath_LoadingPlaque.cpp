@@ -1,4 +1,4 @@
-#include "VRenderPath_Crossfade.h"
+#include "VRenderPath_LoadingPlaque.h"
 
 #if PSYDOOM_VULKAN_RENDERER
 
@@ -6,73 +6,35 @@
 #include "LogicalDevice.h"
 #include "RenderPassDef.h"
 #include "Swapchain.h"
-#include "VDrawing.h"
-
-//------------------------------------------------------------------------------------------------------------------------------------------
-// Helper: schedules a layout transition for the specified framebuffer texture
-//------------------------------------------------------------------------------------------------------------------------------------------
-static void layoutFramebufferTex(
-    vgl::CmdBufferRecorder& cmdRec,
-    vgl::RenderTexture* const pTexture,
-    const VkImageLayout oldLayout,
-    const VkImageLayout newLayout
-) noexcept {
-    // Do nothing if invalid
-    if ((!pTexture) || (!pTexture->isValid()))
-        return;
-
-    // Schedule the image layout transition
-    VkImageMemoryBarrier imgBarrier = {};
-    imgBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    imgBarrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
-    imgBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
-    imgBarrier.oldLayout = oldLayout;
-    imgBarrier.newLayout = newLayout;
-    imgBarrier.image = pTexture->getVkImage();
-    imgBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    imgBarrier.subresourceRange.levelCount = 1;
-    imgBarrier.subresourceRange.layerCount = 1;
-
-    cmdRec.addPipelineBarrier(
-        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-        0,
-        nullptr,
-        1,
-        &imgBarrier
-    );
-}
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Sets the render path to a default uninitialized state
 //------------------------------------------------------------------------------------------------------------------------------------------
-VRenderPath_Crossfade::VRenderPath_Crossfade() noexcept 
+VRenderPath_LoadingPlaque::VRenderPath_LoadingPlaque() noexcept
     : mbIsValid(false)
     , mpDevice(nullptr)
     , mpSwapchain(nullptr)
     , mPresentSurfaceFormat()
-    , mpMainRenderPath(nullptr)
     , mRenderPass()
     , mFramebuffers()
-    , mpOldFbTextures{}
+    , mPreRenderPassAction()
 {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Automatically destroys the render path if not already destroyed
 //------------------------------------------------------------------------------------------------------------------------------------------
-VRenderPath_Crossfade::~VRenderPath_Crossfade() noexcept {
+VRenderPath_LoadingPlaque::~VRenderPath_LoadingPlaque() noexcept {
     destroy();
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Initializes the render path - this must always succeed
 //------------------------------------------------------------------------------------------------------------------------------------------
-void VRenderPath_Crossfade::init(
+void VRenderPath_LoadingPlaque::init(
     vgl::LogicalDevice& device,
     vgl::Swapchain& swapchain,
-    const VkFormat presentSurfaceFormat,
-    VRenderPath_Main& mainRenderPath
+    const VkFormat presentSurfaceFormat
 ) noexcept {
     // Sanity checks
     ASSERT_LOG(!mbIsValid, "Can't initialize twice!");
@@ -81,12 +43,11 @@ void VRenderPath_Crossfade::init(
     // Remember all this info
     mpDevice = &device;
     mpSwapchain = &swapchain;
-    mpMainRenderPath = &mainRenderPath;
     mPresentSurfaceFormat = presentSurfaceFormat;
 
     // Create the renderpass
     if (!initRenderPass())
-        FatalErrors::raise("Failed to create the crossfade Vulkan renderpass!");
+        FatalErrors::raise("Failed to create the loading plaque Vulkan renderpass!");
 
     // Now initialized
     mbIsValid = true;
@@ -95,14 +56,12 @@ void VRenderPath_Crossfade::init(
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Tears down the render path
 //------------------------------------------------------------------------------------------------------------------------------------------
-void VRenderPath_Crossfade::destroy() noexcept {
+void VRenderPath_LoadingPlaque::destroy() noexcept {
     if (!mbIsValid)
         return;
 
     mbIsValid = false;
-
-    mpOldFbTextures[0] = nullptr;
-    mpOldFbTextures[1] = nullptr;
+    mPreRenderPassAction = {};
 
     for (vgl::Framebuffer& framebuffer : mFramebuffers) {
         framebuffer.destroy(true);
@@ -112,7 +71,6 @@ void VRenderPath_Crossfade::destroy() noexcept {
     mRenderPass.destroy();
 
     mPresentSurfaceFormat = {};
-    mpMainRenderPath = nullptr;
     mpSwapchain = nullptr;
     mpDevice = nullptr;
 }
@@ -120,7 +78,7 @@ void VRenderPath_Crossfade::destroy() noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Creates or recreates the framebuffers for this render path
 //------------------------------------------------------------------------------------------------------------------------------------------
-bool VRenderPath_Crossfade::ensureValidFramebuffers(
+bool VRenderPath_LoadingPlaque::ensureValidFramebuffers(
     [[maybe_unused]] const uint32_t fbWidth,
     [[maybe_unused]] const uint32_t fbHeight,
     const bool bGpuIsIdle
@@ -153,29 +111,18 @@ bool VRenderPath_Crossfade::ensureValidFramebuffers(
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Begins the frame for the render path
 //------------------------------------------------------------------------------------------------------------------------------------------
-void VRenderPath_Crossfade::beginFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecorder& cmdRec) noexcept {
+void VRenderPath_LoadingPlaque::beginFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecorder& cmdRec) noexcept {
     // Sanity checks
     ASSERT(mbIsValid);
     ASSERT(mpDevice);
     ASSERT(swapchain.isValid());
     ASSERT(swapchain.getAcquiredImageIdx() < swapchain.getVkImages().size());
-    ASSERT(mpOldFbTextures[0] && mpOldFbTextures[1]);
-    ASSERT(mpOldFbTextures[0]->isValid() && mpOldFbTextures[1]->isValid());
-
-    // Transition the image layout for old framebuffer images to shader read only optimal
-    layoutFramebufferTex(
-        cmdRec,
-        mpOldFbTextures[0],
-        mpOldFbTextures[0]->getVkImageLayoutHint(),
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-    );
     
-    layoutFramebufferTex(
-        cmdRec,
-        mpOldFbTextures[1],
-        mpOldFbTextures[1]->getVkImageLayoutHint(),
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-    );
+    // Perform any actions required before the renderpass begins
+    if (mPreRenderPassAction) {
+        std::function<void()> action = std::move(mPreRenderPassAction);
+        action();
+    }
 
     // Begin the render pass
     const uint32_t swapchainIdx = swapchain.getAcquiredImageIdx();
@@ -197,7 +144,7 @@ void VRenderPath_Crossfade::beginFrame(vgl::Swapchain& swapchain, vgl::CmdBuffer
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Ends the frame for the render path
 //------------------------------------------------------------------------------------------------------------------------------------------
-void VRenderPath_Crossfade::endFrame([[maybe_unused]] vgl::Swapchain& swapchain, vgl::CmdBufferRecorder& cmdRec) noexcept {
+void VRenderPath_LoadingPlaque::endFrame([[maybe_unused]] vgl::Swapchain& swapchain, vgl::CmdBufferRecorder& cmdRec) noexcept {
     // Sanity checks and end the current render pass
     ASSERT(mbIsValid);
     ASSERT(swapchain.isValid());
@@ -207,7 +154,7 @@ void VRenderPath_Crossfade::endFrame([[maybe_unused]] vgl::Swapchain& swapchain,
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Creates the Vulkan renderpass used by the render path
 //------------------------------------------------------------------------------------------------------------------------------------------
-bool VRenderPath_Crossfade::initRenderPass() noexcept {
+bool VRenderPath_LoadingPlaque::initRenderPass() noexcept {
     // Sanity checks and getting the device
     ASSERT(mpDevice);
     vgl::LogicalDevice& device = *mpDevice;
@@ -236,7 +183,7 @@ bool VRenderPath_Crossfade::initRenderPass() noexcept {
 
     // Define external subpass dependencies: these must be manually filled in
     {
-        // Just block color attachment output on everything to be safe, this fade is not performance critical and outside uses are complex...
+        // Just block color attachment output on everything to be safe, this draw is not performance critical and outside uses are complex...
         VkSubpassDependency& dep = renderPassDef.extraSubpassDeps.emplace_back();
         dep.srcSubpass = VK_SUBPASS_EXTERNAL;
         dep.dstSubpass = 0;
@@ -268,7 +215,7 @@ bool VRenderPath_Crossfade::initRenderPass() noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Tells if the framebuffers need recreation
 //------------------------------------------------------------------------------------------------------------------------------------------
-bool VRenderPath_Crossfade::doFramebuffersNeedRecreate() noexcept {
+bool VRenderPath_LoadingPlaque::doFramebuffersNeedRecreate() noexcept {
     // Firstly ensure we have the right amount of framebuffers
     ASSERT(mbIsValid);
     vgl::Swapchain& swapchain = *mpSwapchain;
@@ -296,15 +243,6 @@ bool VRenderPath_Crossfade::doFramebuffersNeedRecreate() noexcept {
 
     // If we get to here then the framebuffers don't need recreation
     return false;
-}
-
-//------------------------------------------------------------------------------------------------------------------------------------------
-// Sets which (old) framebuffer textures are crossfaded.
-// Both textures are expected to be in the 'TRANSFER_SRC_OPTIMAL' layout initially and will be restored to that layout at the end.
-//------------------------------------------------------------------------------------------------------------------------------------------
-void VRenderPath_Crossfade::setOldFramebufferTextures(vgl::RenderTexture* const pOldFbTex1, vgl::RenderTexture* const pOldFbTex2) noexcept {
-    mpOldFbTextures[0] = pOldFbTex1;
-    mpOldFbTextures[1] = pOldFbTex2;
 }
 
 #endif  // #if PSYDOOM_VULKAN_RENDERER

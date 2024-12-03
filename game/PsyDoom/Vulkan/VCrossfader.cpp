@@ -50,7 +50,7 @@ static void initDescriptorPoolAndSet(vgl::LogicalDevice& device) noexcept {
         FatalErrors::raise("Failed to create a descriptor pool used for crossfading!");
 
     // Alloc the single descriptor set
-    gpDescriptorSet = gDescriptorPool.allocDescriptorSet(VPipelines::gDescSetLayout_crossfade);
+    gpDescriptorSet = gDescriptorPool.allocDescriptorSet(VPipelines::gDescSetLayout_blit2Tex);
 
     if (!gpDescriptorSet)
         FatalErrors::raise("Failed to allocate the descriptor set used for crossfading!");
