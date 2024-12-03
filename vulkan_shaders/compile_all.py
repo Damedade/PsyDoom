@@ -19,6 +19,7 @@ files_to_compile = [
     [ "colored.frag",                   "compiled/SPIRV_colored_frag.bin.h",                    "frag", "gSPIRV_colored_frag"                   ],
     [ "colored.vert",                   "compiled/SPIRV_colored_vert.bin.h",                    "vert", "gSPIRV_colored_vert"                   ],
     [ "crossfade.frag",                 "compiled/SPIRV_crossfade_frag.bin.h",                  "frag", "gSPIRV_crossfade_frag"                 ],
+    [ "crossfade_gamma.frag",           "compiled/SPIRV_crossfade_gamma_frag.bin.h",            "frag", "gSPIRV_crossfade_gamma_frag"           ],
     [ "gamma_adjust_blit.frag",         "compiled/SPIRV_gamma_adjust_blit_frag.bin.h",          "frag", "gSPIRV_gamma_adjust_blit_frag"         ],
     [ "gamma_adjust_post_process.frag", "compiled/SPIRV_gamma_adjust_post_process_frag.bin.h",  "frag", "gSPIRV_gamma_adjust_post_process_frag" ],
     [ "msaa_resolve.frag",              "compiled/SPIRV_msaa_resolve_frag.bin.h",               "frag", "gSPIRV_msaa_resolve_frag"              ],

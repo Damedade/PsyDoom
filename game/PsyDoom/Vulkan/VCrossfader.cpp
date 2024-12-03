@@ -17,6 +17,7 @@
 #include "RenderTexture.h"
 #include "Sampler.h"
 #include "Swapchain.h"
+#include "Texture.h"
 #include "VPipelines.h"
 #include "VRenderer.h"
 #include "VRenderPath_Crossfade.h"
@@ -28,10 +29,12 @@ BEGIN_NAMESPACE(VCrossfader)
 // The screen quad used for rendering the cross fade
 static VScreenQuad gScreenQuad;
 
-// A descriptor pool and the descriptor set allocated from it.
-// The descriptor set contains 2 bindings, one for each of the rendered framebuffers that the crossfade is happening between.
+// A descriptor pool and the descriptor sets allocated from it. In the non-gamma adjusted case the descriptor set contains 2 bindings,
+// one for each of the rendered framebuffers that the crossfade is happening between. For the gamma adjusted case we also add an
+// additional texture containing the gamma remap LUT.
 static vgl::DescriptorPool gDescriptorPool;
-static vgl::DescriptorSet* gpDescriptorSet;
+static vgl::DescriptorSet* gpDescriptorSet_NoGammaAdjust;
+static vgl::DescriptorSet* gpDescriptorSet_GammaAdjust;
 
 // The textures used for crossfading
 static vgl::RenderTexture* gpCrossfadeTex1;
@@ -44,15 +47,21 @@ static void initDescriptorPoolAndSet(vgl::LogicalDevice& device) noexcept {
     // Make the pool
     VkDescriptorPoolSize poolResourceCount = {};
     poolResourceCount.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolResourceCount.descriptorCount = 2;
+    poolResourceCount.descriptorCount = 5;
 
-    if (!gDescriptorPool.init(device, { poolResourceCount }, 1))
+    if (!gDescriptorPool.init(device, { poolResourceCount }, 2))
         FatalErrors::raise("Failed to create a descriptor pool used for crossfading!");
 
-    // Alloc the single descriptor set
-    gpDescriptorSet = gDescriptorPool.allocDescriptorSet(VPipelines::gDescSetLayout_blit2Tex);
+    // Alloc the descriptor sets
+    gpDescriptorSet_NoGammaAdjust = gDescriptorPool.allocDescriptorSet(VPipelines::gDescSetLayout_blit2Tex);
+    gpDescriptorSet_GammaAdjust = gDescriptorPool.allocDescriptorSet(VPipelines::gDescSetLayout_blit3Tex);
+    
+    const bool bAllDescriptorSetsOk = (
+        gpDescriptorSet_NoGammaAdjust &&
+        gpDescriptorSet_GammaAdjust
+    );
 
-    if (!gpDescriptorSet)
+    if (!bAllDescriptorSetsOk)
         FatalErrors::raise("Failed to allocate the descriptor set used for crossfading!");
 }
 
@@ -72,7 +81,8 @@ static void determineCrossfadeTextures(vgl::LogicalDevice& device) noexcept {
         VMsaaResolver& msaaResolver = mainRPath.getMsaaResolver();
         gpCrossfadeTex1 = &msaaResolver.getResolveAttachment(ringbufferIdx ^ 1);
         gpCrossfadeTex2 = &msaaResolver.getResolveAttachment(ringbufferIdx);
-    } else {
+    }
+    else {
         gpCrossfadeTex1 = &mainRPath.getDrawColorAttachment(ringbufferIdx ^ 1);
         gpCrossfadeTex2 = &mainRPath.getDrawColorAttachment(ringbufferIdx);
     }
@@ -82,15 +92,16 @@ static void determineCrossfadeTextures(vgl::LogicalDevice& device) noexcept {
 // Binds the textures used for crossfading to the descriptor set used for drawing
 //------------------------------------------------------------------------------------------------------------------------------------------
 static void bindCrossfadeTextures() noexcept {
-    ASSERT(gpDescriptorSet);
+    ASSERT(gpDescriptorSet_NoGammaAdjust);
+    ASSERT(gpDescriptorSet_GammaAdjust);
     ASSERT(gpCrossfadeTex1);
     ASSERT(gpCrossfadeTex2);
 
     const VkSampler vkSampler = VPipelines::gSampler_normClampNearest.getVkSampler();
 
-    // Note: used to use an array of 2 textures, but MoltenVK didn't like that on MacOS.
-    // Use 2 separate texture bindings instead to work around the issue...
-    VkDescriptorImageInfo imageInfos[2] = {};
+    // Note: used to use an array of 2/3 textures, but MoltenVK didn't like that on MacOS.
+    // Use 2/3 separate texture bindings instead to work around the issue...
+    VkDescriptorImageInfo imageInfos[3] = {};
     imageInfos[0].sampler = vkSampler;
     imageInfos[0].imageView = gpCrossfadeTex1->getVkImageView();
     imageInfos[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -98,8 +109,19 @@ static void bindCrossfadeTextures() noexcept {
     imageInfos[1].imageView = gpCrossfadeTex2->getVkImageView();
     imageInfos[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-    gpDescriptorSet->bindTextures(0, &imageInfos[0], 1);
-    gpDescriptorSet->bindTextures(1, &imageInfos[1], 1);
+    if (VRenderer::gbUsingGammaAdjustThisFrame) {
+        imageInfos[2].sampler = vkSampler;
+        imageInfos[2].imageView = VRenderer::gGammaAdjustTex.getVkImageView();
+        imageInfos[2].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+        gpDescriptorSet_GammaAdjust->bindTextures(0, &imageInfos[0], 1);
+        gpDescriptorSet_GammaAdjust->bindTextures(1, &imageInfos[1], 1);
+        gpDescriptorSet_GammaAdjust->bindTextures(2, &imageInfos[2], 1);
+    }
+    else {
+        gpDescriptorSet_NoGammaAdjust->bindTextures(0, &imageInfos[0], 1);
+        gpDescriptorSet_NoGammaAdjust->bindTextures(1, &imageInfos[1], 1);
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -111,15 +133,28 @@ static void drawCrossfadeFrame(const float fadePercentComplete) noexcept {
     const uint32_t viewportW = swapchain.getSwapExtentWidth();
     const uint32_t viewportH = swapchain.getSwapExtentHeight();
 
-    // Record the commands to draw the crossfade
-    vgl::Pipeline& pipeline = VPipelines::gPipelines_Crossfade.get(VPipelineType_Crossfade::Crossfade);
+    // Which pipeline to draw with?
+    const bool bGammaAdjust = VRenderer::gbUsingGammaAdjustThisFrame;
 
+    const VPipelineType_Crossfade pipelineType = (bGammaAdjust) ?
+        VPipelineType_Crossfade::CrossfadeGammaAdjusted :
+        VPipelineType_Crossfade::Crossfade;
+
+    vgl::Pipeline& pipeline = VPipelines::gPipelines_Crossfade.get(pipelineType);
+
+    // Record the commands to draw the crossfade
     vgl::CmdBufferRecorder& cmdRec = VRenderer::gCmdBufferRec;
     cmdRec.setViewport(0.0f, 0.0f, (float) viewportW, (float) viewportH, 0.0f, 1.0f);
     cmdRec.setScissors(0, 0, viewportW, viewportH);
     cmdRec.bindPipeline(pipeline);
-    cmdRec.bindDescriptorSet(*gpDescriptorSet, pipeline, 0);
-    cmdRec.pushConstants(VPipelines::gPipelineLayout_crossfade, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(float), &fadePercentComplete);
+    
+    if (bGammaAdjust) {
+        cmdRec.pushConstants(VPipelines::gPipelineLayout_crossfadeGamma, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(float), &fadePercentComplete);
+        cmdRec.bindDescriptorSet(*gpDescriptorSet_GammaAdjust, pipeline, 0);
+    } else {
+        cmdRec.pushConstants(VPipelines::gPipelineLayout_crossfade, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(float), &fadePercentComplete);
+        cmdRec.bindDescriptorSet(*gpDescriptorSet_NoGammaAdjust, pipeline, 0);
+    }
 
     gScreenQuad.bindVertexBuffer(cmdRec, 0);
     gScreenQuad.draw(cmdRec);
@@ -140,9 +175,14 @@ void destroy() noexcept {
     gpCrossfadeTex1 = nullptr;
     gpCrossfadeTex2 = nullptr;
 
-    if (gpDescriptorSet) {
-        gDescriptorPool.freeDescriptorSet(*gpDescriptorSet);
-        gpDescriptorSet = nullptr;
+    if (gpDescriptorSet_GammaAdjust) {
+        gDescriptorPool.freeDescriptorSet(*gpDescriptorSet_GammaAdjust);
+        gpDescriptorSet_GammaAdjust = nullptr;
+    }
+    
+    if (gpDescriptorSet_NoGammaAdjust) {
+        gDescriptorPool.freeDescriptorSet(*gpDescriptorSet_NoGammaAdjust);
+        gpDescriptorSet_NoGammaAdjust = nullptr;
     }
 
     gDescriptorPool.destroy(true);
@@ -161,13 +201,10 @@ void doPreCrossfadeSetup() noexcept {
     determineCrossfadeTextures(device);
     ASSERT(gpCrossfadeTex1);
     ASSERT(gpCrossfadeTex2);
-
     VRenderer::gRenderPath_Crossfade.setOldFramebufferTextures(gpCrossfadeTex1, gpCrossfadeTex2);
 
-    // Schedule a transition to the crossfade render path next frame and request that the next frame rendered not be presented.
-    // This will be the frame we fade INTO and we don't want it shown onscreen after it is drawn.
+    // Schedule a transition to the crossfade render path
     VRenderer::setNextRenderPath(VRenderer::gRenderPath_Crossfade);
-    VRenderer::skipNextFramePresent();
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------

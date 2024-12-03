@@ -21,11 +21,24 @@ static void layoutFramebufferTex(
     if ((!pTexture) || (!pTexture->isValid()))
         return;
 
-    // Schedule the image layout transition
+    // Schedule the image layout transition.
+    // Just use a very restrictive barrier to be safe, since this code is not performance critical.
+    const uint32_t barrierAccessMask = (
+        VK_ACCESS_INPUT_ATTACHMENT_READ_BIT |
+        VK_ACCESS_SHADER_READ_BIT |
+        VK_ACCESS_SHADER_WRITE_BIT |
+        VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+        VK_ACCESS_TRANSFER_READ_BIT |
+        VK_ACCESS_TRANSFER_WRITE_BIT |
+        VK_ACCESS_MEMORY_READ_BIT |
+        VK_ACCESS_MEMORY_WRITE_BIT
+    );
+    
     VkImageMemoryBarrier imgBarrier = {};
     imgBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    imgBarrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
-    imgBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
+    imgBarrier.srcAccessMask = barrierAccessMask;
+    imgBarrier.dstAccessMask = barrierAccessMask;
     imgBarrier.oldLayout = oldLayout;
     imgBarrier.newLayout = newLayout;
     imgBarrier.image = pTexture->getVkImage();
@@ -176,6 +189,9 @@ void VRenderPath_Crossfade::beginFrame(vgl::Swapchain& swapchain, vgl::CmdBuffer
         mpOldFbTextures[1]->getVkImageLayoutHint(),
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
     );
+    
+    mpOldFbTextures[0]->setVkImageLayoutHint(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    mpOldFbTextures[1]->setVkImageLayoutHint(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     // Begin the render pass
     const uint32_t swapchainIdx = swapchain.getAcquiredImageIdx();

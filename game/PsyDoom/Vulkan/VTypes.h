@@ -37,6 +37,7 @@ enum class VPipelineType_Main : uint8_t {
 // Crossfade renderpath pipelines
 enum class VPipelineType_Crossfade : uint8_t {
     Crossfade,                  // Used for doing crossfades
+    CrossfadeGammaAdjusted,     // Used for doing crossfades (gamma adjusted)
     NUM_TYPES                   // Convenience declaration...
 };
 

@@ -43,6 +43,7 @@ extern vgl::Sampler                 gSampler_normClampNearest;
 extern vgl::DescriptorSetLayout     gDescSetLayout_draw;
 extern vgl::DescriptorSetLayout     gDescSetLayout_blit1Tex;
 extern vgl::DescriptorSetLayout     gDescSetLayout_blit2Tex;
+extern vgl::DescriptorSetLayout     gDescSetLayout_blit3Tex;
 extern vgl::DescriptorSetLayout     gDescSetLayout_postProcess0Tex;
 extern vgl::DescriptorSetLayout     gDescSetLayout_postProcess1Tex;
 extern vgl::PipelineLayout          gPipelineLayout_draw;
@@ -51,6 +52,7 @@ extern vgl::PipelineLayout          gPipelineLayout_blit2Tex;
 extern vgl::PipelineLayout          gPipelineLayout_postProcess0Tex;
 extern vgl::PipelineLayout          gPipelineLayout_postProcess1Tex;
 extern vgl::PipelineLayout          gPipelineLayout_crossfade;
+extern vgl::PipelineLayout          gPipelineLayout_crossfadeGamma;
 
 extern VPipelineSet<VPipelineType_Main>             gPipelines_Main_NoGammaAdjust;
 extern VPipelineSet<VPipelineType_Main>             gPipelines_Main_GammaAdjust;

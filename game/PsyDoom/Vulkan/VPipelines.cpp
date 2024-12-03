@@ -27,6 +27,7 @@ BEGIN_NAMESPACE(VPipelines)
 #include "SPIRV_colored_frag.bin.h"
 #include "SPIRV_colored_vert.bin.h"
 #include "SPIRV_crossfade_frag.bin.h"
+#include "SPIRV_crossfade_gamma_frag.bin.h"
 #include "SPIRV_gamma_adjust_blit_frag.bin.h"
 #include "SPIRV_gamma_adjust_post_process_frag.bin.h"
 #include "SPIRV_msaa_resolve_frag.bin.h"
@@ -82,6 +83,7 @@ static vgl::ShaderModule    gShader_ndc_position_only_vert;
 static vgl::ShaderModule    gShader_ndc_textured_vert;
 static vgl::ShaderModule    gShader_ndc_textured_frag;
 static vgl::ShaderModule    gShader_crossfade_frag;
+static vgl::ShaderModule    gShader_crossfade_gamma_frag;
 static vgl::ShaderModule    gShader_gamma_adjust_blit_frag;
 static vgl::ShaderModule    gShader_gamma_adjust_post_process_frag;
 static vgl::ShaderModule    gShader_msaa_resolve_frag;
@@ -95,6 +97,7 @@ vgl::ShaderModule* const gShaders_world[]                   = { &gShader_world_v
 vgl::ShaderModule* const gShaders_sky[]                     = { &gShader_sky_vert, &gShader_sky_frag };
 vgl::ShaderModule* const gShaders_ndcTextured[]             = { &gShader_ndc_textured_vert, &gShader_ndc_textured_frag };
 vgl::ShaderModule* const gShaders_crossfade[]               = { &gShader_ndc_textured_vert, &gShader_crossfade_frag };
+vgl::ShaderModule* const gShaders_crossfade_gamma[]         = { &gShader_ndc_textured_vert, &gShader_crossfade_gamma_frag };
 vgl::ShaderModule* const gShaders_gammaAdjustBlit[]         = { &gShader_ndc_textured_vert, &gShader_gamma_adjust_blit_frag };
 vgl::ShaderModule* const gShaders_gammaAdjustPostProcess[]  = { &gShader_ndc_position_only_vert, &gShader_gamma_adjust_post_process_frag };
 vgl::ShaderModule* const gShaders_msaaResolve[]             = { &gShader_ndc_position_only_vert, &gShader_msaa_resolve_frag };
@@ -107,6 +110,7 @@ vgl::Sampler gSampler_normClampNearest;
 vgl::DescriptorSetLayout gDescSetLayout_draw;               // Used by all the normal drawing pipelines
 vgl::DescriptorSetLayout gDescSetLayout_blit1Tex;           // Used to blit an image using 1 texture
 vgl::DescriptorSetLayout gDescSetLayout_blit2Tex;           // Used to blit an image using 2 textures
+vgl::DescriptorSetLayout gDescSetLayout_blit3Tex;           // Used to blit an image using 3 textures
 vgl::DescriptorSetLayout gDescSetLayout_postProcess0Tex;    // Post process an input attachment with 0 additional input textures
 vgl::DescriptorSetLayout gDescSetLayout_postProcess1Tex;    // Post process an input attachment with 1 additional input texture
 
@@ -117,6 +121,7 @@ vgl::PipelineLayout gPipelineLayout_blit2Tex;           // Used to blit an image
 vgl::PipelineLayout gPipelineLayout_postProcess0Tex;    // Post process an input attachment with 0 additional input textures
 vgl::PipelineLayout gPipelineLayout_postProcess1Tex;    // Post process an input attachment with 1 additional input texture
 vgl::PipelineLayout gPipelineLayout_crossfade;          // For drawing crossfades
+vgl::PipelineLayout gPipelineLayout_crossfadeGamma;     // For drawing crossfades with gamma adjustment
 
 // Pipeline input assembly states
 vgl::PipelineInputAssemblyState gInputAS_lineList;      // A list of lines
@@ -196,6 +201,7 @@ static void initShaders(vgl::LogicalDevice& device) noexcept {
     initShader(device, gShader_ndc_textured_vert, VK_SHADER_STAGE_VERTEX_BIT, gSPIRV_ndc_textured_vert, sizeof(gSPIRV_ndc_textured_vert), "ndc_textured_vert");
     initShader(device, gShader_ndc_textured_frag, VK_SHADER_STAGE_FRAGMENT_BIT, gSPIRV_ndc_textured_frag, sizeof(gSPIRV_ndc_textured_frag), "ndc_textured_frag");
     initShader(device, gShader_crossfade_frag, VK_SHADER_STAGE_FRAGMENT_BIT, gSPIRV_crossfade_frag, sizeof(gSPIRV_crossfade_frag), "crossfade_frag");
+    initShader(device, gShader_crossfade_gamma_frag, VK_SHADER_STAGE_FRAGMENT_BIT, gSPIRV_crossfade_gamma_frag, sizeof(gSPIRV_crossfade_gamma_frag), "crossfade_gamma_frag");
     initShader(device, gShader_gamma_adjust_blit_frag, VK_SHADER_STAGE_FRAGMENT_BIT, gSPIRV_gamma_adjust_blit_frag, sizeof(gSPIRV_gamma_adjust_blit_frag), "gamma_adjust_blit_frag");
     initShader(device, gShader_gamma_adjust_post_process_frag, VK_SHADER_STAGE_FRAGMENT_BIT, gSPIRV_gamma_adjust_post_process_frag, sizeof(gSPIRV_gamma_adjust_post_process_frag), "gamma_adjust_post_process_frag");
     initShader(device, gShader_msaa_resolve_frag, VK_SHADER_STAGE_FRAGMENT_BIT, gSPIRV_msaa_resolve_frag, sizeof(gSPIRV_msaa_resolve_frag), "msaa_resolve_frag");
@@ -290,6 +296,35 @@ static void initDescriptorSetLayouts(vgl::LogicalDevice& device) noexcept {
         if (!gDescSetLayout_blit2Tex.init(device, bindings, C_ARRAY_SIZE(bindings)))
             FatalErrors::raise("Failed to init the 'Blit (2 texture)' Vulkan descriptor set layout!");
     }
+    
+    // Blit (3 texture)
+    {
+        const VkSampler vkSampler = gSampler_normClampNearest.getVkSampler();
+
+        // Note: used to use an array of 2 textures, but MoltenVK didn't like that on MacOS.
+        // Use 3 separate texture bindings instead to work around the issue...
+        VkDescriptorSetLayoutBinding bindings[3] = {};
+        bindings[0].binding = 0;
+        bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        bindings[0].descriptorCount = 1;
+        bindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        bindings[0].pImmutableSamplers = &vkSampler;
+
+        bindings[1].binding = 1;
+        bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        bindings[1].descriptorCount = 1;
+        bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        bindings[1].pImmutableSamplers = &vkSampler;
+        
+        bindings[2].binding = 2;
+        bindings[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        bindings[2].descriptorCount = 1;
+        bindings[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        bindings[2].pImmutableSamplers = &vkSampler;
+
+        if (!gDescSetLayout_blit3Tex.init(device, bindings, C_ARRAY_SIZE(bindings)))
+            FatalErrors::raise("Failed to init the 'Blit (3 texture)' Vulkan descriptor set layout!");
+    }
 
     // Post process (0 texture)
     {
@@ -368,7 +403,7 @@ static void initPipelineLayouts(vgl::LogicalDevice& device) noexcept {
             FatalErrors::raise("Failed to init the 'Post process (1 texture)' Vulkan pipeline layout!");
     }
     
-    // Crossfade pipeline layout: uses push constants to set the lerp factor
+    // Crossfade pipeline layouts: uses push constants to set the lerp factor
     {
         const VkDescriptorSetLayout vkDescSetLayouts[] = { gDescSetLayout_blit2Tex.getVkLayout() };
 
@@ -378,7 +413,18 @@ static void initPipelineLayouts(vgl::LogicalDevice& device) noexcept {
         uniformPushConstants.size = sizeof(VShaderUniforms_Crossfade);
 
         if (!gPipelineLayout_crossfade.init(device, vkDescSetLayouts, C_ARRAY_SIZE(vkDescSetLayouts), &uniformPushConstants, 1))
-            FatalErrors::raise("Failed to init the 'crossfade' Vulkan pipeline layout!");
+            FatalErrors::raise("Failed to init the 'Crossfade' Vulkan pipeline layout!");
+    }
+    {
+        const VkDescriptorSetLayout vkDescSetLayouts[] = { gDescSetLayout_blit3Tex.getVkLayout() };
+
+        VkPushConstantRange uniformPushConstants = {};
+        uniformPushConstants.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        uniformPushConstants.offset = 0;
+        uniformPushConstants.size = sizeof(VShaderUniforms_Crossfade);
+
+        if (!gPipelineLayout_crossfadeGamma.init(device, vkDescSetLayouts, C_ARRAY_SIZE(vkDescSetLayouts), &uniformPushConstants, 1))
+            FatalErrors::raise("Failed to init the 'Crossfade (With Gamma Adjustment)' Vulkan pipeline layout!");
     }
 }
 
@@ -698,28 +744,36 @@ static void initPipelineSet_Main(
 // Initializes a pipeline set for the crossfade render path
 //------------------------------------------------------------------------------------------------------------------------------------------
 static void initPipelineSet_Crossfade(VPipelineSet<VPipelineType_Crossfade>& pipelineSet, const vgl::RenderPass& renderPass) noexcept {
-    // A pipeline to use during crossfading
-    {
-        const VkSpecializationMapEntry specializationMapEntries[] = {
-            { 0, 0, sizeof(VkBool32) }
-        };
+    // Using 32-bit shading for the Vulkan renderer?
+    const VkBool32 bShade16Bit = (!Config::gbUseVulkan32BitShading);
+    
+    // Specializations for the crossfade pipelines (whether to use 16 or 32-bit shading)
+    const VkSpecializationMapEntry vkSpecMapEntries_crossfade[] = {
+        { 0, 0, sizeof(VkBool32) }
+    };
+    
+    VkSpecializationInfo vkSpecInfo_crossfade = {};
+    vkSpecInfo_crossfade.mapEntryCount = C_ARRAY_SIZE(vkSpecMapEntries_crossfade);
+    vkSpecInfo_crossfade.pMapEntries = vkSpecMapEntries_crossfade;
+    vkSpecInfo_crossfade.dataSize = sizeof(VkBool32);
+    vkSpecInfo_crossfade.pData = &bShade16Bit;
 
-        const VkBool32 bShade16Bit = (!Config::gbUseVulkan32BitShading);
-
-        VkSpecializationInfo specializationInfo = {};
-        specializationInfo.mapEntryCount = C_ARRAY_SIZE(specializationMapEntries);
-        specializationInfo.pMapEntries = specializationMapEntries;
-        specializationInfo.dataSize = sizeof(VkBool32);
-        specializationInfo.pData = &bShade16Bit;
-
-        initPipeline(
-            pipelineSet.get(VPipelineType_Crossfade::Crossfade), renderPass, 0,
-            gShaders_crossfade, &specializationInfo, gPipelineLayout_crossfade,
-            gVertexBindingDesc_xyUv, gVertexAttribs_xyUv, C_ARRAY_SIZE(gVertexAttribs_xyUv),
-            gInputAS_triList, gRasterState_noCull,
-            gBlendState_noBlend, gDepthState_disabled, gMultisampleState_noMultisample
-        );
-    }
+    // Crossfade pipelines
+    initPipeline(
+        pipelineSet.get(VPipelineType_Crossfade::Crossfade), renderPass, 0,
+        gShaders_crossfade, &vkSpecInfo_crossfade, gPipelineLayout_crossfade,
+        gVertexBindingDesc_xyUv, gVertexAttribs_xyUv, C_ARRAY_SIZE(gVertexAttribs_xyUv),
+        gInputAS_triList, gRasterState_noCull,
+        gBlendState_noBlend, gDepthState_disabled, gMultisampleState_noMultisample
+    );
+    
+    initPipeline(
+        pipelineSet.get(VPipelineType_Crossfade::CrossfadeGammaAdjusted), renderPass, 0,
+        gShaders_crossfade_gamma, &vkSpecInfo_crossfade, gPipelineLayout_crossfadeGamma,
+        gVertexBindingDesc_xyUv, gVertexAttribs_xyUv, C_ARRAY_SIZE(gVertexAttribs_xyUv),
+        gInputAS_triList, gRasterState_noCull,
+        gBlendState_noBlend, gDepthState_disabled, gMultisampleState_noMultisample
+    );
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -805,6 +859,7 @@ void shutdown() noexcept {
     destroyPipelineSet(gPipelines_Main_GammaAdjust);
     destroyPipelineSet(gPipelines_Main_NoGammaAdjust);
 
+    gPipelineLayout_crossfadeGamma.destroy(true);
     gPipelineLayout_crossfade.destroy(true);
     gPipelineLayout_postProcess1Tex.destroy(true);
     gPipelineLayout_postProcess0Tex.destroy(true);
@@ -814,6 +869,7 @@ void shutdown() noexcept {
 
     gDescSetLayout_postProcess1Tex.destroy(true);
     gDescSetLayout_postProcess0Tex.destroy(true);
+    gDescSetLayout_blit3Tex.destroy(true);
     gDescSetLayout_blit2Tex.destroy(true);
     gDescSetLayout_blit1Tex.destroy(true);
     gDescSetLayout_draw.destroy(true);
@@ -824,6 +880,7 @@ void shutdown() noexcept {
     gShader_msaa_resolve_frag.destroy(true);
     gShader_gamma_adjust_post_process_frag.destroy(true);
     gShader_gamma_adjust_blit_frag.destroy(true);
+    gShader_crossfade_gamma_frag.destroy(true);
     gShader_crossfade_frag.destroy(true);
     gShader_ndc_textured_frag.destroy(true);
     gShader_ndc_textured_vert.destroy(true);
