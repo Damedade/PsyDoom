@@ -207,6 +207,13 @@ void endFrame(vgl::CmdBufferRecorder& cmdRec, const bool bRenderThisFrame) noexc
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
+// Tells if any draw commands have been submitted
+//------------------------------------------------------------------------------------------------------------------------------------------
+bool hasIssuedDrawCmds() noexcept {
+    return (!gFrameDrawCmds.empty());
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
 // Set which pipeline is being used for the 'draw' subpass with lazy early out if there is no change
 //------------------------------------------------------------------------------------------------------------------------------------------
 void setDrawPipeline(const VPipelineType_Main type) noexcept {

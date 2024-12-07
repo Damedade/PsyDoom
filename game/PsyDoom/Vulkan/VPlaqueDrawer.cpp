@@ -326,17 +326,16 @@ void drawPlaque(texture_t& plaqueTex, const int16_t plaqueX, const int16_t plaqu
 
     // Only issue drawing commands if we can actually render
     if (VRenderer::isRendering()) {
-        // MacOS: if the window has been resized just before we present, then skip the frame.
-        // Otherwise Metal errors will occur and the GPU driver will start causing issues.
-        #if __APPLE__
-            if (VRenderer::isSwapchainOutOfDate() || VRenderer::gSwapchain.needsRecreate()) {
-                VRenderer::skipNextFramePresent();
-            }
-        #endif
-        
-        // End the current frame (in whatever render path is being used)
+        // Fix for a single black/empty frame showing when the plaque is initially displayed.
+        // If no draw commands have yet been issued for the current frame (happens due to when this function is invoked), then skip the frame entirely.
+        // Note that we can only do this check for the main render path, since that is what uses the 'VDrawing' module.
+        if ((&VRenderer::getActiveRenderPath() == &VRenderer::gRenderPath_Main) && (!VDrawing::hasIssuedDrawCmds())) {
+            VRenderer::skipNextFramePresent();
+        }
+
+        // End the current frame - in whatever render path is being used
         VRenderer::endFrame();
-        
+
         // Begin the next frame and switch to the loading plaque render path.
         // Prior to beginning a render pass for the new frame, do image layout transitions to get the background texture into the right layout.
         VRenderPath_LoadingPlaque& renderPath = VRenderer::gRenderPath_LoadingPlaque;

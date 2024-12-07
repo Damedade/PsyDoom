@@ -37,6 +37,7 @@ void init(vgl::LogicalDevice& device, vgl::BaseTexture& vramTex) noexcept;
 void shutdown() noexcept;
 void beginFrame(const uint32_t ringbufferIdx) noexcept;
 void endFrame(vgl::CmdBufferRecorder& cmdRec, const bool bRenderThisFrame) noexcept;
+bool hasIssuedDrawCmds() noexcept;
 void setDrawPipeline(const VPipelineType_Main type) noexcept;
 void setDrawUniforms(const VShaderUniforms_Draw& uniforms) noexcept;
 Matrix4f computeTransformMatrixForUI(const bool bAllowWidescreen) noexcept;
