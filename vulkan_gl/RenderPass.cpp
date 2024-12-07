@@ -169,12 +169,12 @@ static uint32_t determineSubpassDependencies(
     for (const VkAttachmentReference& attachment : subpass.inputAttachments) {
         const uint32_t attachmentIdx = attachment.attachment;
 
-        // Fill in destination subpass portions of the dependency.
-        // The stage that is blocked and operations that are blocked:
+        // Fill in destination subpass portions of the dependency; the stage that is blocked and operations that are blocked.
+        // Block color attachment reads in the fragment shader, and also block writes if the attachment is being modified.
         ComparableVkSubpassDependency dependency = {};
         dependency.dstSubpass = subpassIdx;
-        dependency.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;    // Input attachments are only readable in the frag shader
-        dependency.dstAccessMask = VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
+        dependency.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.dstAccessMask = VK_ACCESS_INPUT_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
         // Now find what other subpass it depends on and fill in the operations we must wait on
         uint32_t referencingSubpassIdx = {};
