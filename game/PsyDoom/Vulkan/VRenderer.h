@@ -54,6 +54,8 @@ extern vgl::Swapchain               gSwapchain;
 extern vgl::CmdBufferRecorder       gCmdBufferRec;
 extern bool                         gbUsingGammaAdjustThisFrame;
 extern vgl::Texture                 gGammaAdjustTex;
+extern bool                         gbSkipNextFramePresent;
+extern bool                         gbSkipNextFrame;
 
 bool isHeadlessPhysicalDeviceSuitable(const vgl::PhysicalDevice& device) noexcept;
 bool isPhysicalDeviceSuitable(const vgl::PhysicalDevice& device, const vgl::DeviceSurfaceCaps& surfaceCaps) noexcept;
@@ -70,8 +72,6 @@ void setNextRenderPath(IVRendererPath& renderPath) noexcept;
 bool isUsingPsxRenderPath() noexcept;
 void switchToPsxRenderPath() noexcept;
 void switchToMainVulkanRenderPath() noexcept;
-void skipNextFramePresent() noexcept;
-bool willSkipNextFramePresent() noexcept;
 bool isSwapchainOutOfDate() noexcept;
 void rebuildGammaAdjustTex() noexcept;
 void setupViewportAndScissors(vgl::CmdBufferRecorder& cmdRec) noexcept;

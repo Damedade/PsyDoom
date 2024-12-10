@@ -123,6 +123,14 @@ bool gbUsingGammaAdjustThisFrame = false;
 // The original color component is used to do lookup into the LUT and the output is the gamma adjusted value.
 vgl::Texture gGammaAdjustTex;
 
+// Requests that the current (or next frame) that would otherwise be rendered, to be NOT presented.
+// This is useful in some situations such as rendering crossfades, where we want to render the frame to be faded into offscreen.
+bool gbSkipNextFramePresent = false;
+
+// Requests that the current (or next frame) that would otherwise be rendered, be skipped entirely (no drawing or presentation should occur).
+// Note: if true, then 'gbSkipNextFramePresent' is also treated as true.
+bool gbSkipNextFrame = false;
+
 // Semaphores signalled when the acquired swapchain image is ready.
 // We flip/flop between these when acquiring images, since there can be at most 1 other frame active.
 // Unlike most other resources however, the ringbuffer index is NOT used to index this array.
@@ -148,9 +156,6 @@ static vgl::Texture gPsxVramTexture;
 // The current and next frame render paths to use: these should always be valid
 static IVRendererPath* gpCurRenderPath;
 static IVRendererPath* gpNextRenderPath;
-
-// If true then skip presenting the next frame
-static bool gbSkipNextFramePresent;
 
 // If true then we must wait on the swapchain image semaphore this frame (we had to acquire it)
 static bool gbDidAcquireSwapImageThisFrame;
@@ -690,6 +695,7 @@ void destroy() noexcept {
 
     gbDidAcquireSwapImageThisFrame = false;
     gbSkipNextFramePresent = false;
+    gbSkipNextFrame = false;
     gpNextRenderPath = nullptr;
     gpCurRenderPath = nullptr;
     gPsxVramTexture.destroy(true);
@@ -814,7 +820,8 @@ void endFrame() noexcept {
         // Otherwise Metal errors will occur and the GPU driver will start causing issues.
         #if __APPLE__
             if (isSwapchainOutOfDate() || gSwapchain.needsRecreate()) {
-                skipNextFramePresent();
+                gbSkipNextFrame = true;
+                gbSkipNextFramePresent = true;
             }
         #endif
 
@@ -839,6 +846,7 @@ void endFrame() noexcept {
 
     vgl::RingbufferMgr& ringbufferMgr = gDevice.getRingbufferMgr();
     const uint32_t ringbufferIdx = ringbufferMgr.getBufferIndex();
+    const bool bSkipPresent = (gbSkipNextFrame || gbSkipNextFramePresent);
 
     {
         // Conditions that the command buffer waits on.
@@ -856,7 +864,7 @@ void endFrame() noexcept {
         // Skip signalling the render semaphore however if we are not presenting, as the swapchain will not be able to consume it.
         // It needs to be in an unsignalled state the next time we go to use it...
         vgl::Fence& ringbufferSlotFence = ringbufferMgr.getCurrentBufferFence();
-        vgl::Semaphore* pSignalSemaphore = (gbSkipNextFramePresent) ? nullptr : &gRenderDoneSemaphores[ringbufferIdx];
+        vgl::Semaphore* pSignalSemaphore = (bSkipPresent) ? nullptr : &gRenderDoneSemaphores[ringbufferIdx];
 
         gDevice.submitCmdBuffer(
             gCmdBuffers[ringbufferIdx],
@@ -868,12 +876,13 @@ void endFrame() noexcept {
 
     // Present the current swapchain image once all the commands have finished, unless skip was requested.
     // Also use a different semaphore (if presenting) for the next frame.
-    if (!gbSkipNextFramePresent) {
+    if (!bSkipPresent) {
         gSwapchain.presentAcquiredImage(gRenderDoneSemaphores[ringbufferIdx]);
         gCurSwapchainSemaphoreIdx ^= 1;
     } else {
         // Skipping showing this frame? Don't bother presenting, and wait for all commands to finish
         gDevice.waitUntilDeviceIdle();
+        gbSkipNextFrame = false;
         gbSkipNextFramePresent = false;
     }
 
@@ -987,18 +996,6 @@ void switchToPsxRenderPath() noexcept {
 
 void switchToMainVulkanRenderPath() noexcept {
     setNextRenderPath(gRenderPath_Main);
-}
-
-//------------------------------------------------------------------------------------------------------------------------------------------
-// Requests that the current frame being rendered (or the next frame that WILL be rendered) NOT be presented.
-// This is useful in some situations such as rendering crossfades.
-//------------------------------------------------------------------------------------------------------------------------------------------
-void skipNextFramePresent() noexcept {
-    gbSkipNextFramePresent = true;
-}
-
-bool willSkipNextFramePresent() noexcept {
-    return gbSkipNextFramePresent;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------

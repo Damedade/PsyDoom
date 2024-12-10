@@ -119,7 +119,7 @@ void VRenderPath_Blit::endFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecorde
 
     // Only bother doing further commands if we're going to present.
     // This avoids errors on MacOS/Metal also, where we try to blit to an incompatible destination window size.
-    if (VRenderer::willSkipNextFramePresent())
+    if (VRenderer::gbSkipNextFrame || VRenderer::gbSkipNextFramePresent)
         return;
 
     // Transition the swapchain image back to presentation optimal in preparation for presentation

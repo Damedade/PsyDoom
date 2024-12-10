@@ -352,12 +352,12 @@ void VRenderPath_Main::endFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecorde
     ASSERT(mbIsValid);
     ASSERT(mpDevice && mpDevice->isValid());
     ASSERT(swapchain.isValid());
-    
+
     // Which render pass and framebuffer are used?
     vgl::LogicalDevice& device = *mpDevice;
     const uint32_t ringbufferIdx = device.getRingbufferMgr().getBufferIndex();
     const uint32_t swapchainIdx = swapchain.getAcquiredImageIdx();
-        
+
     const vgl::RenderPass& renderPass = (VRenderer::gbUsingGammaAdjustThisFrame) ?
         mRenderPass_GammaAdjust :
         mRenderPass_NoGammaAdjust;
@@ -365,12 +365,12 @@ void VRenderPath_Main::endFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecorde
     const vgl::Framebuffer& framebuffer = (VRenderer::gbUsingGammaAdjustThisFrame) ?
         mFramebuffers_GammaAdjust[swapchainIdx * vgl::Defines::RINGBUFFER_SIZE + ringbufferIdx] :
         mFramebuffers_NoGammaAdjust[ringbufferIdx];
-        
+
     // Begin the main render pass if we are not skipping drawing.
     // Note that we don't do any drawing at all if we are skipping presenting this frame.
     // This helps avoid errors on macOS/Metal also, where we try to blit to an incompatible destination window size.
-    const bool bRenderThisFrame = (!VRenderer::willSkipNextFramePresent());
-    
+    const bool bRenderThisFrame = (!VRenderer::gbSkipNextFrame);
+
     if (bRenderThisFrame) {
         // Begin the render pass and clear the draw color attachment
         const VkClearValue framebufferClearValues[1] = {};
@@ -394,16 +394,16 @@ void VRenderPath_Main::endFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecorde
     // Finish up drawing and cleanup for the frame.
     // Only record actual draw commands to the command buffer if we are NOT skipping presenting this frame.
     VDrawing::endFrame(cmdRec, bRenderThisFrame);
-    
+
     if (bRenderThisFrame) {
         // Do an MSAA resolve subpass if MSAA is enabled
         const bool bUsingMsaa = (mNumDrawSamples > 1);
-        
+
         if (bUsingMsaa) {
             cmdRec.nextSubpass(VK_SUBPASS_CONTENTS_INLINE);
             mMsaaResolver.resolve(cmdRec);
         }
-        
+
         // If doing gamma adjust then handle that now
         if (VRenderer::gbUsingGammaAdjustThisFrame) {
             cmdRec.nextSubpass(VK_SUBPASS_CONTENTS_INLINE);
@@ -422,10 +422,10 @@ void VRenderPath_Main::endFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecorde
         } else {
             drawColorAttachment.setVkImageLayoutHint(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
         }
-        
+
         if (bUsingMsaa) {
             vgl::RenderTexture& msaaResolveAttachment = mMsaaResolver.getResolveAttachment(ringbufferIdx);
-        
+
             if (VRenderer::gbUsingGammaAdjustThisFrame) {
                 msaaResolveAttachment.setVkImageLayoutHint(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
             } else {

@@ -244,7 +244,7 @@ void VRenderPath_Psx::endFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecorder
 
     // Only bother doing further commands if we're going to present.
     // This avoids errors on MacOS/Metal also, where we try to blit to an incompatible destination window size.
-    if (VRenderer::willSkipNextFramePresent())
+    if (VRenderer::gbSkipNextFrame || VRenderer::gbSkipNextFramePresent)
         return;
 
     // Get the area of the window to blit the PSX framebuffer to

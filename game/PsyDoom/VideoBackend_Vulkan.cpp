@@ -223,13 +223,15 @@ void VideoBackend_Vulkan::displayExternalSurface(
 
     // Only bother doing commands if we're going to present, the blit area is valid, drawing is allowed and if the surface is valid.
     // This avoids errors on MacOS/Metal also, where we try to blit to an incompatible destination window size.
+    const bool bSkipFrame = (VRenderer::gbSkipNextFrame || VRenderer::gbSkipNextFramePresent);
+
     const bool bCanBlit = (
         bCanDraw &&
         (blitSrcW > 0) &&
         (blitSrcH > 0) &&
         (blitDstW > 0) &&
         (blitDstH > 0) &&
-        (!VRenderer::willSkipNextFramePresent()) &&
+        (!bSkipFrame) &&
         srcTexture.isValid()
     );
 
