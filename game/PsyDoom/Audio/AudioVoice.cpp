@@ -6,6 +6,7 @@
 #include "Spu.h"
 
 #include <algorithm>
+#include <cmath>
 
 BEGIN_NAMESPACE(AudioVoiceUtils)
 

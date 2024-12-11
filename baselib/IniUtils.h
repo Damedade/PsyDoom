@@ -2,6 +2,7 @@
 
 #include "Macros.h"
 
+#include <cstdint>
 #include <functional>
 #include <string>
 
