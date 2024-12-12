@@ -3,6 +3,9 @@
 #if PSYDOOM_VULKAN_RENDERER
 
 #include "Asserts.h"
+#include "GammaTable.h"
+#include "PlayerPrefs.h"
+#include "Video.h"
 
 #include <cstring>
 
@@ -43,12 +46,40 @@ uint32_t VideoSurface_Vulkan::getHeight() const noexcept { return mHeight; }
 void VideoSurface_Vulkan::setPixels(const uint32_t* const pSrcPixels) noexcept {
     ASSERT(pSrcPixels);
 
-    // Only if the texture was initialized validly
-    if (mTexture.isValid()) {
-        std::memcpy(mTexture.lock(), pSrcPixels, mWidth * mHeight * sizeof(uint32_t));
-        mTexture.unlock();
-        mbIsReadyForBlit = false;   // Texture will be shader read only optimal after the transfer!
+    // Abort if the texture wasn't successfully initialized
+    if (!mTexture.isValid())
+        return;
+
+    // Gamma correct related vars
+    const bool bDoGammaCorrection = (PlayerPrefs::gGamma1000 != PlayerPrefs::GAMMA_DEFAULT);
+    const uint8_t* const pGammaRemapTbl8 = Video::gGammaTbl.remapTbl8;
+
+    // Do the copy (assuming the texture lock succeeds)
+    const uint32_t numPixels = mWidth * mHeight;
+    uint32_t* const pDstPixels = reinterpret_cast<uint32_t*>(mTexture.lock());
+
+    if (!pDstPixels)
+        return;
+
+    if (!bDoGammaCorrection) {
+        // Regular (fast) copy path
+        std::memcpy(pDstPixels, pSrcPixels, numPixels * sizeof(uint32_t));
     }
+    else {
+        // Gamma corrected copy
+        for (uint32_t i = 0; i < numPixels; ++i) {
+            const uint32_t srcPixel = pSrcPixels[i];
+            const uint8_t r = pGammaRemapTbl8[(uint8_t)(srcPixel)];
+            const uint8_t g = pGammaRemapTbl8[(uint8_t)(srcPixel >> 8)];
+            const uint8_t b = pGammaRemapTbl8[(uint8_t)(srcPixel >> 16)];
+
+            pDstPixels[i] = (srcPixel & 0xFF000000) | (b << 16) | (g << 8) | r;
+        }
+    }
+
+    // Finish up
+    mTexture.unlock();
+    mbIsReadyForBlit = false;   // Texture will be shader read only optimal after the transfer!
 }
 
 END_NAMESPACE(Video)
