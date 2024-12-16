@@ -131,7 +131,8 @@ static Uint32 getSdlWindowCreateFlags() noexcept {
         SDL_WINDOW_MOUSE_FOCUS |
         SDL_WINDOW_INPUT_FOCUS |
         SDL_WINDOW_INPUT_GRABBED |
-        SDL_WINDOW_MOUSE_CAPTURE
+        SDL_WINDOW_MOUSE_CAPTURE |
+        SDL_WINDOW_ALLOW_HIGHDPI
     );
 
     if (Config::gbFullscreen) {
