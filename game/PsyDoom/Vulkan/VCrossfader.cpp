@@ -242,10 +242,6 @@ void doCrossfade(const int32_t vblanksDuration) noexcept {
             drawCrossfadeFrame(percentComplete);
         }
 
-        // Do platform updates and yield some CPU time in case vsync is not capping us
-        Utils::doPlatformUpdates();
-        Utils::threadYield();
-
         // Is it time to end the fade?
         const int32_t nowTimeVbl = I_GetTotalVBlanks();
         const int32_t elapsedVbl = nowTimeVbl - fadeBeginTimeVbl;
@@ -253,9 +249,18 @@ void doCrossfade(const int32_t vblanksDuration) noexcept {
         if ((elapsedVbl >= vblanksDuration) || Input::isQuitRequested())
             break;
 
-        // Otherwise begin a new frame and update the percent complete
+        // Update the percent complete and end the frame
         percentComplete = (float) elapsedVbl / (float) vblanksDuration;
         VRenderer::endFrame();
+        
+        // Do platform updates (window message pump etc.) and yield some CPU time in case vsync is not capping us.
+        //
+        // Note: intentionally doing this AFTER 'endFrame()' and before 'beginFrame()' so that the rug is not pulled out from
+        // under us and the window resized while we are rendering, which can lead to all sorts of errors on macOS/Metal.
+        Utils::doPlatformUpdates();
+        Utils::threadYield();
+        
+        // Begin the next frame
         VRenderer::beginFrame();
     }
 
