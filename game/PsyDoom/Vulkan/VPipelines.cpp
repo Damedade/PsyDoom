@@ -786,7 +786,7 @@ static void initPipelineSet_LoadingPlaque(VPipelineSet<VPipelineType_LoadingPlaq
         gShaders_ndcTextured, nullptr, gPipelineLayout_blit1Tex,
         gVertexBindingDesc_xyUv, gVertexAttribs_xyUv, C_ARRAY_SIZE(gVertexAttribs_xyUv),
         gInputAS_triList, gRasterState_noCull,
-        gBlendState_noBlend, gDepthState_disabled, gMultisampleState_perSettingsEdgeOnly
+        gBlendState_noBlend, gDepthState_disabled, gMultisampleState_noMultisample
     );
     
     initPipeline(
@@ -794,7 +794,7 @@ static void initPipelineSet_LoadingPlaque(VPipelineSet<VPipelineType_LoadingPlaq
         gShaders_gammaAdjustBlit, nullptr, gPipelineLayout_blit2Tex,
         gVertexBindingDesc_xyUv, gVertexAttribs_xyUv, C_ARRAY_SIZE(gVertexAttribs_xyUv),
         gInputAS_triList, gRasterState_noCull,
-        gBlendState_noBlend, gDepthState_disabled, gMultisampleState_perSettingsEdgeOnly
+        gBlendState_noBlend, gDepthState_disabled, gMultisampleState_noMultisample
     );
 }
 
