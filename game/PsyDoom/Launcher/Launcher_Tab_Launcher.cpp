@@ -1,4 +1,4 @@
-﻿//------------------------------------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------------------------------------
 // Setup code and event handling logic for the 'Launcher' tab
 //------------------------------------------------------------------------------------------------------------------------------------------
 #if PSYDOOM_LAUNCHER
@@ -171,7 +171,7 @@ static bool checkValidCueFileSpecified(Context& ctx) noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 static void makeLogo(Tab_Launcher& tab, const int lx, const int rx, const int ty) noexcept {
     tab.pGameLogo = std::make_unique<Fl_Pixmap>(gLauncherLogo_xpm_data);
-    const auto pImageBox = new Fl_Box(FL_NO_BOX, lx, ty, rx - lx, 0, nullptr);
+    const auto pImageBox = new Fl_Box(FL_NO_BOX, lx, ty, rx - lx, 1, nullptr);
     pImageBox->image(tab.pGameLogo.get());
 }
 
@@ -548,7 +548,7 @@ void populateLauncherTab(Context& ctx) noexcept {
     const RectExtents tabRect = getRectExtents(*tab.pTab);
     tab.onNetPeerTypeUpdated = onNetPeerTypeUpdated;
 
-    makeLogo(tab, tabRect.lx, tabRect.rx, tabRect.ty + 110);
+    makeLogo(tab, tabRect.lx, tabRect.rx, tabRect.ty + 106);
     makeCueFileSelector(tab, tabRect.lx + 20, tabRect.rx - 20, 230);
     makeModDataDirSelector(tab, tabRect.lx + 20, tabRect.rx - 20, 300);
     makeGameOptionsSection(tab, tabRect.lx + 330, 370);
