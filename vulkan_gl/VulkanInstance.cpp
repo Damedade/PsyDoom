@@ -13,6 +13,13 @@ BEGIN_NAMESPACE(vgl)
 // Name of the Vulkan validation layer to use
 static constexpr const char* const KHRONOS_VALIDATION_LAYER_NAME = "VK_LAYER_KHRONOS_validation";
 
+// Vulkan validation layer: what categories of messages are logged
+#define VULKAN_VALIDATION_LOG_ERRORS 1
+#define VULKAN_VALIDATION_LOG_WARNINGS 1
+#define VULKAN_VALIDATION_LOG_PERFORMANCE_WARNINGS 0
+#define VULKAN_VALIDATION_LOG_INFO_MESSAGES 0
+#define VULKAN_VALIDATION_LOG_DEBUG_MESSAGES 0
+
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Function called by the Vulkan debug validation layers.
 // Called whenever there is a message (error, info, etc.) to log.
@@ -27,26 +34,29 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vulkanValidationLayerCallback(
     const char* pMessage,
     [[maybe_unused]] void* pUserData
 ) noexcept {
-    // Set to '1' for more verbose logging
-    #define VULKAN_VALIDATION_LAYER_VERBOSE_LOGGING 0
-
     // See what type of message we are dealing with:
     if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) {
-        std::printf("[VULKAN ERROR]: %s\n\n", pMessage);
+        #if VULKAN_VALIDATION_LOG_ERRORS
+            std::printf("[VULKAN ERROR]: %s\n\n", pMessage);
+        #endif
     }
     else if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT) {
-        std::printf("[VULKAN WARNING]: %s\n\n", pMessage);
+        #if VULKAN_VALIDATION_LOG_WARNINGS
+            std::printf("[VULKAN WARNING]: %s\n\n", pMessage);
+        #endif
     }
     else if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT) {
-        std::printf("[VULKAN PERFORMANCE WARNING]: %s\n\n", pMessage);
+        #if VULKAN_VALIDATION_LOG_PERFORMANCE_WARNINGS
+            std::printf("[VULKAN PERFORMANCE WARNING]: %s\n\n", pMessage);
+        #endif
     }
     else if (flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT) {
-        #if VULKAN_VALIDATION_LAYER_VERBOSE_LOGGING
+        #if VULKAN_VALIDATION_LOG_INFO_MESSAGES
             std::printf("[VULKAN INFO]: %s\n\n", pMessage);
         #endif
     }
     else if (flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT) {
-        #if VULKAN_VALIDATION_LAYER_VERBOSE_LOGGING
+        #if VULKAN_VALIDATION_LOG_DEBUG_MESSAGES
             std::printf("[VULKAN DEBUG]: %s\n\n", pMessage);
         #endif
     }
@@ -65,11 +75,22 @@ static VkDebugReportCallbackCreateInfoEXT getDebugReportCallbackCreateInfo() noe
     createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
     createInfo.pfnCallback = vulkanValidationLayerCallback;
     createInfo.flags = (
-        VK_DEBUG_REPORT_INFORMATION_BIT_EXT |
-        VK_DEBUG_REPORT_WARNING_BIT_EXT |
-        VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT |
-        VK_DEBUG_REPORT_ERROR_BIT_EXT |
-        VK_DEBUG_REPORT_DEBUG_BIT_EXT
+        #if VULKAN_VALIDATION_LOG_INFO_MESSAGES
+            VK_DEBUG_REPORT_INFORMATION_BIT_EXT |
+        #endif
+        #if VULKAN_VALIDATION_LOG_WARNINGS
+            VK_DEBUG_REPORT_WARNING_BIT_EXT |
+        #endif
+        #if VULKAN_VALIDATION_LOG_PERFORMANCE_WARNINGS
+            VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT |
+        #endif
+        #if VULKAN_VALIDATION_LOG_ERRORS
+            VK_DEBUG_REPORT_ERROR_BIT_EXT |
+        #endif
+        #if VULKAN_VALIDATION_LOG_DEBUG_MESSAGES
+            VK_DEBUG_REPORT_DEBUG_BIT_EXT |
+        #endif
+        0
     );
     return createInfo;
 }
