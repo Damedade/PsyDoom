@@ -124,8 +124,8 @@ void VRenderPath_Psx::destroy() noexcept {
 // Creates or recreates the gamma adjust framebuffers for this render path
 //------------------------------------------------------------------------------------------------------------------------------------------
 bool VRenderPath_Psx::ensureValidFramebuffers(
-    const uint32_t fbWidth,
-    const uint32_t fbHeight,
+    [[maybe_unused]] const uint32_t fbWidth,
+    [[maybe_unused]] const uint32_t fbHeight,
     const bool bGpuIsIdle
 ) noexcept {
     ASSERT(mbIsValid);
@@ -311,7 +311,6 @@ void VRenderPath_Psx::endFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecorder
         // Note: using 2 separate bindings instead of a texture array to appease MoltenVK on macOS.
         ASSERT(VRenderer::gGammaAdjustTex.isValid());
         
-        const uint32_t ringbufferIdx = device.getRingbufferMgr().getBufferIndex();
         const VkSampler gammaAdjustSampler = VPipelines::gSampler_normClampNearest.getVkSampler();
         vgl::DescriptorSet& gammaAdjustDescSet = *mpGammaAdjustDescriptorSets[ringbufferIdx];
         

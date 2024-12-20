@@ -291,7 +291,7 @@ bool VRenderPath_Main::ensureValidFramebuffers(
                     fbAttachments.push_back(&mMsaaResolver.getResolveAttachment(ringbufferIdx));
                 }
                 
-                const uint32_t swapImgAttachIdx = fbAttachments.size(); // Index of the swapchain image attachment
+                const uint32_t swapImgAttachIdx = (uint32_t) fbAttachments.size(); // Index of the swapchain image attachment
                 
                 if (!framebuffer.init(mRenderPass_GammaAdjust, swapchain, swapchainIdx, swapImgAttachIdx, fbAttachments))
                     return false;

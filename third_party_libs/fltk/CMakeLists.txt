@@ -543,10 +543,18 @@ if (PLATFORM_LINUX)
 endif()
 
 if (COMPILER_MSVC)
-    target_compile_options(${FLTK_TGT_NAME} PUBLIC /wd4101)                             # Disable warning: unreferenced local variables
-    target_compile_definitions(${FLTK_TGT_NAME} PRIVATE -D_CRT_SECURE_NO_WARNINGS)      # Don't complain about using regular 'std::fopen()' etc.
+    # Mute these warnings when compiling FLTK
+    target_compile_options(${FLTK_TGT_NAME} PUBLIC
+        /wd4101     # Unreferenced local variables
+        /wd4244     # Type conversions with possible loss of data (like 'float' to 'int')
+        /wd4267     # Converting from 'size_t' to other type, loss of data
+    )
+
+    # Don't complain about using regular 'std::fopen()' etc.
+    target_compile_definitions(${FLTK_TGT_NAME} PRIVATE -D_CRT_SECURE_NO_WARNINGS)
 endif()
 
 if (COMPILER_CLANG OR COMPILER_GCC)
-    target_compile_options(${FLTK_TGT_NAME} PRIVATE -Wno-deprecated-declarations)       # No warnings about using deprecated library functions
+    # No warnings about using deprecated library functions
+    target_compile_options(${FLTK_TGT_NAME} PRIVATE -Wno-deprecated-declarations)
 endif()

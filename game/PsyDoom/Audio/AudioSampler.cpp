@@ -65,7 +65,7 @@ static SampleT<STEREO, int16_t> rawSample_i16(const AudioData& audioData, const 
     // Grab the info we need from the audio block and validate
     const int16_t* const pSampleData = audioData.pData.get();
     const uint32_t numChannels = audioData.numChannels;
-    const uint32_t numSamples = audioData.numSamples;
+    [[maybe_unused]] const uint32_t numSamples = audioData.numSamples;
 
     ASSERT(pSampleData);
     ASSERT(numChannels >= 1);
@@ -118,7 +118,7 @@ static SampleT<STEREO, float> smoothSample_f32(const AudioData& audioData, const
     // Grab the info we need from the audio block and validate
     const int16_t* const pSampleData = audioData.pData.get();
     const uint32_t numChannels = audioData.numChannels;
-    const uint32_t numSamples = audioData.numSamples;
+    [[maybe_unused]] const uint32_t numSamples = audioData.numSamples;
 
     ASSERT(pSampleData);
     ASSERT(numChannels >= 1);
