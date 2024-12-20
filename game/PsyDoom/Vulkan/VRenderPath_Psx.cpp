@@ -382,33 +382,59 @@ void VRenderPath_Psx::endFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecorder
         ASSERT((Video::gBotOverscan >= 0) && (Video::gBotOverscan < Video::ORIG_DRAW_RES_Y / 2));
 
         const uint32_t swapchainIdx = swapchain.getAcquiredImageIdx();
-        const VkImage swapchainImage = swapchain.getVkImages()[swapchainIdx];
+        const VkImage vkSwapchainImage = swapchain.getVkImages()[swapchainIdx];
 
         if ((blitW > 0) && (blitH > 0)) {
-            VkImageBlit blitRegion = {};
-            blitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            blitRegion.srcSubresource.layerCount = 1;
-            blitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            blitRegion.dstSubresource.layerCount = 1;
-            blitRegion.srcOffsets[0].y = Video::gTopOverscan;
-            blitRegion.srcOffsets[1].x = Video::ORIG_DRAW_RES_X;
-            blitRegion.srcOffsets[1].y = Video::ORIG_DRAW_RES_Y - Video::gBotOverscan;
-            blitRegion.srcOffsets[1].z = 1;
-            blitRegion.dstOffsets[0].x = blitDstMinX;
-            blitRegion.dstOffsets[0].y = blitDstMinY;
-            blitRegion.dstOffsets[1].x = blitDstMaxX;
-            blitRegion.dstOffsets[1].y = blitDstMaxY;
-            blitRegion.dstOffsets[1].z = 1;
+            // Ensure the clear of the swapchain image is finished before we blit
+            {
+                VkImageMemoryBarrier imgBarrier = {};
+                imgBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                imgBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                imgBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                imgBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+                imgBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+                imgBarrier.image = vkSwapchainImage;
+                imgBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                imgBarrier.subresourceRange.levelCount = 1;
+                imgBarrier.subresourceRange.layerCount = 1;
 
-            cmdRec.blitImage(
-                psxFbTexture.getVkImage(),
-                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                swapchainImage,
-                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                1,
-                &blitRegion,
-                VK_FILTER_NEAREST
-            );
+                cmdRec.addPipelineBarrier(
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    0,
+                    nullptr,
+                    1,
+                    &imgBarrier
+                );
+            }
+
+            // Do the blit to the swapchain image
+            {
+                VkImageBlit blitRegion = {};
+                blitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                blitRegion.srcSubresource.layerCount = 1;
+                blitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                blitRegion.dstSubresource.layerCount = 1;
+                blitRegion.srcOffsets[0].y = Video::gTopOverscan;
+                blitRegion.srcOffsets[1].x = Video::ORIG_DRAW_RES_X;
+                blitRegion.srcOffsets[1].y = Video::ORIG_DRAW_RES_Y - Video::gBotOverscan;
+                blitRegion.srcOffsets[1].z = 1;
+                blitRegion.dstOffsets[0].x = blitDstMinX;
+                blitRegion.dstOffsets[0].y = blitDstMinY;
+                blitRegion.dstOffsets[1].x = blitDstMaxX;
+                blitRegion.dstOffsets[1].y = blitDstMaxY;
+                blitRegion.dstOffsets[1].z = 1;
+
+                cmdRec.blitImage(
+                    psxFbTexture.getVkImage(),
+                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                    vkSwapchainImage,
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    1,
+                    &blitRegion,
+                    VK_FILTER_NEAREST
+                );
+            }
         }
 
         // Transition the swapchain image back to presentation optimal in preparation for presentation
@@ -419,7 +445,7 @@ void VRenderPath_Psx::endFrame(vgl::Swapchain& swapchain, vgl::CmdBufferRecorder
             imgBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
             imgBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
             imgBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-            imgBarrier.image = swapchainImage;
+            imgBarrier.image = vkSwapchainImage;
             imgBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             imgBarrier.subresourceRange.levelCount = 1;
             imgBarrier.subresourceRange.layerCount = 1;
