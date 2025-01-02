@@ -580,14 +580,16 @@ void O_DrawBackground(
         const uint16_t tileH = pow2Floor(bgTex.height);
         int32_t numTilesX = (SCREEN_W + tileW - 1) / tileW;
         int32_t numTilesY = (SCREEN_H + tileH - 1) / tileH;
-
-        // Support widescreen if widescreen options menu tiling is enabled.
-        // This allows user mods or new game types to implement menus that fully support widescreen.
-        if (Video::isUsingVulkanRenderPath() && Config::gbVulkanWidescreenEnabled && MapInfo::getGameInfo().bAllowWideOptionsBg) {
-            const int32_t extraSpaceAtSides = (int32_t) std::max(std::floor(VRenderer::gPsxCoordsFbX), 0.0f);
-            const int32_t numExtraTilesAtSides = (extraSpaceAtSides + tileW - 1) / tileW;
-            numTilesX += numExtraTilesAtSides * 2;
-        }
+        
+        #if PSYDOOM_VULKAN_RENDERER
+            // Support widescreen if widescreen options menu tiling is enabled.
+            // This allows user mods or new game types to implement menus that fully support widescreen.
+            if (Video::isUsingVulkanRenderPath() && Config::gbVulkanWidescreenEnabled && MapInfo::getGameInfo().bAllowWideOptionsBg) {
+                const int32_t extraSpaceAtSides = (int32_t) std::max(std::floor(VRenderer::gPsxCoordsFbX), 0.0f);
+                const int32_t numExtraTilesAtSides = (extraSpaceAtSides + tileW - 1) / tileW;
+                numTilesX += numExtraTilesAtSides * 2;
+            }
+        #endif
 
         // Don't let this get too out of hand!
         numTilesX = std::min(numTilesX, 64);
