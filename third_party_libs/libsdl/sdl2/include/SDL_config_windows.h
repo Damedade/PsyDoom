@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -99,8 +99,10 @@ typedef unsigned int uintptr_t;
 #define HAVE_D3D11_H 1
 #define HAVE_ROAPI_H 1
 #endif
-#if defined(WDK_NTDDI_VERSION) && WDK_NTDDI_VERSION > 0x0A000008 /* 10.0.19041.0 */
+#if defined(__has_include)
+#if __has_include(<d3d12.h>) && __has_include(<d3d12sdklayers.h>)
 #define HAVE_D3D12_H 1
+#endif
 #endif
 #if defined(_WIN32_MAXVER) && _WIN32_MAXVER >= 0x0603  /* Windows 8.1 SDK */
 #define HAVE_SHELLSCALINGAPI_H 1
@@ -254,19 +256,21 @@ typedef unsigned int uintptr_t;
 
 /* Enable various input drivers */
 #define SDL_JOYSTICK_DINPUT 1
-#if false
+#if 0
     #define SDL_JOYSTICK_HIDAPI 1   /* PsyDoom: Not enough to define this to '0', must be undefined completely */
 #endif
 #ifndef __WINRT__
-    #if false
-        #define SDL_JOYSTICK_RAWINPUT   1   /* PsyDoom: Not enough to define this to '0', must be undefined completely */
-    #endif
+#if 0
+    #define SDL_JOYSTICK_RAWINPUT   1   /* PsyDoom: Not enough to define this to '0', must be undefined completely */
 #endif
-#if false
+#endif
+#if 0
     #define SDL_JOYSTICK_VIRTUAL    1   /* PsyDoom: Not enough to define this to '0', must be undefined completely */
 #endif
-#if false
+#ifdef HAVE_WINDOWS_GAMING_INPUT_H
+#if 0
     #define SDL_JOYSTICK_WGI    1   /* PsyDoom: Not enough to define this to '0', must be undefined completely */
+#endif
 #endif
 #define SDL_JOYSTICK_XINPUT 1
 #define SDL_HAPTIC_DINPUT   1

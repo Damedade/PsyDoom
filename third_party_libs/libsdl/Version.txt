@@ -1,5 +1,7 @@
 Note: I have stripped out some stuff which is not needed to use this library.
 The full version is available at the link below.
 
-Version 2.26.5:
-    https://github.com/libsdl-org/SDL/releases/tag/release-2.26.5
+Version 2.30.11:
+    https://github.com/libsdl-org/SDL/releases/tag/release-2.30.11
+    https://github.com/libsdl-org/SDL/tree/release-2.30.11
+    https://github.com/libsdl-org/SDL/archive/refs/tags/release-2.30.11.zip

@@ -78,6 +78,8 @@ set(SOURCE_FILES
     "${INCLUDE_DIR}/SDL_vulkan.h"
     "${SRC_DIR}/atomic/SDL_atomic.c"
     "${SRC_DIR}/atomic/SDL_spinlock.c"
+    "${SRC_DIR}/audio/disk/SDL_diskaudio.c"
+    "${SRC_DIR}/audio/disk/SDL_diskaudio.h"
     "${SRC_DIR}/audio/dummy/SDL_dummyaudio.c"
     "${SRC_DIR}/audio/dummy/SDL_dummyaudio.h"
     "${SRC_DIR}/audio/SDL_audio.c"
@@ -127,6 +129,7 @@ set(SOURCE_FILES
     "${SRC_DIR}/haptic/SDL_haptic.c"
     "${SRC_DIR}/haptic/SDL_haptic_c.h"
     "${SRC_DIR}/haptic/SDL_syshaptic.h"
+    "${SRC_DIR}/joystick/controller_list.h"
     "${SRC_DIR}/joystick/controller_type.c"
     "${SRC_DIR}/joystick/controller_type.h"
     "${SRC_DIR}/joystick/dummy/SDL_sysjoystick.c"
@@ -134,6 +137,8 @@ set(SOURCE_FILES
     "${SRC_DIR}/joystick/SDL_gamecontrollerdb.h"
     "${SRC_DIR}/joystick/SDL_joystick.c"
     "${SRC_DIR}/joystick/SDL_joystick_c.h"
+    "${SRC_DIR}/joystick/SDL_steam_virtual_gamepad.c"
+    "${SRC_DIR}/joystick/SDL_steam_virtual_gamepad.h"
     "${SRC_DIR}/joystick/SDL_sysjoystick.h"
     "${SRC_DIR}/joystick/steam/SDL_steamcontroller.c"
     "${SRC_DIR}/joystick/steam/SDL_steamcontroller.h"
@@ -186,6 +191,12 @@ set(SOURCE_FILES
     "${SRC_DIR}/thread/SDL_thread_c.h"
     "${SRC_DIR}/timer/SDL_timer.c"
     "${SRC_DIR}/timer/SDL_timer_c.h"
+    "${SRC_DIR}/video/dummy/SDL_nullevents.c"
+    "${SRC_DIR}/video/dummy/SDL_nullevents_c.h"
+    "${SRC_DIR}/video/dummy/SDL_nullframebuffer.c"
+    "${SRC_DIR}/video/dummy/SDL_nullframebuffer_c.h"
+    "${SRC_DIR}/video/dummy/SDL_nullvideo.c"
+    "${SRC_DIR}/video/dummy/SDL_nullvideo.h"
     "${SRC_DIR}/video/SDL_blit.c"
     "${SRC_DIR}/video/SDL_blit.h"
     "${SRC_DIR}/video/SDL_blit_copy.c"
@@ -194,6 +205,8 @@ set(SOURCE_FILES
     "${SRC_DIR}/video/SDL_blit_slow.h"
     "${SRC_DIR}/video/SDL_bmp.c"
     "${SRC_DIR}/video/SDL_clipboard.c"
+    "${SRC_DIR}/video/SDL_egl.c"
+    "${SRC_DIR}/video/SDL_egl_c.h"
     "${SRC_DIR}/video/SDL_fillrect.c"
     "${SRC_DIR}/video/SDL_pixels.c"
     "${SRC_DIR}/video/SDL_pixels_c.h"
@@ -208,6 +221,8 @@ set(SOURCE_FILES
     "${SRC_DIR}/video/SDL_surface.c"
     "${SRC_DIR}/video/SDL_sysvideo.h"
     "${SRC_DIR}/video/SDL_video.c"
+    "${SRC_DIR}/video/SDL_vulkan_internal.h"
+    "${SRC_DIR}/video/SDL_vulkan_utils.c"
     "${SRC_DIR}/video/SDL_yuv.c"
     "${SRC_DIR}/video/SDL_yuv_c.h"
 )
@@ -217,19 +232,16 @@ set(OTHER_FILES
     "${SRC_DIR}/video/sdlgenblit.pl"
 )
 
-if (PSYDOOM_INCLUDE_VULKAN_RENDERER)
-    list(APPEND SOURCE_FILES
-        "${SRC_DIR}/video/SDL_vulkan_internal.h"
-        "${SRC_DIR}/video/SDL_vulkan_utils.c"
-    )
-endif()
-
 if (PLATFORM_WINDOWS)
     list(APPEND SOURCE_FILES
         "${INCLUDE_DIR}/SDL_config_windows.h"
+        "${SRC_DIR}/audio/directsound/SDL_directsound.c"
+        "${SRC_DIR}/audio/directsound/SDL_directsound.h"
         "${SRC_DIR}/audio/wasapi/SDL_wasapi.c"
         "${SRC_DIR}/audio/wasapi/SDL_wasapi.h"
         "${SRC_DIR}/audio/wasapi/SDL_wasapi_win32.c"
+        "${SRC_DIR}/audio/winmm/SDL_winmm.c"
+        "${SRC_DIR}/audio/winmm/SDL_winmm.h"
         "${SRC_DIR}/core/windows/SDL_directx.h"
         "${SRC_DIR}/core/windows/SDL_immdevice.c"
         "${SRC_DIR}/core/windows/SDL_immdevice.h"
@@ -255,6 +267,7 @@ if (PLATFORM_WINDOWS)
         "${SRC_DIR}/locale/windows/SDL_syslocale.c"
         "${SRC_DIR}/misc/windows/SDL_sysurl.c"
         "${SRC_DIR}/thread/generic/SDL_syscond.c"
+        "${SRC_DIR}/thread/windows/SDL_syscond_cv.c"
         "${SRC_DIR}/thread/windows/SDL_sysmutex.c"
         "${SRC_DIR}/thread/windows/SDL_syssem.c"
         "${SRC_DIR}/thread/windows/SDL_systhread.c"
@@ -279,21 +292,18 @@ if (PLATFORM_WINDOWS)
         "${SRC_DIR}/video/windows/SDL_windowsmouse.h"
         "${SRC_DIR}/video/windows/SDL_windowsopengl.c"
         "${SRC_DIR}/video/windows/SDL_windowsopengl.h"
+        "${SRC_DIR}/video/windows/SDL_windowsopengles.c"
+        "${SRC_DIR}/video/windows/SDL_windowsopengles.h"
         "${SRC_DIR}/video/windows/SDL_windowsshape.c"
         "${SRC_DIR}/video/windows/SDL_windowsshape.h"
         "${SRC_DIR}/video/windows/SDL_windowsvideo.c"
         "${SRC_DIR}/video/windows/SDL_windowsvideo.h"
+        "${SRC_DIR}/video/windows/SDL_windowsvulkan.c"
+        "${SRC_DIR}/video/windows/SDL_windowsvulkan.h"
         "${SRC_DIR}/video/windows/SDL_windowswindow.c"
         "${SRC_DIR}/video/windows/SDL_windowswindow.h"
         "${SRC_DIR}/video/windows/wmmsg.h"
     )
-
-    if (PSYDOOM_INCLUDE_VULKAN_RENDERER)
-        list(APPEND SOURCE_FILES
-            "${SRC_DIR}/video/windows/SDL_windowsvulkan.c"
-            "${SRC_DIR}/video/windows/SDL_windowsvulkan.h"
-        )
-    endif()
 endif()
 
 if (PLATFORM_MAC)
@@ -344,16 +354,11 @@ if (PLATFORM_MAC)
         "${SRC_DIR}/video/cocoa/SDL_cocoashape.m"
         "${SRC_DIR}/video/cocoa/SDL_cocoavideo.h"
         "${SRC_DIR}/video/cocoa/SDL_cocoavideo.m"
+        "${SRC_DIR}/video/cocoa/SDL_cocoavulkan.h"
+        "${SRC_DIR}/video/cocoa/SDL_cocoavulkan.m"
         "${SRC_DIR}/video/cocoa/SDL_cocoawindow.h"
         "${SRC_DIR}/video/cocoa/SDL_cocoawindow.m"
     )
-
-    if (PSYDOOM_INCLUDE_VULKAN_RENDERER)
-        list(APPEND SOURCE_FILES
-            "${SRC_DIR}/video/cocoa/SDL_cocoavulkan.h"
-            "${SRC_DIR}/video/cocoa/SDL_cocoavulkan.m"
-        )
-    endif()
 
     list(APPEND OTHER_FILES
         "${SRC_DIR}/render/metal/SDL_shaders_metal.metal"
