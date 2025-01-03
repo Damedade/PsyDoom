@@ -240,6 +240,9 @@ void SoundCache::cacheCurrentMapSounds() noexcept {
             case MT_WOLFSS:     bCacheSfx_wolfSS        = true; break;
             case MT_KEEN:       bCacheSfx_keen          = true; break;
             case MT_BOSSBRAIN:  bCacheSfx_iconOfSin     = true; break;
+
+            default:
+                break; // Nothing to cache
         }
     }
 
@@ -321,7 +324,7 @@ void SoundCache::cacheCurrentMapSounds() noexcept {
         cacheSound(sfx_skepch);     // 80: Revenant punch land
     }
 
-    if (bCacheSfx_cacodemon) {
+    if (bCacheSfx_cyberdemon) {
         cacheSound(sfx_cybsit);     // 81: Cyberdemon sight
         cacheSound(sfx_cybdth);     // 82: Cyberdemon death
         cacheSound(sfx_hoof);       // 83: Cyberdemon hoof up
