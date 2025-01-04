@@ -154,22 +154,28 @@
 
 /* Enable various audio drivers */
 #define SDL_AUDIO_DRIVER_COREAUDIO  1
-#define SDL_AUDIO_DRIVER_DISK   0
+#define SDL_AUDIO_DRIVER_DISK   1
 #define SDL_AUDIO_DRIVER_DUMMY  1
 
 /* Enable various input drivers */
-#if false
-	#define SDL_JOYSTICK_HIDAPI  1	/* PsyDoom: Not enough to define this to '0', must be undefined completely */
+
+/* PsyDoom: Not enough to define this to '0', must be undefined completely */
+#if 0
+#define SDL_JOYSTICK_HIDAPI 1
 #endif
+
 #define SDL_JOYSTICK_IOKIT  1
-#if false
-	#define SDL_JOYSTICK_VIRTUAL    1	/* PsyDoom: Not enough to define this to '0', must be undefined completely */
+
+/* PsyDoom: Not enough to define this to '0', must be undefined completely */
+#if 0
+#define SDL_JOYSTICK_VIRTUAL    1
 #endif
+
 #define SDL_HAPTIC_IOKIT    1
 
 /* The MFI controller support requires ARC Objective C runtime */
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= 1080 && !defined(__i386__)
-#define SDL_JOYSTICK_MFI 0
+#define SDL_JOYSTICK_MFI 1
 #endif
 
 /* Enable the dummy sensor driver */
@@ -187,7 +193,7 @@
 
 /* Enable various video drivers */
 #define SDL_VIDEO_DRIVER_COCOA  1
-#define SDL_VIDEO_DRIVER_DUMMY  0
+#define SDL_VIDEO_DRIVER_DUMMY  1
 #undef SDL_VIDEO_DRIVER_X11
 #define SDL_VIDEO_DRIVER_X11_DYNAMIC "/opt/X11/lib/libX11.6.dylib"
 #define SDL_VIDEO_DRIVER_X11_DYNAMIC_XEXT "/opt/X11/lib/libXext.6.dylib"
@@ -211,11 +217,14 @@
 #endif
 
 #ifndef SDL_VIDEO_RENDER_OGL
-#define SDL_VIDEO_RENDER_OGL    0
+#define SDL_VIDEO_RENDER_OGL    1
 #endif
 
+/* PsyDoom: Not enough to define this to '0', must be undefined completely */
+#if 0
 #ifndef SDL_VIDEO_RENDER_OGL_ES2
-#define SDL_VIDEO_RENDER_OGL_ES2 0
+#define SDL_VIDEO_RENDER_OGL_ES2 1
+#endif
 #endif
 
 /* Metal only supported on 64-bit architectures with 10.11+ */
@@ -235,29 +244,45 @@
 
 /* Enable OpenGL support */
 #ifndef SDL_VIDEO_OPENGL
-#define SDL_VIDEO_OPENGL    0
+#define SDL_VIDEO_OPENGL    1
 #endif
+
+/* PsyDoom: Not enough to define this to '0', must be undefined completely */
+#if 0
 #ifndef SDL_VIDEO_OPENGL_ES2
-#define SDL_VIDEO_OPENGL_ES2    0
+#define SDL_VIDEO_OPENGL_ES2    1
 #endif
+#endif
+
+/* PsyDoom: Not enough to define this to '0', must be undefined completely */
+#if 0
 #ifndef SDL_VIDEO_OPENGL_EGL
-#define SDL_VIDEO_OPENGL_EGL    0
+#define SDL_VIDEO_OPENGL_EGL    1
 #endif
+#endif
+
 #ifndef SDL_VIDEO_OPENGL_CGL
 #define SDL_VIDEO_OPENGL_CGL    1
 #endif
+
+/* PsyDoom: Not enough to define this to '0', must be undefined completely */
+#if 0
 #ifndef SDL_VIDEO_OPENGL_GLX
-#define SDL_VIDEO_OPENGL_GLX    0
+#define SDL_VIDEO_OPENGL_GLX    1
+#endif
 #endif
 
 /* Enable Vulkan and Metal support */
+/* PsyDoom: Not enough to define this to '0', must be undefined completely */
+#if PSYDOOM_VULKAN_RENDERER
 #ifndef SDL_VIDEO_VULKAN
 #if SDL_PLATFORM_SUPPORTS_METAL
-#define SDL_VIDEO_VULKAN PSYDOOM_VULKAN_RENDERER
+#define SDL_VIDEO_VULKAN 1
 #else
 #define SDL_VIDEO_VULKAN 0
 #endif
 #endif
+#endif // #if PSYDOOM_VULKAN_RENDERER
 
 #ifndef SDL_VIDEO_METAL
 #if SDL_PLATFORM_SUPPORTS_METAL
@@ -268,10 +293,10 @@
 #endif
 
 /* Enable system power support */
-#define SDL_POWER_MACOSX 0
+#define SDL_POWER_MACOSX 1
 
 /* enable filesystem support */
-#define SDL_FILESYSTEM_COCOA   0
+#define SDL_FILESYSTEM_COCOA   1
 
 /* Enable assembly routines */
 #ifdef __ppc__
