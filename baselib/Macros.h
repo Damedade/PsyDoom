@@ -44,7 +44,7 @@
     // GCC or Clang
     #define BEGIN_DISABLE_HEADER_WARNINGS\
         _Pragma("GCC diagnostic push")\
-        /* ... Insert pragmas to disable warnings here! ... */
+        _Pragma("GCC diagnostic ignored \"-Wunused-variable\"")
 
     #define END_DISABLE_HEADER_WARNINGS\
         _Pragma("GCC diagnostic pop")

@@ -19,8 +19,6 @@
 #include "PsyDoom/Game.h"
 #include "PsyDoom/PlayerPrefs.h"
 #include "PsyDoom/Utils.h"
-#include "PsyDoom/Video.h"
-#include "PsyDoom/Vulkan/VRenderer.h"
 
 #include <cstdio>
 
@@ -257,23 +255,6 @@ void InputOpt_Draw() noexcept {
 
         if (gCursorPos[gCurPlayerIndex] == menu_always_run) {
             cursorY = 90;
-        }
-
-        // Draw the stats display option
-        const char* statDisplayStr = "Stat Display Off";
-
-        if (PlayerPrefs::gStatDisplayMode >= StatDisplayMode::MapOnly_KillsSecretsAndItems) {
-            statDisplayStr = "Automap Only KSI";
-        } else if (PlayerPrefs::gStatDisplayMode >= StatDisplayMode::MapOnly_KillsAndSecrets) {
-            statDisplayStr = "Automap Only KS";
-        } else if (PlayerPrefs::gStatDisplayMode >= StatDisplayMode::MapOnly_Kills) {
-            statDisplayStr = "Automap Only K";
-        } else if (PlayerPrefs::gStatDisplayMode >= StatDisplayMode::KillsSecretsAndItems) {
-            statDisplayStr = "Stat Display KSI";
-        } else if (PlayerPrefs::gStatDisplayMode >= StatDisplayMode::KillsAndSecrets) {
-            statDisplayStr = "Stat Display KS";
-        } else if (PlayerPrefs::gStatDisplayMode >= StatDisplayMode::Kills) {
-            statDisplayStr = "Stat Display K";
         }
 
         // Draw the exit option

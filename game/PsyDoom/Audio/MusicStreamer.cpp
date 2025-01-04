@@ -10,7 +10,10 @@
 
 #include <cstdio>
 #include <cstring>
-#include <vorbis/vorbisfile.h>
+
+BEGIN_DISABLE_HEADER_WARNINGS
+    #include <vorbis/vorbisfile.h>
+END_DISABLE_HEADER_WARNINGS
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Represents a music source from a CD 'Digital Audio' track on the current game disc.
@@ -56,7 +59,7 @@ public:
             return { Spu::StereoSample{}, ReadSampleResult::END_OF_STEAM };
 
         // Check if we need to read any more data into the internal buffer firstly (because it has been exhausted)
-        if (mBufferOffset + 1 >= NUM_BUFFER_MONO_SAMPLES) {
+        if (mBufferOffset + 1 >= (int32_t) NUM_BUFFER_MONO_SAMPLES) {
             // There is no data left in the internal buffer - need to read some more.
             // But is there any data left in the track itself to read? If not then return silence and 'END_OF_STREAM'.
             const DiscTrack* const pTrack = mDiscReader.getOpenTrack();
@@ -83,7 +86,7 @@ public:
         }
 
         // Should have at least 2 samples in the buffer at this point, return the requested stereo sample:
-        ASSERT(mBufferOffset + 2 <= NUM_BUFFER_MONO_SAMPLES);
+        ASSERT(mBufferOffset + 2 <= (int32_t) NUM_BUFFER_MONO_SAMPLES);
         const Spu::StereoSample sample = { mBuffer[mBufferOffset], mBuffer[mBufferOffset + 1] };
         mBufferOffset += 2;
         

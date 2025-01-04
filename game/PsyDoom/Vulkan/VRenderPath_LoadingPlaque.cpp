@@ -228,11 +228,13 @@ bool VRenderPath_LoadingPlaque::doFramebuffersNeedRecreate() noexcept {
     // Also sanity check the framebuffer dimensions to ensure that they are correct.
     for (uint32_t swapImgIdx = 0; swapImgIdx < swapchainLen; ++swapImgIdx) {
         vgl::Framebuffer& framebuffer = mFramebuffers[swapImgIdx];
+        const std::vector<VkImage>& framebufferImages = framebuffer.getAttachmentImages();
+        const std::vector<VkImage>& swapchainImages = swapchain.getVkImages();
         
         const bool bValidFramebuffer = (
             framebuffer.isValid() &&
-            (framebuffer.getAttachmentImages().size() == 1) &&
-            (framebuffer.getAttachmentImages()[0] == swapchain.getVkImages()[swapImgIdx]) &&
+            (framebufferImages.size() == 1) &&
+            (framebufferImages[0] == swapchainImages[swapImgIdx]) &&
             (framebuffer.getWidth() == swapchain.getSwapExtentWidth()) &&
             (framebuffer.getHeight() == swapchain.getSwapExtentHeight())
         );

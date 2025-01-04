@@ -8,7 +8,6 @@
 #include "Gpu.h"
 #include "LogicalDevice.h"
 #include "Pipeline.h"
-#include "PsyDoom/PlayerPrefs.h"
 #include "PsyDoom/PsxVm.h"
 #include "PsyDoom/Video.h"
 #include "RenderPassDef.h"
@@ -548,11 +547,13 @@ bool VRenderPath_Psx::doGammaAdjustFramebuffersNeedRecreate() noexcept {
     // Also sanity check the framebuffer dimensions to ensure that they are correct.
     for (uint32_t swapImgIdx = 0; swapImgIdx < swapchainLen; ++swapImgIdx) {
         vgl::Framebuffer& framebuffer = mGammaAdjustFramebuffers[swapImgIdx];
+        const std::vector<VkImage>& framebufferImages = framebuffer.getAttachmentImages();
+        const std::vector<VkImage>& swapchainImages = swapchain.getVkImages();
         
         const bool bValidFramebuffer = (
             framebuffer.isValid() &&
-            (framebuffer.getAttachmentImages().size() == 1) &&
-            (framebuffer.getAttachmentImages()[0] == swapchain.getVkImages()[swapImgIdx]) &&
+            (framebufferImages.size() == 1) &&
+            (framebufferImages[0] == swapchainImages[swapImgIdx]) &&
             (framebuffer.getWidth() == swapchain.getSwapExtentWidth()) &&
             (framebuffer.getHeight() == swapchain.getSwapExtentHeight())
         );
