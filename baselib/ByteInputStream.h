@@ -84,7 +84,7 @@ private:
         }
     }
 
-    const std::byte* const  mpData;
-    const size_t            mSize;
-    size_t                  mCurByteIdx;
+    const std::byte*    mpData;
+    size_t              mSize;
+    size_t              mCurByteIdx;
 };

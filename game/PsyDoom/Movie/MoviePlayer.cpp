@@ -50,7 +50,6 @@ static std::mutex                   gAudioSectorsMutex;                     // S
 static std::vector<AudioSector*>    gEmptyAudioSectors;                     // Which audio sectors are consumed and free to populate
 static std::vector<AudioSector*>    gDecodingAudioSectors;                  // Which audio sectors are currently being decoded
 static std::vector<AudioSector*>    gReadyAudioSectors;                     // Which audio sectors are populated with data and ready to use
-static Spu::ExtInputCallback        gPrevAudioExtInput;                     // Previous audio external input callback: restored after playback finishes
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Helper: returns an empty audio sector for decoding or 'nullptr' if there are none.
