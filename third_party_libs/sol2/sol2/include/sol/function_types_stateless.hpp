@@ -320,7 +320,13 @@ namespace sol { namespace function_detail {
 		}
 
 		template <bool is_yielding, bool no_trampoline>
-		static int call(lua_State* L) noexcept(std::is_nothrow_copy_assignable_v<T>) {
+    // PsyDoom: workaround for a Clang 16-18(+?) compiler bug from: https://github.com/ThePhD/sol2/issues/1581
+    // The Clang issue itself can be found here: https://github.com/llvm/llvm-project/pull/90760
+    #if SOL_IS_ON(SOL_COMPILER_CLANG)
+        static int call(lua_State* L) {
+    #else
+        static int call(lua_State* L) noexcept(std::is_nothrow_copy_assignable_v<T>) {
+    #endif
 			int nr;
 			if constexpr (no_trampoline) {
 				nr = real_call(L);
@@ -360,7 +366,13 @@ namespace sol { namespace function_detail {
 		}
 
 		template <bool is_yielding, bool no_trampoline>
-		static int call(lua_State* L) noexcept(std::is_nothrow_copy_assignable_v<T>) {
+    // PsyDoom: workaround for a Clang 16-18(+?) compiler bug from: https://github.com/ThePhD/sol2/issues/1581
+    // The Clang issue itself can be found here: https://github.com/llvm/llvm-project/pull/90760
+    #if SOL_IS_ON(SOL_COMPILER_CLANG)
+        static int call(lua_State* L) {
+    #else
+        static int call(lua_State* L) noexcept(std::is_nothrow_copy_assignable_v<T>) {
+    #endif
 			int nr;
 			if constexpr (no_trampoline) {
 				nr = real_call(L);

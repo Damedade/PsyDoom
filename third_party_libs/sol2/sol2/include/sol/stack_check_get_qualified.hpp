@@ -32,7 +32,10 @@ namespace sol { namespace stack {
 
 #if SOL_IS_ON(SOL_COMPILER_GCC)
 #pragma GCC diagnostic push
+// PsyDoom: stop warnings when compiling with Clang about an unknown warning option
+#if !SOL_IS_ON(SOL_COMPILER_CLANG)
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
 #endif
 
 	namespace stack_detail {
