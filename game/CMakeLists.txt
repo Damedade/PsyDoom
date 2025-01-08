@@ -595,11 +595,15 @@ endif()
 # Compile options used across all PsyDoom projects
 add_psydoom_common_target_compile_options(${GAME_TGT_NAME})
 
-# Clang or GCC specific
+# Compiler specific warning flags
 if (COMPILER_CLANG OR COMPILER_GCC)
-    # Warnings
     target_compile_options(${GAME_TGT_NAME} PUBLIC
         -Wno-format-security        # Disable: format string is not a string literal (potentially insecure)
+    )
+endif()
+
+if (COMPILER_GCC)
+    target_compile_options(${GAME_TGT_NAME} PUBLIC
         -Wno-stringop-truncation    # Disable: output may be truncated copying... (and other similar warnings)
     )
 endif()
