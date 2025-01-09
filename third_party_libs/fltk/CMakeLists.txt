@@ -527,6 +527,11 @@ endif()
 if (PLATFORM_MAC)
     FIND_LIBRARY(UTID_FRAMEWORK UniformTypeIdentifiers)
     target_link_libraries(${FLTK_TGT_NAME} PRIVATE ${UTID_FRAMEWORK})
+
+    if ("${XCODE_VERSION}" VERSION_GREATER_EQUAL "16.0.0")
+        FIND_LIBRARY(SCREEN_CAPTURE_KIT ScreenCaptureKit)
+        target_link_libraries(${FLTK_TGT_NAME} PRIVATE ${SCREEN_CAPTURE_KIT})
+    endif()
 endif()
 
 if (PLATFORM_LINUX)
@@ -542,12 +547,12 @@ if (PLATFORM_LINUX)
     )
 endif()
 
+# Warning related settings
 if (COMPILER_MSVC)
-    # Mute these warnings when compiling FLTK
     target_compile_options(${FLTK_TGT_NAME} PUBLIC
-        /wd4101     # Unreferenced local variables
-        /wd4244     # Type conversions with possible loss of data (like 'float' to 'int')
-        /wd4267     # Converting from 'size_t' to other type, loss of data
+        /wd4101     # Disable: unreferenced local variables
+        /wd4244     # Disable: type conversions with possible loss of data (like 'float' to 'int')
+        /wd4267     # Disable: converting from 'size_t' to other type, loss of data
     )
 
     # Don't complain about using regular 'std::fopen()' etc.
@@ -557,4 +562,10 @@ endif()
 if (COMPILER_CLANG OR COMPILER_GCC)
     # No warnings about using deprecated library functions
     target_compile_options(${FLTK_TGT_NAME} PRIVATE -Wno-deprecated-declarations)
+endif()
+
+if (COMPILER_CLANG)
+    target_compile_options(${FLTK_TGT_NAME} PRIVATE
+        -Wno-shorten-64-to-32   # Disable: truncating 64-bit integer types to 32-bit
+    )
 endif()

@@ -27,3 +27,10 @@ setup_source_groups("${SOURCE_FILES}" "${OTHER_FILES}")
 add_common_target_compile_options(${LIBOGG_TGT_NAME})
 include_directories(${INCLUDE_PATHS})
 target_include_directories(${LIBOGG_TGT_NAME} INTERFACE ${EXPORTED_INCLUDE_PATHS})
+
+# Warning related settings
+if (COMPILER_CLANG)
+    target_compile_options(${LIBOGG_TGT_NAME} PRIVATE
+        -Wno-shorten-64-to-32   # Disable: truncating 64-bit integer types to 32-bit
+    )
+endif()

@@ -265,7 +265,7 @@ void I_DrawPausedOverlay() noexcept {
     if (player.cheats & CF_WARPMENU) {
         // Draw the level warp menu
         char warpmsg[64];
-        std::sprintf(warpmsg, "warp to level %d", gMapNumToCheatWarpTo);
+        std::snprintf(warpmsg, C_ARRAY_SIZE(warpmsg), "warp to level %d", gMapNumToCheatWarpTo);
         I_DrawString(-1, 40, warpmsg);
 
         #if PSYDOOM_MODS

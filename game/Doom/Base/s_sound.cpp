@@ -217,7 +217,7 @@ void S_SetMusicVolume(const int32_t musVol) noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 CdFileId S_GetMusicLcdFileId(const int32_t trackNum) noexcept {
     char lcdFileName[32];
-    std::sprintf(lcdFileName, "MUSLEV%d.LCD", trackNum);
+    std::snprintf(lcdFileName, C_ARRAY_SIZE(lcdFileName), "MUSLEV%d.LCD", trackNum);
     return lcdFileName;
 }
 
@@ -226,7 +226,7 @@ CdFileId S_GetMusicLcdFileId(const int32_t trackNum) noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 CdFileId S_GetSoundLcdFileId(const int32_t num) noexcept {
     char lcdFileName[32];
-    std::sprintf(lcdFileName, "MAP%02d.LCD", num);
+    std::snprintf(lcdFileName, C_ARRAY_SIZE(lcdFileName), "MAP%02d.LCD", num);
     return lcdFileName;
 }
 

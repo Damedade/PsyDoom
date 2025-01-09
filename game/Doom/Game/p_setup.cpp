@@ -1644,7 +1644,7 @@ void P_SetupLevel(const int32_t mapNum, [[maybe_unused]] const skill_t skill) no
     #if PSYDOOM_MODS
         constexpr auto makeMapFileId = [](const int32_t mapNum, const char* const extension) noexcept {
             char name[64];
-            std::sprintf(name, "MAP%02d.%s", mapNum, extension);
+            std::snprintf(name, C_ARRAY_SIZE(name), "MAP%02d.%s", mapNum, extension);
             return CdFileId(name);
         };
 

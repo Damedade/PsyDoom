@@ -23,3 +23,10 @@ target_include_directories(${ASIO_TGT_NAME} PUBLIC ${INCLUDE_PATHS})
 if (PLATFORM_WINDOWS)
     target_compile_definitions(${ASIO_TGT_NAME} PRIVATE -D_WIN32_WINNT=0x0603)  # Target Windows 8.1 minimum
 endif()
+
+# Warning related settings
+if (COMPILER_CLANG)
+    target_compile_options(${ASIO_TGT_NAME} PRIVATE
+        -Wno-shorten-64-to-32   # Disable: truncating 64-bit integer types to 32-bit
+    )
+endif()

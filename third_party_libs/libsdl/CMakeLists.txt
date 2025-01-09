@@ -463,7 +463,7 @@ endif()
 if (PLATFORM_WINDOWS)
     target_compile_definitions(${LIBSDL_TGT_NAME} PUBLIC HAVE_LIBC)     # Use standard C math libraries etc.
 
-    target_link_libraries(${LIBSDL_TGT_NAME}
+    target_link_libraries(${LIBSDL_TGT_NAME} PRIVATE
         Imm32.lib
         User32.lib
         Version.lib
@@ -485,7 +485,7 @@ if (PLATFORM_MAC)
     FIND_LIBRARY(IO_KIT_FRAMEWORK               IOKit)
     FIND_LIBRARY(METAL_FRAMEWORK                Metal)
 
-    target_link_libraries(${LIBSDL_TGT_NAME}
+    target_link_libraries(${LIBSDL_TGT_NAME} PRIVATE
         ${APP_KIT_FRAMEWORK}
         ${AUDIO_TOOLBOX_FRAMEWORK}
         ${CARBON_FRAMEWORK}
@@ -506,7 +506,7 @@ if (PLATFORM_MAC)
 endif()
 
 if (PLATFORM_LINUX)
-    target_link_libraries(${LIBSDL_TGT_NAME}
+    target_link_libraries(${LIBSDL_TGT_NAME} PRIVATE
         dl
         pthread
         pulse
@@ -521,11 +521,17 @@ if (PLATFORM_LINUX)
     )
 endif()
 
+# Warning related settings
 if (COMPILER_CLANG OR COMPILER_GCC)
-    target_compile_options(${LIBSDL_TGT_NAME} PRIVATE -Wno-deprecated-declarations)             # No warnings about using deprecated library functions
-    target_compile_options(${LIBSDL_TGT_NAME} PRIVATE -Wno-incompatible-pointer-types)          # No warnings about incompatible pointer type conversion
+    target_compile_options(${LIBSDL_TGT_NAME} PRIVATE
+        -Wno-deprecated-declarations        # Disable: using deprecated library functions
+        -Wno-incompatible-pointer-types     # Disable: incompatible pointer type conversion
+    )
 endif()
 
 if (COMPILER_CLANG)
-    target_compile_options(${LIBSDL_TGT_NAME} PRIVATE -Wno-compare-distinct-pointer-types)      # No warnings about comparing distinct pointer types
+    target_compile_options(${LIBSDL_TGT_NAME} PRIVATE
+        -Wno-compare-distinct-pointer-types     # Disable: comparing distinct pointer types
+        -Wno-shorten-64-to-32                   # Disable: truncating 64-bit integer types to 32-bit
+    )
 endif()

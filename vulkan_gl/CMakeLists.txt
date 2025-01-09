@@ -102,7 +102,7 @@ setup_source_groups("${SOURCE_FILES}" "${OTHER_FILES}")
 add_psydoom_common_target_compile_options(${VULKAN_GL_TGT_NAME})
 target_compile_definitions(${VULKAN_GL_TGT_NAME} PUBLIC -DVGL_VULKAN_1_0=1)     # Target Vulkan 1.0
 
-target_link_libraries(${VULKAN_GL_TGT_NAME}
+target_link_libraries(${VULKAN_GL_TGT_NAME} PUBLIC
     ${BASELIB_TGT_NAME}
     ${LIBSDL_TGT_NAME}
 )

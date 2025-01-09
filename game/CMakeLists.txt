@@ -562,7 +562,7 @@ target_bool_compile_definition(${GAME_TGT_NAME} PRIVATE PSYDOOM_VULKAN_RENDERER 
 include_directories(${INCLUDE_PATHS})
 
 # Required libraries
-target_link_libraries(${GAME_TGT_NAME}
+target_link_libraries(${GAME_TGT_NAME} PRIVATE
     ${ASIO_TGT_NAME}
     ${BASELIB_TGT_NAME}
     ${HASH_LIBRARY_TGT_NAME}
@@ -575,11 +575,11 @@ target_link_libraries(${GAME_TGT_NAME}
 )
 
 if (PSYDOOM_INCLUDE_LAUNCHER)
-    target_link_libraries(${GAME_TGT_NAME} ${FLTK_TGT_NAME})
+    target_link_libraries(${GAME_TGT_NAME} PRIVATE ${FLTK_TGT_NAME})
 endif()
 
 if (PSYDOOM_INCLUDE_VULKAN_RENDERER)
-    target_link_libraries(${GAME_TGT_NAME} ${VULKAN_GL_TGT_NAME})
+    target_link_libraries(${GAME_TGT_NAME} PRIVATE ${VULKAN_GL_TGT_NAME})
 endif()
 
 # MSVC specific stuff
@@ -595,7 +595,7 @@ endif()
 # Compile options used across all PsyDoom projects
 add_psydoom_common_target_compile_options(${GAME_TGT_NAME})
 
-# Compiler specific warning flags
+# Clang/GCC warning flags
 if (COMPILER_CLANG OR COMPILER_GCC)
     target_compile_options(${GAME_TGT_NAME} PUBLIC
         -Wno-format-security        # Disable: format string is not a string literal (potentially insecure)
@@ -606,6 +606,12 @@ if (COMPILER_GCC)
     target_compile_options(${GAME_TGT_NAME} PUBLIC
         -Wno-stringop-truncation    # Disable: output may be truncated copying... (and other similar warnings)
     )
+endif()
+
+# Workaround for warnings about duplicate linked libraries on Xcode 15+.
+# CMake is passing dupes, which the Apple linker does not like. See: https://gitlab.kitware.com/cmake/cmake/-/issues/25297
+if (PLATFORM_MAC)
+    target_link_options(${GAME_TGT_NAME} PRIVATE LINKER:-no_warn_duplicate_libraries)
 endif()
 
 # Setup target compile options
@@ -630,7 +636,7 @@ endif()
 # MacOS: linking against the installed Vulkan SDK and copying required Vulkan libraries and files to the app bundle
 if (PLATFORM_MAC AND PSYDOOM_INCLUDE_VULKAN_RENDERER)
     find_package(Vulkan REQUIRED)
-    target_link_libraries(${GAME_TGT_NAME} ${Vulkan_LIBRARIES})
+    target_link_libraries(${GAME_TGT_NAME} PRIVATE ${Vulkan_LIBRARIES})
     target_link_options(${GAME_TGT_NAME} PRIVATE -rpath @executable_path/../Frameworks) # So the runtime binary knows where to load .dylibs
     get_filename_component(VULKAN_LIBS_DIR ${Vulkan_LIBRARIES} DIRECTORY)
 

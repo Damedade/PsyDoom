@@ -88,11 +88,17 @@ add_library(${LIBVORBIS_TGT_NAME} ${SOURCE_FILES} ${OTHER_FILES})
 setup_source_groups("${SOURCE_FILES}" "${OTHER_FILES}")
 include_directories(${INCLUDE_PATHS})
 target_include_directories(${LIBVORBIS_TGT_NAME} INTERFACE ${EXPORTED_INCLUDE_PATHS})
-target_link_libraries(${LIBVORBIS_TGT_NAME} ${LIBOGG_TGT_NAME})
+target_link_libraries(${LIBVORBIS_TGT_NAME} PUBLIC ${LIBOGG_TGT_NAME})
 
 add_common_target_compile_options(${LIBVORBIS_TGT_NAME})
 
+# Warning related settings
 if (COMPILER_MSVC)
-    # Use a lenient warning level for this as we get unwanted spam otherwise
-    target_compile_options(${LIBVORBIS_TGT_NAME} PRIVATE /W1)
+    target_compile_options(${LIBVORBIS_TGT_NAME} PRIVATE /W1) # Use a lenient warning level for this as we get unwanted spam otherwise
+endif()
+
+if (COMPILER_CLANG)
+    target_compile_options(${LIBVORBIS_TGT_NAME} PRIVATE
+        -Wno-shorten-64-to-32   # Disable: truncating 64-bit integer types to 32-bit
+    )
 endif()
