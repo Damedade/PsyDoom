@@ -611,7 +611,9 @@ endif()
 # Workaround for warnings about duplicate linked libraries on Xcode 15+.
 # CMake is passing dupes, which the Apple linker does not like. See: https://gitlab.kitware.com/cmake/cmake/-/issues/25297
 if (PLATFORM_MAC)
-    target_link_options(${GAME_TGT_NAME} PRIVATE LINKER:-no_warn_duplicate_libraries)
+    if ("${XCODE_VERSION}" VERSION_GREATER_EQUAL "15.0.0")
+        target_link_options(${GAME_TGT_NAME} PRIVATE LINKER:-no_warn_duplicate_libraries)
+    endif()
 endif()
 
 # Setup target compile options
