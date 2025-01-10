@@ -537,7 +537,11 @@ protected:
   void xy_to_rowcol(int x, int y, int* row, int* column,
                     int PosType = CHARACTER_POS) const;
   void maintain_absolute_top_line_number(int state);
+public:
   int get_absolute_top_line_number() const;
+  int scroll_row() { return mTopLineNum; }
+  int scroll_col() { return mHorizOffset; }
+protected:
   void absolute_top_line_number(int oldFirstChar);
   int maintaining_absolute_top_line_number() const;
   void reset_absolute_top_line_number();
@@ -572,7 +576,10 @@ protected:
   int mCursorPreferredXPos;     /* Pixel position for vert. cursor movement */
   int mNVisibleLines;           /* # of visible (displayed) lines. This is
                                    also the size of the mLineStarts[] array. */
-  int mNBufferLines;            /* # of newlines in the buffer */
+  int mNBufferLines;            /* # of newlines in the buffer, or number of
+                                   wraps if line wrapping is enabled. Note that
+                                   partial lines at the end of the buffer are
+                                   not counted, so you may want to add 1. */
   Fl_Text_Buffer* mBuffer;      /* Contains text to be displayed */
   Fl_Text_Buffer* mStyleBuffer; /* Optional parallel buffer containing
                                  color and font information */

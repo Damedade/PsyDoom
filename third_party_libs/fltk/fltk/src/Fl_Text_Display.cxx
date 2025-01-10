@@ -503,7 +503,7 @@ void Fl_Text_Display::display_needs_recalc() {
   display_needs_recalc_ = true;
   redraw(); // ensure draw() gets called
 }
- 
+
 /**
   Recalculate the display's visible lines and scrollbar sizes.
   Beware calling this directly may cause a lot of CPU if called repeatedly (issue 300).
@@ -702,7 +702,7 @@ void Fl_Text_Display::recalc_display() {
     scroll_(mTopLineNumHint, mHorizOffsetHint);
 
   // everything will fit in the viewport
-  if (mNBufferLines < mNVisibleLines || mBuffer == NULL || mBuffer->length() == 0) {
+  if ((mNBufferLines+1 < mNVisibleLines) || (mBuffer == NULL) || (mBuffer->length() == 0)) {
     scroll_(1, mHorizOffset);
   /* if empty lines become visible, there may be an opportunity to
    display more text by scrolling down */
@@ -2139,7 +2139,7 @@ int Fl_Text_Display::handle_vline(
             // find x pos inside block
             free(lineStr);
             if (cursor_pos && (startX+w/2<rightClip))  // STR #2788
-              return lineStartPos + startIndex + len;  // STR #2788
+              return lineStartPos + startIndex + 1;  // STR #2788
             return lineStartPos + startIndex;
           }
         } else {
@@ -4335,7 +4335,6 @@ int Fl_Text_Display::handle(int event) {
           scroll_direction = 0;
         }
         pos = xy_to_position(X, Y, CURSOR_POS);
-        pos = buffer()->next_char(pos);
       }
       fl_text_drag_me(pos, this);
       return 1;

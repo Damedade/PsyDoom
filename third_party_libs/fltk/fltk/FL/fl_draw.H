@@ -997,7 +997,7 @@ FL_EXPORT void fl_measure(const char *str, int &x, int &y, int draw_symbols = 1)
             as graphical symbols
  \param[in] spacing spacing between text and image
  */
-FL_EXPORT void fl_draw(const char *str, int x, int y, int w, int h, 
+FL_EXPORT void fl_draw(const char *str, int x, int y, int w, int h,
                        Fl_Align align, Fl_Image *img = 0,
                        int draw_symbols = 1, int spacing = 0);
 /**
@@ -1079,7 +1079,7 @@ FL_EXPORT void fl_draw_radio(int x, int y, int d, Fl_Color color);
   to 32 bits.
 */
 inline void fl_draw_image(const uchar *buf, int X, int Y, int W, int H, int D = 3, int L = 0) {
-  fl_graphics_driver->draw_image(buf, X, Y, W, H, D, L);
+  fl_graphics_driver->draw_image_general_(buf, X, Y, W, H, D, L);
 }
 
 /**
@@ -1087,7 +1087,7 @@ inline void fl_draw_image(const uchar *buf, int X, int Y, int W, int H, int D = 
   \see fl_draw_image(const uchar* buf, int X,int Y,int W,int H, int D, int L)
 */
 inline void fl_draw_image_mono(const uchar *buf, int X, int Y, int W, int H, int D = 1, int L = 0) {
-  fl_graphics_driver->draw_image_mono(buf, X, Y, W, H, D, L);
+  fl_graphics_driver->draw_image_mono_general_(buf, X, Y, W, H, D, L);
 }
 
 /**

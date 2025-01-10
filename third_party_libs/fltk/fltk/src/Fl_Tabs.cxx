@@ -528,6 +528,7 @@ int Fl_Tabs::handle(int event) {
   static int initial_x = 0;
   static int initial_tab_offset = 0;
   static int forward_motion_to_group = 0;
+  static Fl_Widget *o_push_drag = NULL;
   Fl_Widget *o;
   int i;
 
@@ -563,11 +564,15 @@ int Fl_Tabs::handle(int event) {
     }
     /* FALLTHROUGH */
   case FL_DRAG:
+      o_push_drag = which(Fl::event_x(), Fl::event_y());
   case FL_RELEASE:
     if (forward_motion_to_group) {
       return Fl_Group::handle(event);
     }
     o = which(Fl::event_x(), Fl::event_y());
+    if (event == FL_RELEASE && o != o_push_drag) { // see issue #1075
+      return 1;
+    }
     if ( (overflow_type == OVERFLOW_DRAG) || (overflow_type == OVERFLOW_PULLDOWN) ) {
       if (tab_pos[children()] < w() && tab_offset == 0) {
         // fall through
@@ -1111,6 +1116,10 @@ Fl_Tabs::~Fl_Tabs() {
   \p tabh is ignored.
 
   \note Children should always use the same positions and sizes.
+
+  \note This function requires access to the display drivers to determine the
+  selected font height. If `client_area` is invoked before the first window is
+  displayed, ensure that `fl_open_display()` is called beforehand.
 
   \p tabh can be one of
   \li    0: calculate label size, tabs on top

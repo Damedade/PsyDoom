@@ -426,13 +426,6 @@ void Fl_Cairo_Graphics_Driver::reconcat(){
   cairo_transform(cairo_, &mat);
 }
 
-void Fl_Cairo_Graphics_Driver::begin_points() {
-  cairo_save(cairo_);
-  concat();
-  cairo_new_path(cairo_);
-  gap_=1;
-  what=POINTS;
-}
 
 void Fl_Cairo_Graphics_Driver::begin_line() {
   cairo_save(cairo_);
@@ -460,11 +453,7 @@ void Fl_Cairo_Graphics_Driver::begin_polygon() {
 
 void Fl_Cairo_Graphics_Driver::vertex(double x, double y) {
   if (what==POINTS){
-    cairo_move_to(cairo_, x, y);
-    cairo_rectangle(cairo_, x-0.5, y-0.5, 1, 1);
-    cairo_fill(cairo_);
-    gap_=1;
-    return;
+    return Fl_Graphics_Driver::vertex(x, y);
   }
   if (gap_){
     cairo_move_to(cairo_, x, y);
@@ -541,7 +530,9 @@ void Fl_Cairo_Graphics_Driver::pie(int x, int y, int w, int h, double a1, double
 }
 
 void Fl_Cairo_Graphics_Driver::end_points() {
-  end_line();
+ for (int i = 0; i < n; i++) {
+   point(xpoint[i].x, xpoint[i].y);
+ }
 }
 
 void Fl_Cairo_Graphics_Driver::end_line() {
@@ -575,9 +566,7 @@ void Fl_Cairo_Graphics_Driver::end_polygon() {
 
 void Fl_Cairo_Graphics_Driver::transformed_vertex(double x, double y) {
   if (what == POINTS) {
-    cairo_move_to(cairo_, x, y);
-    point(x, y);
-    gap_ = 1;
+    Fl_Graphics_Driver::transformed_vertex(x, y);
   } else {
     reconcat();
     if (gap_) {
@@ -678,7 +667,6 @@ void Fl_Cairo_Graphics_Driver::draw_image_mono(const uchar *data, int ix, int iy
   struct callback_data cb_data;
   const size_t aD = abs(D);
   if (!LD) LD = iw * aD;
-  if (D<0) data += iw * aD;
   cb_data.data = data;
   cb_data.D = D;
   cb_data.LD = LD;
@@ -751,7 +739,6 @@ void Fl_Cairo_Graphics_Driver::draw_image(const uchar *data, int ix, int iy, int
   }
   struct callback_data cb_data;
   if (!LD) LD = iw*abs(D);
-  if (D<0) data += iw*abs(D);
   cb_data.data = data;
   cb_data.D = D;
   cb_data.LD = LD;
@@ -1109,7 +1096,7 @@ static int font_sort(Fl_Fontdesc *fa, Fl_Fontdesc *fb) {
 Fl_Font Fl_Cairo_Graphics_Driver::set_fonts(const char* /*pattern_name*/)
 {
   // Return immideatly if the fonts were already counted
-  if (font_count_ != -1) 
+  if (font_count_ != -1)
     return FL_FREE_FONT + font_count_;
   fl_open_display();
   int n_families, count = 0;
@@ -1311,11 +1298,50 @@ void Fl_Cairo_Graphics_Driver::font(Fl_Font fnum, Fl_Fontsize s) {
 }
 
 
+// Scans the input string str with fl_utf8decode() that, by default, accepts
+// also non-UTF-8 and processes it as if encoded in CP1252.
+// Returns a true UTF-8 string and its length, possibly transformed from CP1252.
+// If the input string is true UTF-8, the returned string is the same pointer as input.
+// Otherwise, the returned string is in private memory allocated inside clean_utf8()
+// and extended when necessary.
+const char *Fl_Cairo_Graphics_Driver::clean_utf8(const char* str, int &n) {
+  static char *utf8_buffer = NULL;
+  static int utf8_buffer_len = 0;
+  char *q = utf8_buffer;
+  const char *p = str;
+  const char *retval = str;
+  int len, len2;
+  const char *end = str + n;
+  char buf4[4];
+  while (p < end) {
+    unsigned codepoint = fl_utf8decode(p, end, &len);
+    if (retval != str || (len == 1 &&  *(uchar*)p >= 0x80)) { // switch to using utf8_buffer
+      len2 = fl_utf8encode(codepoint, buf4);
+      if (!utf8_buffer_len || utf8_buffer_len < (q - utf8_buffer) + len2) {
+        utf8_buffer_len += (q - utf8_buffer) + len2 + 1000;
+        utf8_buffer = (char *)realloc(utf8_buffer, utf8_buffer_len);
+      }
+      if (retval == str) {
+        retval = utf8_buffer;
+        q = utf8_buffer;
+        if (p > str) { memcpy(q, str, p - str); q += (p - str); }
+      }
+      memcpy(q, buf4, len2);
+      q += len2;
+    }
+    p += len;
+  }
+  if (retval != str) n = q - retval;
+  return retval;
+}
+
+
 void Fl_Cairo_Graphics_Driver::draw(const char* str, int n, float x, float y) {
   if (!n) return;
   cairo_save(cairo_);
   Fl_Cairo_Font_Descriptor *fd = (Fl_Cairo_Font_Descriptor*)font_descriptor();
   cairo_translate(cairo_, x - 1, y - (fd->line_height - fd->descent) / float(PANGO_SCALE) - 1);
+  str = clean_utf8(str, n);
   pango_layout_set_text(pango_layout_, str, n);
   pango_cairo_show_layout(cairo_, pango_layout_); // 1.1O
   cairo_restore(cairo_);
@@ -1383,6 +1409,7 @@ double Fl_Cairo_Graphics_Driver::width(const char* str, int n) {
 
 int Fl_Cairo_Graphics_Driver::do_width_unscaled_(const char* str, int n) {
   if (!n) return 0;
+  str = clean_utf8(str, n);
   pango_layout_set_text(pango_layout_, str, n);
   PangoRectangle p_rect;
   pango_layout_get_extents(pango_layout_, NULL, &p_rect);
@@ -1391,6 +1418,7 @@ int Fl_Cairo_Graphics_Driver::do_width_unscaled_(const char* str, int n) {
 
 
 void Fl_Cairo_Graphics_Driver::text_extents(const char* txt, int n, int& dx, int& dy, int& w, int& h) {
+  txt = clean_utf8(txt, n);
   pango_layout_set_text(pango_layout_, txt, n);
   PangoRectangle ink_rect;
   pango_layout_get_extents(pango_layout_, &ink_rect, NULL);
@@ -1447,7 +1475,9 @@ void Fl_Cairo_Graphics_Driver::restore_clip() {
       clip_->y = rect.y;
       clip_->w = rect.width;
       clip_->h = rect.height;
+      cairo_set_antialias(cairo_, CAIRO_ANTIALIAS_NONE);
       cairo_clip(cairo_);
+      cairo_set_antialias(cairo_, CAIRO_ANTIALIAS_DEFAULT );
     } else if (clip_) {
       clip_->w = -1;
     }
@@ -1463,8 +1493,8 @@ char Fl_Cairo_Graphics_Driver::can_do_alpha_blending() {
 float Fl_Cairo_Graphics_Driver::override_scale() {
   float s = scale();
   if (s != 1.f && Fl_Display_Device::display_device()->is_current()) {
-    Fl::screen_driver()->scale(0, 1.f);
-    cairo_scale(cairo_, 1/s, 1/s);
+    cairo_scale(cairo_, 1./s, 1./s);
+    Fl_Graphics_Driver::scale(1);
   }
   return s;
 }
@@ -1472,8 +1502,8 @@ float Fl_Cairo_Graphics_Driver::override_scale() {
 
 void Fl_Cairo_Graphics_Driver::restore_scale(float s) {
   if (s != 1.f && Fl_Display_Device::display_device()->is_current()) {
-    Fl::screen_driver()->scale(0, s);
     cairo_scale(cairo_, s, s);
+    Fl_Graphics_Driver::scale(s);
   }
 }
 
