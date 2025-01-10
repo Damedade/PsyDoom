@@ -169,6 +169,14 @@ bool gbDidInit;
 static void determineVulkanDynamicConfigDefaults() noexcept {
     // Initialize SDL temporarily for this
     SDL_InitSubSystem(SDL_INIT_VIDEO);
+    
+    // MacOS: Hack fix for accented characters popping up when holding down various keyboard keys.
+    // Do a pump of the SDL event loop so that the SDL AppDelegate gets 'applicationDidFinishLaunching' called before FLTK's AppDelegate.
+    // Do this event pump during config initialization since that gets invoked before the launcher is setup.
+    // This ensures that the 'ApplePressAndHoldEnabled' setting is disabled for PsyDoom, which prevents the characters from popping up.
+    #if PSYDOOM_LAUNCHER && defined(__APPLE__)
+        SDL_PumpEvents();
+    #endif
 
     // Determine if the main display is a high density one, like a 4K monitor
     bool bIsHighDensityDisplay = false;
