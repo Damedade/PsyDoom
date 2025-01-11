@@ -1,4 +1,4 @@
-﻿//------------------------------------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------------------------------------
 // Setup code and event handling logic for the 'Graphics' tab
 //------------------------------------------------------------------------------------------------------------------------------------------
 #if PSYDOOM_LAUNCHER
@@ -16,6 +16,17 @@ BEGIN_DISABLE_HEADER_WARNINGS
 END_DISABLE_HEADER_WARNINGS
 
 BEGIN_NAMESPACE(Launcher)
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Helper that activates or deactivates an FLTK widget
+//------------------------------------------------------------------------------------------------------------------------------------------
+static void activateWidget(Fl_Widget& widget, const bool bActivate) noexcept {
+    if (bActivate) {
+        widget.activate();
+    } else {
+        widget.deactivate();
+    }
+};
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Applies the 'Modern, high resolution' Vulkan renderer settings preset
@@ -95,14 +106,6 @@ static void updateVulkanRendererEnabledWidgets(Tab_Graphics& tab) noexcept {
     const bool bIsVulkanEnabled = (bCanUseVulkan && (tab.pCheck_disableVkRenderer->value() == 0));
 
     // Update the activated status of all widgets
-    const auto activateWidget = [](Fl_Widget& widget, const bool bActivate) noexcept {
-        if (bActivate) {
-            widget.activate();
-        } else {
-            widget.deactivate();
-        }
-    };
-
     activateWidget(*tab.pLabel_settingsPreset, bIsVulkanEnabled);
     activateWidget(*tab.pChoice_settingsPreset, bIsVulkanEnabled);
     activateWidget(*tab.pButton_settingsPreset, bIsVulkanEnabled);
@@ -122,19 +125,47 @@ static void updateVulkanRendererEnabledWidgets(Tab_Graphics& tab) noexcept {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
+// Updates which widgets are enabled in the 'Output settings' section
+//------------------------------------------------------------------------------------------------------------------------------------------
+static void updateOutputSettingsEnabledWidgets(Tab_Graphics& tab) noexcept {
+    // Resolution settings are only available for windowed mode, or for exclusive fullscreen mode on Windows and Linux.
+    // We can't change the output display resolution on modern macOS.
+    const bool bResolutionSettingsAreUsed = (
+    #if __APPLE__
+        (!Config::gbFullscreen)
+    #else
+        (!Config::gbFullscreen) || Config::gbExclusiveFullscreenMode
+    #endif
+    );
+    
+    activateWidget(*tab.pLabel_resolutionWidth, bResolutionSettingsAreUsed);
+    activateWidget(*tab.pInput_resolutionWidth, bResolutionSettingsAreUsed);
+    activateWidget(*tab.pLabel_resolutionHeight, bResolutionSettingsAreUsed);
+    activateWidget(*tab.pInput_resolutionHeight, bResolutionSettingsAreUsed);
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
 // Makes the section for output options
 //------------------------------------------------------------------------------------------------------------------------------------------
-static void makeOutputOptionsSection(const int x, const int y) noexcept {
+static void makeOutputOptionsSection(Tab_Graphics& tab, const int x, const int y) noexcept {
     // Container frame
     new Fl_Box(FL_NO_BOX, x, y, 300, 30, "Output settings");
     new Fl_Box(FL_THIN_DOWN_BOX, x, y + 30, 300, 180, "");
 
     // Fullscreen toggle
-    {
-        const auto pCheck = makeFl_Check_Button(x + 20, y + 40, 120, 30, "  Fullscreen");
-        bindConfigField<Config::gbFullscreen, Config::gbNeedSave_Graphics>(*pCheck);
-        pCheck->tooltip(ConfigSerialization::gConfig_Graphics.fullscreen.comment);
-    }
+    tab.pCheck_fullscreen = makeFl_Check_Button(x + 20, y + 40, 120, 30, "  Fullscreen");
+    tab.pCheck_fullscreen->callback(
+        [](Fl_Widget*, void* const pUserData) noexcept {
+            ASSERT(pUserData);
+            Tab_Graphics& tab = *static_cast<Tab_Graphics*>(pUserData);
+            Config::gbFullscreen = tab.pCheck_fullscreen->value();
+            Config::gbNeedSave_Graphics = true;
+            updateOutputSettingsEnabledWidgets(tab); // Update available output widgets
+        },
+        &tab
+    );
+    tab.pCheck_fullscreen->tooltip(ConfigSerialization::gConfig_Graphics.fullscreen.comment);
+    tab.pCheck_fullscreen->value(Config::gbFullscreen);
 
     // Vsync toggle
     {
@@ -144,26 +175,22 @@ static void makeOutputOptionsSection(const int x, const int y) noexcept {
     }
 
     // Output resolution: width
-    {
-        const auto pLabel = new Fl_Box(FL_NO_BOX, x + 20, y + 80, 80, 26, "Resolution: width");
-        pLabel->align(FL_ALIGN_LEFT | FL_ALIGN_INSIDE);
-        pLabel->tooltip(ConfigSerialization::gConfig_Graphics.outputResolutionW.comment);
+    tab.pLabel_resolutionWidth = new Fl_Box(FL_NO_BOX, x + 20, y + 80, 140, 26, "Resolution: width");
+    tab.pLabel_resolutionWidth->align(FL_ALIGN_LEFT | FL_ALIGN_INSIDE);
+    tab.pLabel_resolutionWidth->tooltip(ConfigSerialization::gConfig_Graphics.outputResolutionW.comment);
 
-        const auto pInput = new Fl_Int_Input(x + 200, y + 80, 80, 26);
-        bindConfigField<Config::gOutputResolutionW, Config::gbNeedSave_Graphics>(*pInput);
-        pInput->tooltip(pLabel->tooltip());
-    }
+    tab.pInput_resolutionWidth = new Fl_Int_Input(x + 200, y + 80, 80, 26);
+    bindConfigField<Config::gOutputResolutionW, Config::gbNeedSave_Graphics>(*tab.pInput_resolutionWidth);
+    tab.pInput_resolutionWidth->tooltip(tab.pLabel_resolutionWidth->tooltip());
 
     // Output resolution: height
-    {
-        const auto pLabel = new Fl_Box(FL_NO_BOX, x + 20, y + 110, 80, 26, "Resolution: height");
-        pLabel->align(FL_ALIGN_LEFT | FL_ALIGN_INSIDE);
-        pLabel->tooltip(ConfigSerialization::gConfig_Graphics.outputResolutionW.comment);
+    tab.pLabel_resolutionHeight = new Fl_Box(FL_NO_BOX, x + 20, y + 110, 140, 26, "Resolution: height");
+    tab.pLabel_resolutionHeight->align(FL_ALIGN_LEFT | FL_ALIGN_INSIDE);
+    tab.pLabel_resolutionHeight->tooltip(ConfigSerialization::gConfig_Graphics.outputResolutionW.comment);
 
-        const auto pInput = new Fl_Int_Input(x + 200, y + 110, 80, 26);
-        bindConfigField<Config::gOutputResolutionH, Config::gbNeedSave_Graphics>(*pInput);
-        pInput->tooltip(pLabel->tooltip());
-    }
+    tab.pInput_resolutionHeight = new Fl_Int_Input(x + 200, y + 110, 80, 26);
+    bindConfigField<Config::gOutputResolutionH, Config::gbNeedSave_Graphics>(*tab.pInput_resolutionHeight);
+    tab.pInput_resolutionHeight->tooltip(tab.pLabel_resolutionHeight->tooltip());
 
     // Output display index
     {
@@ -177,11 +204,22 @@ static void makeOutputOptionsSection(const int x, const int y) noexcept {
     }
 
     // Exclusive fullscreen mode toggle
-    {
-        const auto pCheck = makeFl_Check_Button(x + 20, y + 170, 120, 30, "  Exclusive fullscreen mode");
-        bindConfigField<Config::gbExclusiveFullscreenMode, Config::gbNeedSave_Graphics>(*pCheck);
-        pCheck->tooltip(ConfigSerialization::gConfig_Graphics.exclusiveFullscreenMode.comment);
-    }
+    tab.pCheck_exclusiveFullscreen = makeFl_Check_Button(x + 20, y + 170, 120, 30, "  Exclusive fullscreen mode");
+    tab.pCheck_exclusiveFullscreen->callback(
+        [](Fl_Widget*, void* const pUserData) noexcept {
+            ASSERT(pUserData);
+            Tab_Graphics& tab = *static_cast<Tab_Graphics*>(pUserData);
+            Config::gbExclusiveFullscreenMode = tab.pCheck_exclusiveFullscreen->value();
+            Config::gbNeedSave_Graphics = true;
+            updateOutputSettingsEnabledWidgets(tab); // Update available output widgets
+        },
+        &tab
+    );
+    tab.pCheck_exclusiveFullscreen->tooltip(ConfigSerialization::gConfig_Graphics.exclusiveFullscreenMode.comment);
+    tab.pCheck_exclusiveFullscreen->value(Config::gbExclusiveFullscreenMode);
+    
+    // Update which widgets are active
+    updateOutputSettingsEnabledWidgets(tab);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -266,7 +304,7 @@ static void makeVulkanRendererSettingsSection(Tab_Graphics& tab, const int x, co
     new Fl_Box(FL_THIN_DOWN_BOX, x, y + 30, 580, 330, "");
 
     // Graphic presets
-    tab.pLabel_settingsPreset = new Fl_Box(FL_NO_BOX, x + 20, y + 40, 120, 26, "Apply settings preset");
+    tab.pLabel_settingsPreset = new Fl_Box(FL_NO_BOX, x + 20, y + 40, 160, 26, "Apply settings preset");
     tab.pLabel_settingsPreset->align(FL_ALIGN_LEFT | FL_ALIGN_INSIDE);
     tab.pLabel_settingsPreset->tooltip(
         "Use the 'Apply' button to auto-configure the Vulkan renderer using the chosen settings preset.\n"
@@ -421,7 +459,7 @@ void populateGraphicsTab(Context& ctx) noexcept {
 
     const RectExtents tabRect = getRectExtents(*tab.pTab);
 
-    makeOutputOptionsSection(tabRect.lx + 20, tabRect.ty + 20);
+    makeOutputOptionsSection(tab, tabRect.lx + 20, tabRect.ty + 20);
     makePictureCropAndStretchSection(tabRect.lx + 20, tabRect.ty + 240);
     makeGeneralSettingsSection(tab, tabRect.lx + 20, tabRect.ty + 390);
     makeVulkanRendererSettingsSection(tab, tabRect.lx + 340, tabRect.ty + 20);

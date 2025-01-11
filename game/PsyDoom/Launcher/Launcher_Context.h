@@ -60,6 +60,12 @@ struct Tab_Launcher {
 //------------------------------------------------------------------------------------------------------------------------------------------
 struct Tab_Graphics {
     Fl_Group*               pTab;
+    Fl_Check_Button*        pCheck_fullscreen;
+    Fl_Check_Button*        pCheck_exclusiveFullscreen;
+    Fl_Box*                 pLabel_resolutionWidth;
+    Fl_Int_Input*           pInput_resolutionWidth;
+    Fl_Box*                 pLabel_resolutionHeight;
+    Fl_Int_Input*           pInput_resolutionHeight;
     Fl_Box*                 pLabel_settingsPreset;
     Fl_Choice*              pChoice_settingsPreset;
     Fl_Button*              pButton_settingsPreset;

@@ -40,8 +40,10 @@ void initCfgSerialization_Graphics() noexcept {
     cfg.outputResolutionW = makeConfigField(
         "OutputResolutionW",
         "Output resolution (width & height) for both the Vulkan and Classic renderers.\n"
-        "In windowed mode this is the size of the window.\n"
-        "In fullscreen mode this is the actual screen resolution to use.\n"
+        "In windowed mode (on all platforms) this is the size of the window.\n"
+        "In exclusive fullscreen mode (Windows & Linux only) this is the actual screen resolution to use.\n"
+        "In all other cases, such as non-exclusive fullscreen mode or on macOS these settings are ignored\n"
+        "and the desktop resolution will be used instead.\n"
         "\n"
         "If the values are '0' or less (auto resolution) then this means use the current (desktop)\n"
         "resolution in fullscreen mode, and auto-decide the window size in windowed mode.",
