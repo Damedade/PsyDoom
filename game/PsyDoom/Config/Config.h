@@ -57,6 +57,7 @@ extern bool             gbFullscreen;
 extern bool             gbEnableVSync;
 extern int32_t          gOutputResolutionW;
 extern int32_t          gOutputResolutionH;
+extern int              gOutputRefreshRate;
 extern int32_t          gOutputDisplayIndex;
 extern bool             gbExclusiveFullscreenMode;
 extern float            gLogicalDisplayW;

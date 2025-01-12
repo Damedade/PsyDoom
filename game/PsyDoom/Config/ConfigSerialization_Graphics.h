@@ -14,6 +14,7 @@ struct Config_Graphics {
     ConfigField     enableVSync;
     ConfigField     outputResolutionW;
     ConfigField     outputResolutionH;
+    ConfigField     outputRefreshRate;
     ConfigField     outputDisplayIndex;
     ConfigField     exclusiveFullscreenMode;
     ConfigField     antiAliasingMultisamples;

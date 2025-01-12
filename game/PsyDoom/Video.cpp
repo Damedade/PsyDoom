@@ -146,6 +146,43 @@ static Uint32 getSdlWindowCreateFlags() noexcept {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
+// Set up the refresh rate for the output display if in exclusive fullscreen mode and if the user specifies a non-default refresh rate.
+//------------------------------------------------------------------------------------------------------------------------------------------
+void setOutputDisplayRefreshRate(const uint8_t outputDisplayIndex) noexcept {
+    ASSERT(gpSdlWindow);
+
+    // Only set the refresh rate in exclusive fullscreen mode, and if the user actually specifies it:
+    const bool bShouldSetRefreshRate = (
+        Config::gbFullscreen &&
+        Config::gbExclusiveFullscreenMode &&
+        (Config::gOutputRefreshRate > 0)
+    );
+    
+    if (!bShouldSetRefreshRate)
+        return;
+    
+    // Get the current display mode.
+    // If it already has the desired refresh rate then there is nothing to do.
+    SDL_DisplayMode currentDisplayMode = {};
+    SDL_GetCurrentDisplayMode(outputDisplayIndex, &currentDisplayMode);
+    
+    if (currentDisplayMode.refresh_rate == Config::gOutputRefreshRate)
+        return;
+    
+    // Query the closest mode to the desired display mode
+    SDL_DisplayMode desiredDisplayMode = currentDisplayMode;
+    desiredDisplayMode.refresh_rate = Config::gOutputRefreshRate;
+    
+    SDL_DisplayMode newDisplayMode = {};
+    SDL_GetClosestDisplayMode(outputDisplayIndex, &desiredDisplayMode, &newDisplayMode);
+        
+    // Try and set the display mode with the updated refresh rate (if there is a difference)
+    if (newDisplayMode.refresh_rate != desiredDisplayMode.refresh_rate) {
+        SDL_SetWindowDisplayMode(gpSdlWindow, &newDisplayMode);
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
 // Sets up the renderering API and creates the main game window
 //------------------------------------------------------------------------------------------------------------------------------------------
 void initVideo() noexcept {
@@ -196,6 +233,8 @@ void initVideo() noexcept {
 
     if (!gpSdlWindow)
         FatalErrors::raise("Unable to create a window!");
+        
+    setOutputDisplayRefreshRate(displayIndex);
 
     // Linux: set the icon for the window
     #ifdef __linux__
@@ -203,7 +242,7 @@ void initVideo() noexcept {
             SDL_SetWindowIcon(gpSdlWindow, gpSdlWindowIcon);
         }
     #endif
-
+    
     // Initialize the video backend
     gpVideoBackend->initRenderers(gpSdlWindow);
 

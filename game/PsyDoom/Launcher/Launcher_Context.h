@@ -66,6 +66,8 @@ struct Tab_Graphics {
     Fl_Int_Input*           pInput_resolutionWidth;
     Fl_Box*                 pLabel_resolutionHeight;
     Fl_Int_Input*           pInput_resolutionHeight;
+    Fl_Box*                 pLabel_refreshRate;
+    Fl_Int_Input*           pInput_refreshRate;
     Fl_Box*                 pLabel_settingsPreset;
     Fl_Choice*              pChoice_settingsPreset;
     Fl_Button*              pButton_settingsPreset;

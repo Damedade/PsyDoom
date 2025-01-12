@@ -130,11 +130,13 @@ static void updateVulkanRendererEnabledWidgets(Tab_Graphics& tab) noexcept {
 static void updateOutputSettingsEnabledWidgets(Tab_Graphics& tab) noexcept {
     // Resolution settings are only available for windowed mode, or for exclusive fullscreen mode on Windows and Linux.
     // We can't change the output display resolution on modern macOS.
+    const bool bIsWindowedMode = (!Config::gbFullscreen);
+    const bool bIsExclusiveFullscreenMode = (Config::gbFullscreen && Config::gbExclusiveFullscreenMode);
     const bool bResolutionSettingsAreUsed = (
     #if __APPLE__
-        (!Config::gbFullscreen)
+        bIsWindowedMode
     #else
-        (!Config::gbFullscreen) || Config::gbExclusiveFullscreenMode
+        (bIsWindowedMode || bIsExclusiveFullscreenMode)
     #endif
     );
     
@@ -142,6 +144,10 @@ static void updateOutputSettingsEnabledWidgets(Tab_Graphics& tab) noexcept {
     activateWidget(*tab.pInput_resolutionWidth, bResolutionSettingsAreUsed);
     activateWidget(*tab.pLabel_resolutionHeight, bResolutionSettingsAreUsed);
     activateWidget(*tab.pInput_resolutionHeight, bResolutionSettingsAreUsed);
+    
+    // Refresh rate is only available in exclusive fullscreen mode
+    activateWidget(*tab.pLabel_refreshRate, bIsExclusiveFullscreenMode);
+    activateWidget(*tab.pInput_refreshRate, bIsExclusiveFullscreenMode);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -150,7 +156,7 @@ static void updateOutputSettingsEnabledWidgets(Tab_Graphics& tab) noexcept {
 static void makeOutputOptionsSection(Tab_Graphics& tab, const int x, const int y) noexcept {
     // Container frame
     new Fl_Box(FL_NO_BOX, x, y, 300, 30, "Output settings");
-    new Fl_Box(FL_THIN_DOWN_BOX, x, y + 30, 300, 180, "");
+    new Fl_Box(FL_THIN_DOWN_BOX, x, y + 30, 300, 220, "");
 
     // Fullscreen toggle
     tab.pCheck_fullscreen = makeFl_Check_Button(x + 20, y + 40, 120, 30, "  Fullscreen");
@@ -191,20 +197,29 @@ static void makeOutputOptionsSection(Tab_Graphics& tab, const int x, const int y
     tab.pInput_resolutionHeight = new Fl_Int_Input(x + 200, y + 110, 80, 26);
     bindConfigField<Config::gOutputResolutionH, Config::gbNeedSave_Graphics>(*tab.pInput_resolutionHeight);
     tab.pInput_resolutionHeight->tooltip(tab.pLabel_resolutionHeight->tooltip());
+    
+    // Output refresh rate
+    tab.pLabel_refreshRate = new Fl_Box(FL_NO_BOX, x + 20, y + 140, 140, 26, "Refresh rate");
+    tab.pLabel_refreshRate->align(FL_ALIGN_LEFT | FL_ALIGN_INSIDE);
+    tab.pLabel_refreshRate->tooltip(ConfigSerialization::gConfig_Graphics.outputRefreshRate.comment);
+
+    tab.pInput_refreshRate = new Fl_Int_Input(x + 200, y + 140, 80, 26);
+    bindConfigField<Config::gOutputRefreshRate, Config::gbNeedSave_Graphics>(*tab.pInput_refreshRate);
+    tab.pInput_refreshRate->tooltip(tab.pLabel_refreshRate->tooltip());
 
     // Output display index
     {
-        const auto pLabel = new Fl_Box(FL_NO_BOX, x + 20, y + 140, 80, 26, "Output display index");
+        const auto pLabel = new Fl_Box(FL_NO_BOX, x + 20, y + 170, 80, 26, "Output display index");
         pLabel->align(FL_ALIGN_LEFT | FL_ALIGN_INSIDE);
         pLabel->tooltip(ConfigSerialization::gConfig_Graphics.outputDisplayIndex.comment);
 
-        const auto pInput = new Fl_Int_Input(x + 200, y + 140, 80, 26);
+        const auto pInput = new Fl_Int_Input(x + 200, y + 170, 80, 26);
         bindConfigField<Config::gOutputDisplayIndex, Config::gbNeedSave_Graphics>(*pInput);
         pInput->tooltip(pLabel->tooltip());
     }
 
     // Exclusive fullscreen mode toggle
-    tab.pCheck_exclusiveFullscreen = makeFl_Check_Button(x + 20, y + 170, 120, 30, "  Exclusive fullscreen mode");
+    tab.pCheck_exclusiveFullscreen = makeFl_Check_Button(x + 20, y + 202, 120, 30, "  Exclusive fullscreen mode");
     tab.pCheck_exclusiveFullscreen->callback(
         [](Fl_Widget*, void* const pUserData) noexcept {
             ASSERT(pUserData);
@@ -270,7 +285,7 @@ static void makePictureCropAndStretchSection(const int x, const int y) noexcept 
 static void makeGeneralSettingsSection(Tab_Graphics& tab, const int x, const int y) noexcept {
     // Container frame
     new Fl_Box(FL_NO_BOX, x, y, 300, 30, "General");
-    new Fl_Box(FL_THIN_DOWN_BOX, x, y + 30, 300, 120, "");
+    new Fl_Box(FL_THIN_DOWN_BOX, x, y + 30, 300, 80, "");
 
     // VRAM size in MB
     {
@@ -290,7 +305,7 @@ static void makeGeneralSettingsSection(Tab_Graphics& tab, const int x, const int
     }
 
     // Extended automap colors cheat
-    tab.pCheck_useExtendedAutomapColors = makeFl_Check_Button(x + 20, y + 80, 220, 30, "  Use extended automap colors");
+    tab.pCheck_useExtendedAutomapColors = makeFl_Check_Button(x + 20, y + 72, 220, 30, "  Use extended automap colors");
     bindConfigField<Config::gbUseExtendedAutomapColors, Config::gbNeedSave_Graphics>(*tab.pCheck_useExtendedAutomapColors);
     tab.pCheck_useExtendedAutomapColors->tooltip(ConfigSerialization::gConfig_Graphics.useExtendedAutomapColors.comment);
 }
@@ -460,8 +475,8 @@ void populateGraphicsTab(Context& ctx) noexcept {
     const RectExtents tabRect = getRectExtents(*tab.pTab);
 
     makeOutputOptionsSection(tab, tabRect.lx + 20, tabRect.ty + 20);
-    makePictureCropAndStretchSection(tabRect.lx + 20, tabRect.ty + 240);
-    makeGeneralSettingsSection(tab, tabRect.lx + 20, tabRect.ty + 390);
+    makePictureCropAndStretchSection(tabRect.lx + 20, tabRect.ty + 280);
+    makeGeneralSettingsSection(tab, tabRect.lx + 20, tabRect.ty + 430);
     makeVulkanRendererSettingsSection(tab, tabRect.lx + 340, tabRect.ty + 20);
     makeClassicRendererSettingsSection(tabRect.lx + 340, tabRect.ty + 390);
 }

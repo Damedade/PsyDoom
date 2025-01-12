@@ -57,6 +57,14 @@ void initCfgSerialization_Graphics() noexcept {
         gOutputResolutionH,
         -1
     );
+    
+    cfg.outputRefreshRate = makeConfigField(
+        "OutputRefreshRate",
+        "What refresh rate (in Hz) to use for exclusive fullscreen mode. Unused in all other cases.\n"
+        "When to '0' or less PsyDoom will use the current desktop refresh rate.\n",
+        gOutputRefreshRate,
+        -1
+    );
 
     cfg.outputDisplayIndex = makeConfigField(
         "OutputDisplayIndex",
