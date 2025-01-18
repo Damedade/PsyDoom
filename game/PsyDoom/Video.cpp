@@ -7,6 +7,7 @@
 #include "Config/Config.h"
 #include "GammaTable.h"
 #include "Gpu.h"
+#include "MacDisplayLink.h"
 #include "PlayerPrefs.h"
 #include "ProgArgs.h"
 #include "PsxVm.h"
@@ -255,6 +256,11 @@ void initVideo() noexcept {
     SDL_SetWindowInputFocus(gpSdlWindow);
     SDL_WarpMouseInWindow(gpSdlWindow, winSizeX / 2, winSizeY / 2);
     SDL_SetRelativeMouseMode(SDL_TRUE);
+    
+    // On macOS setup DisplayLink where available for better frame pacing
+    #if __APPLE__ && TARGET_OS_MAC
+        MacDisplayLink::init();
+    #endif
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -264,6 +270,11 @@ void shutdownVideo() noexcept {
     // Ignore call in headless mode
     if (ProgArgs::gbHeadlessMode)
         return;
+        
+    // Shut down DisplayLink on macOS
+    #if __APPLE__ && TARGET_OS_MAC
+        MacDisplayLink::shutdown();
+    #endif
 
     // Turn off relative mouse mode and unhide the cursor
     SDL_SetRelativeMouseMode(SDL_FALSE);
@@ -377,6 +388,14 @@ void displayFramebuffer() noexcept {
         return;
 
     gpVideoBackend->displayFramebuffer();
+    
+    // On macOS wait for the signal from DisplayLink to start the next frame, so we can best synchronize with the display.
+    // This should give us the largest possible time window to render the next frame and be ready for the next vblank.
+    #if __APPLE__ && TARGET_OS_MAC
+        MacDisplayLink::synchronize();
+    #endif
+    
+    // Do various updates (input, sound, network etc.)
     Utils::doPlatformUpdates();
 }
 

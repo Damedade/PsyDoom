@@ -256,6 +256,8 @@ set(SOURCE_FILES
     "PsyDoom/LIBGPU_CmdDispatch.h"
     "PsyDoom/LogoPlayer.cpp"
     "PsyDoom/LogoPlayer.h"
+    "PsyDoom/MacDisplayLink.h"
+    "PsyDoom/MacDisplayLink.mm"
     "PsyDoom/MapHash.cpp"
     "PsyDoom/MapHash.h"
     "PsyDoom/MapInfo/GecMapInfo.cpp"
@@ -653,6 +655,15 @@ if (PLATFORM_MAC AND PSYDOOM_INCLUDE_VULKAN_RENDERER)
         COMMAND cp "${VULKAN_LIBS_DIR}/libvulkan.1.dylib" "$<TARGET_FILE_DIR:${GAME_TGT_NAME}>/../Frameworks"
         COMMAND cp "${VULKAN_LIBS_DIR}/libMoltenVK.dylib" "$<TARGET_FILE_DIR:${GAME_TGT_NAME}>/../Frameworks"
         COMMAND cp "${PROJECT_SOURCE_DIR}/Game/Resources/macOS/MoltenVK_icd.json" "$<TARGET_FILE_DIR:${GAME_TGT_NAME}>/../Resources/vulkan/icd.d"
+    )
+endif()
+
+# MacOS: required frameworks
+if (PLATFORM_MAC)
+    FIND_LIBRARY(QUARTZ_CORE_FRAMEWORK QuartzCore)
+
+    target_link_libraries(${GAME_TGT_NAME} PRIVATE
+        ${QUARTZ_CORE_FRAMEWORK}
     )
 endif()
 
