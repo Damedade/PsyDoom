@@ -17,6 +17,7 @@
 #include <memory>
 #include <mutex>
 
+#include <AvailabilityMacros.h>
 #import <Cocoa/Cocoa.h>
 #import <QuartzCore/QuartzCore.h>
 
@@ -55,7 +56,7 @@ NSWindow* GetGameNSWindow() noexcept {
 
 // Core object managing CADisplayLink.
 // Receives both notifications to draw, and queries about whether to draw from the main thread (no synchronization needed).
-class CADisplayLinkMgr
+class API_AVAILABLE(macosx(14.0)) CADisplayLinkMgr
 {
 public:
     CADisplayLinkMgr() noexcept
@@ -73,20 +74,17 @@ public:
     // Initializes the DisplayLink and returns 'true' if successful
     bool init() noexcept {
         destroy();
+        mpListener = [[DisplayLinkListener alloc] init];
+        NSWindow* const pNSWindow = GetGameNSWindow();
         
-        if (@available(macOS 14, *)) {
-            mpListener = [[DisplayLinkListener alloc] init];
-            NSWindow* const pNSWindow = GetGameNSWindow();
+        if (mpListener && pNSWindow) {
+            mpCADisplayLink = [pNSWindow displayLinkWithTarget:mpListener selector:@selector(displayLinkCallback)];
             
-            if (mpListener && pNSWindow) {
-                mpCADisplayLink = [pNSWindow displayLinkWithTarget:mpListener selector:@selector(displayLinkCallback)];
-                
-                if (mpCADisplayLink) {
-                    [mpCADisplayLink retain];
-                    mbIsValid = true;
-                    // N.B: the DisplayLink callback will happen on the main thread!
-                    [mpCADisplayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSDefaultRunLoopMode];
-                }
+            if (mpCADisplayLink) {
+                [mpCADisplayLink retain];
+                mbIsValid = true;
+                // N.B: the DisplayLink callback will happen on the main thread!
+                [mpCADisplayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSDefaultRunLoopMode];
             }
         }
         
@@ -148,14 +146,16 @@ private:
 };
 
 // The global instance of CADisplayLinkMgr
-static std::unique_ptr<CADisplayLinkMgr> gpCADisplayLinkMgr;
+static API_AVAILABLE(macosx(14.0)) std::unique_ptr<CADisplayLinkMgr> gpCADisplayLinkMgr;
 
 // Implementation of DisplayLinkListener
 @implementation DisplayLinkListener
 
 - (void) displayLinkCallback {
-    if (gpCADisplayLinkMgr) {
-        gpCADisplayLinkMgr->notifyReadyToRedraw();
+    if (@available(macOS 14, *)) {
+        if (gpCADisplayLinkMgr) {
+            gpCADisplayLinkMgr->notifyReadyToRedraw();
+        }
     }
 }
 
@@ -299,15 +299,17 @@ bool init() noexcept {
     bool bHaveDisplayLink = false;
 
     #if USE_CA_DISPLAY_LINK
-        ASSERT(gpCADisplayLinkMgr == nullptr); // Shouldn't already be initialized!
-    
-        if (!bHaveDisplayLink) {
-            gpCADisplayLinkMgr = std::make_unique<CADisplayLinkMgr>();
-            
-            if (gpCADisplayLinkMgr->init()) {
-                bHaveDisplayLink = true;
-            } else {
-                gpCADisplayLinkMgr.reset();
+        if (@available(macOS 14, *)) {
+            ASSERT(gpCADisplayLinkMgr == nullptr); // Shouldn't already be initialized!
+        
+            if (!bHaveDisplayLink) {
+                gpCADisplayLinkMgr = std::make_unique<CADisplayLinkMgr>();
+                
+                if (gpCADisplayLinkMgr->init()) {
+                    bHaveDisplayLink = true;
+                } else {
+                    gpCADisplayLinkMgr.reset();
+                }
             }
         }
     #endif
@@ -334,8 +336,11 @@ bool init() noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 void shutdown() noexcept {
     #if USE_CA_DISPLAY_LINK
-        gpCADisplayLinkMgr.reset();
+        if (@available(macOS 14, *)) {
+            gpCADisplayLinkMgr.reset();
+        }
     #endif
+    
     #if USE_CV_DISPLAY_LINK
         gpCVDisplayLinkMgr.reset();
     #endif
@@ -347,9 +352,11 @@ void shutdown() noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 void synchronize() noexcept {
     #if USE_CA_DISPLAY_LINK
-        if (gpCADisplayLinkMgr) {
-            gpCADisplayLinkMgr->synchronize();
-            return;
+        if (@available(macOS 14, *)) {
+            if (gpCADisplayLinkMgr) {
+                gpCADisplayLinkMgr->synchronize();
+                return;
+            }
         }
     #endif
     

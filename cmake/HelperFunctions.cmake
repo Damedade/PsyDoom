@@ -26,6 +26,20 @@ function(add_common_target_compile_options TARGET_NAME)
     if (COMPILER_MSVC)
         target_compile_options(${TARGET_NAME} PRIVATE /MP)
     endif()
+
+    # Mac: set the OS deployment target
+    if (PLATFORM_MAC)
+        set(MACOS_DEPLOYMENT_TARGET "10.9")
+
+        # Xcode versions and deployment target reference: https://developer.apple.com/support/xcode
+        if ("${XCODE_VERSION}" VERSION_GREATER_EQUAL "14.0.0")
+            set(MACOS_DEPLOYMENT_TARGET "11.0")
+        endif()
+
+        set_target_properties(${TARGET_NAME} PROPERTIES
+            XCODE_ATTRIBUTE_MACOSX_DEPLOYMENT_TARGET "${MACOS_DEPLOYMENT_TARGET}"
+        )
+    endif()
 endfunction()
 
 #-----------------------------------------------------------------------------------------------------------------------
