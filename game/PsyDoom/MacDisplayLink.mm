@@ -32,7 +32,7 @@
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Helper: gets the NSWindow for the game
 //------------------------------------------------------------------------------------------------------------------------------------------
-NSWindow* GetGameNSWindow() noexcept {
+static NSWindow* GetGameNSWindow() noexcept {
     if (Video::gpSdlWindow) {
         SDL_SysWMinfo wmInfo = {};
         wmInfo.version = { SDL_MAJOR_VERSION, SDL_MINOR_VERSION, SDL_PATCHLEVEL };
