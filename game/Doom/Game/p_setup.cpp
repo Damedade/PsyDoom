@@ -393,10 +393,15 @@ static void P_LoadSectors(const int32_t lumpNum) noexcept {
     #endif
 
     // Alloc ram for the runtime sectors and zero initialize
-    if (gbLoadingFinalDoomMap) {
-        gNumSectors = lumpSize / sizeof(mapsector_final_t);
-    } else {
-        gNumSectors = lumpSize / sizeof(mapsector_t);
+    if (Game::gGameType == GameType::Doom_Alpha_0_05) {
+        gNumSectors = lumpSize / sizeof(mapsector_alpha_0_05_t);
+    }
+    else {
+        if (gbLoadingFinalDoomMap) {
+            gNumSectors = lumpSize / sizeof(mapsector_final_t);
+        } else {
+            gNumSectors = lumpSize / sizeof(mapsector_t);
+        }
     }
 
     gpSectors = (sector_t*) Z_Malloc(*gpMainMemZone, gNumSectors * sizeof(sector_t), PU_LEVEL, nullptr);
@@ -415,6 +420,7 @@ static void P_LoadSectors(const int32_t lumpNum) noexcept {
         // Which sector type are we dealing with and is it Final Doom?
         typedef std::remove_reference_t<decltype(*pWadSectors)> wadsector_t;
         constexpr bool bFinalDoom = std::is_same_v<wadsector_t, mapsector_final_t>;
+        constexpr bool bDoomAlpha0_05 = std::is_same_v<wadsector_t, mapsector_alpha_0_05_t>;
 
         // This is required for the Final Doom case.
         // PsyDoom: this won't work anymore because texture lumps are not guaranteed to be contiguous if we are loading WADs other than the original IWAD.
@@ -455,11 +461,21 @@ static void P_LoadSectors(const int32_t lumpNum) noexcept {
             pDstSec->special = Endian::littleToHost(pSrcSec->special);
             pDstSec->thinglist = nullptr;
             pDstSec->tag = Endian::littleToHost(pSrcSec->tag);
-            pDstSec->flags = Endian::littleToHost(pSrcSec->flags);
+
+            if constexpr (bDoomAlpha0_05) {
+                pDstSec->flags = 0;
+            } else {
+                pDstSec->flags = Endian::littleToHost(pSrcSec->flags);
+            }
 
             #if PSYDOOM_MODS
-                pDstSec->ceilColorid = Endian::littleToHost(pSrcSec->ceilColorid);
-                pDstSec->ceilColorid = (pDstSec->ceilColorid == 0) ? pDstSec->colorid : pDstSec->ceilColorid;   // N.B: use the floor color if ceiling color is '0' (undefined)
+                if constexpr (bDoomAlpha0_05) {
+                    pDstSec->ceilColorid = pDstSec->colorid;
+                }
+                else {
+                    pDstSec->ceilColorid = Endian::littleToHost(pSrcSec->ceilColorid);
+                    pDstSec->ceilColorid = (pDstSec->ceilColorid == 0) ? pDstSec->colorid : pDstSec->ceilColorid;   // N.B: use the floor color if ceiling color is '0' (undefined)
+                }
             #endif
 
             if constexpr (bFinalDoom) {
@@ -514,7 +530,8 @@ static void P_LoadSectors(const int32_t lumpNum) noexcept {
                 #else
                     ensureValidFlatPic(pDstSec->floorpic);
                 #endif
-            } else {
+            }
+            else {
                 // Original PSX Doom specific stuff: have to lookup flat numbers from names. First, figure out the floor texture number.
                 // PsyDoom: add support for floor skies too.
                 #if PSYDOOM_MODS
@@ -564,7 +581,11 @@ static void P_LoadSectors(const int32_t lumpNum) noexcept {
     // Process the sectors found in the WAD file as Final Doom or original Doom format
     if (gbLoadingFinalDoomMap) {
         processWadSectors((mapsector_final_t*) pTmpBufferBytes);
-    } else {
+    }
+    else if (Game::gGameType == GameType::Doom_Alpha_0_05) {
+        processWadSectors((mapsector_alpha_0_05_t*) pTmpBufferBytes);
+    }
+    else {
         processWadSectors((mapsector_t*) pTmpBufferBytes);
     }
 
@@ -983,6 +1004,7 @@ static void P_LoadRejectMap(const int32_t lumpNum) noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Load leafs from the specified map lump number
 //------------------------------------------------------------------------------------------------------------------------------------------
+template <MapLeafType LEAF_TYPE>
 static void P_LoadLeafs(const int32_t lumpNum) noexcept {
     // Sanity check the leafs lump is not too big.
     // PsyDoom: if limit removing, just ensure the buffer is big enough instead - any size of data is allowed.
@@ -1011,18 +1033,26 @@ static void P_LoadLeafs(const int32_t lumpNum) noexcept {
 
     // Determine the number of leafs in the lump.
     // The number of leafs MUST equal the number of subsectors, and they must be in the same order as their subsectors.
+    typedef std::conditional_t<LEAF_TYPE == MapLeafType::Alpha_0_05, mapleaf_alpha_0_05_t, mapleaf_t> map_leaf_generic_t;
+
     int32_t numLeafs = 0;
     int32_t totalLeafEdges = 0;
 
     for (const std::byte* pLumpByte = pLumpBeg; pLumpByte < pLumpEnd;) {
         // Increment the leaf count, convert to host endian and skip past it
-        mapleaf_t leaf = *(mapleaf_t*) pLumpByte;
+        map_leaf_generic_t leaf = *(map_leaf_generic_t*) pLumpByte;
         leaf.numedges = Endian::littleToHost(leaf.numedges);
-        pLumpByte += sizeof(mapleaf_t);
+        pLumpByte += sizeof(map_leaf_generic_t);
         ++numLeafs;
 
-        // Skip past the leaf edges and include them in the leaf edge count
-        pLumpByte += leaf.numedges * sizeof(mapleafedge_t);
+        // Skip past the leaf edges and include them in the leaf edge count.
+        // Note: the Doom 0.05 Alpha always has 18 edges allocated in the data, if even there is not that many edges in the leaf.
+        if constexpr (LEAF_TYPE == MapLeafType::Alpha_0_05) {
+            pLumpByte += 18 * sizeof(mapleafedge_t);                // The 0.05 alpha is special
+        } else {
+            pLumpByte += leaf.numedges * sizeof(mapleafedge_t);     // Regular case
+        }
+
         totalLeafEdges += leaf.numedges;
     }
 
@@ -1042,9 +1072,9 @@ static void P_LoadLeafs(const int32_t lumpNum) noexcept {
 
     for (int32_t leafIdx = 0; leafIdx < numLeafs; ++leafIdx) {
         // Convert leaf data to host endian and move past it
-        mapleaf_t leaf = *(mapleaf_t*) pLumpByte;
+        map_leaf_generic_t leaf = *(map_leaf_generic_t*) pLumpByte;
         leaf.numedges = Endian::littleToHost(leaf.numedges);
-        pLumpByte += sizeof(mapleaf_t);
+        pLumpByte += sizeof(map_leaf_generic_t);
 
         // Save leaf info on the subsector
         pSubsec->numLeafEdges = leaf.numedges;
@@ -1078,6 +1108,13 @@ static void P_LoadLeafs(const int32_t lumpNum) noexcept {
             }
 
             ++pDstEdge;
+        }
+
+        // Adjustments for the Doom 0.05 Alpha: there is always 18 edges allocated in the leaf, even if the leaf uses less:
+        if constexpr (LEAF_TYPE == MapLeafType::Alpha_0_05) {
+            if (leaf.numedges < 18) {
+                pLumpByte += (18 - leaf.numedges) * sizeof(mapleafedge_t); // Skip the remaining leaf edges (if any) - there are always 18
+            }
         }
 
         // Move along to the next leaf
@@ -1710,7 +1747,13 @@ void P_SetupLevel(const int32_t mapNum, [[maybe_unused]] const skill_t skill) no
         P_LoadSubSectors(W_MapGetNumForName("SSECTORS"));
         P_LoadNodes(W_MapGetNumForName("NODES"));
         P_LoadSegs(W_MapGetNumForName("SEGS"));
-        P_LoadLeafs(W_MapGetNumForName("LEAFS"));
+
+        if (Game::gGameType == GameType::Doom_Alpha_0_05) {
+            P_LoadLeafs<MapLeafType::Alpha_0_05>(W_MapGetNumForName("LEAFS"));
+        } else {
+            P_LoadLeafs<MapLeafType::Normal>(W_MapGetNumForName("LEAFS"));
+        }
+
         P_LoadRejectMap(W_MapGetNumForName("REJECT"));
     #else
         P_LoadBlockMap(mapStartLump + ML_BLOCKMAP);
@@ -1721,7 +1764,7 @@ void P_SetupLevel(const int32_t mapNum, [[maybe_unused]] const skill_t skill) no
         P_LoadSubSectors(mapStartLump + ML_SSECTORS);
         P_LoadNodes(mapStartLump + ML_NODES);
         P_LoadSegs(mapStartLump + ML_SEGS);
-        P_LoadLeafs(mapStartLump + ML_LEAFS);
+        P_LoadLeafs<MapLeafType::Normal>(mapStartLump + ML_LEAFS);
         P_LoadRejectMap(mapStartLump + ML_REJECT);
     #endif
 

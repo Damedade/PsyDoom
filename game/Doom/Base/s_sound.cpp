@@ -406,11 +406,26 @@ void S_LoadMapSoundAndMusic(const int32_t mapNum) noexcept {
     #endif
 
     if (!bLoadedMapSounds) {
-        CdFileId mapSoundLcdFileId = {};
+        if (Game::gGameType == GameType::Doom_Alpha_0_05) {
+            // For the 0.05 Doom alpha we just load all these LCDs
+            destSpuAddr += wess_dig_lcd_load("ARACNOID.LCD", destSpuAddr, &gMapSndBlock, false);
+            destSpuAddr += wess_dig_lcd_load("BARON.LCD",    destSpuAddr, &gMapSndBlock, false);
+            destSpuAddr += wess_dig_lcd_load("CACDEMON.LCD", destSpuAddr, &gMapSndBlock, false);
+            destSpuAddr += wess_dig_lcd_load("CYBDEMON.LCD", destSpuAddr, &gMapSndBlock, false);
+            destSpuAddr += wess_dig_lcd_load("HELLKNIT.LCD", destSpuAddr, &gMapSndBlock, false);
+            destSpuAddr += wess_dig_lcd_load("LOSTSOUL.LCD", destSpuAddr, &gMapSndBlock, false);
+            destSpuAddr += wess_dig_lcd_load("MANCUBUS.LCD", destSpuAddr, &gMapSndBlock, false);
+            destSpuAddr += wess_dig_lcd_load("PAINELEM.LCD", destSpuAddr, &gMapSndBlock, false);
+            destSpuAddr += wess_dig_lcd_load("REVENANT.LCD", destSpuAddr, &gMapSndBlock, false);
+            destSpuAddr += wess_dig_lcd_load("SPIDEMON.LCD", destSpuAddr, &gMapSndBlock, false);
+        }
+        else {
+            // Normally we load the LCD file associated with the map
+            CdFileId mapSoundLcdFileId = {};
 
-        if (mapNum > Game::getNumMaps()) {
-            // Load the finale LCD, which is normally 'MAP60.LCD' for both Doom and Final Doom.
-            // PsyDoom: this can now be flexibly specified in MAPINFO.
+            if (mapNum > Game::getNumMaps()) {
+                // Load the finale LCD, which is normally 'MAP60.LCD' for both Doom and Final Doom.
+                // PsyDoom: this can now be flexibly specified in MAPINFO.
             #if PSYDOOM_MODS
                 // N.B: need to use the 'gGameMap' field at this point to lookup the cluster because the map number passed in for the finale is NOT valid
                 const MapInfo::Map* const pGameEndMap = MapInfo::getMap(gGameMap);
@@ -419,12 +434,13 @@ void S_LoadMapSoundAndMusic(const int32_t mapNum) noexcept {
             #else
                 mapSoundLcdFileId = S_GetSoundLcdFileId(std::max(60, Game::getNumMaps() + 1));
             #endif
-        } else if (mapNum > 0) {
-            mapSoundLcdFileId = S_GetSoundLcdFileId(mapNum);    // Normal map LCD
-        }
+            } else if (mapNum > 0) {
+                mapSoundLcdFileId = S_GetSoundLcdFileId(mapNum);    // Normal map LCD
+            }
 
-        if (mapSoundLcdFileId != CdFileId{}) {
-            wess_dig_lcd_load(mapSoundLcdFileId, destSpuAddr, &gMapSndBlock, false);
+            if (mapSoundLcdFileId != CdFileId{}) {
+                wess_dig_lcd_load(mapSoundLcdFileId, destSpuAddr, &gMapSndBlock, false);
+            }
         }
     }
 }

@@ -450,7 +450,8 @@ void G_UpdateMobjInfoForSkill(const skill_t skill) noexcept {
         gMobjInfo[MT_BRUISERSHOT].speed = 40 * FRACUNIT;
         gMobjInfo[MT_HEADSHOT].speed = 40 * FRACUNIT;
         gMobjInfo[MT_TROOPSHOT].speed = 40 * FRACUNIT;
-    } else {
+    }
+    else {
         gStates[S_SARG_ATK1].tics = 4;
         gStates[S_SARG_ATK2].tics = 4;
         gStates[S_SARG_ATK3].tics = 4;
@@ -458,6 +459,11 @@ void G_UpdateMobjInfoForSkill(const skill_t skill) noexcept {
         gMobjInfo[MT_BRUISERSHOT].speed = 30 * FRACUNIT;
         gMobjInfo[MT_HEADSHOT].speed = 20 * FRACUNIT;
         gMobjInfo[MT_TROOPSHOT].speed = 20 * FRACUNIT;
+    }
+
+    // Hack for Alpha 0.05: the 'DED1A0' lump is not present but we can use 'PLAYW0' instead
+    if (Game::gGameType == GameType::Doom_Alpha_0_05) {
+        gStates[S_DEAD1] = gStates[S_PLAY_XDIE9];
     }
 }
 

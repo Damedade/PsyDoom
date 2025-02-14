@@ -190,7 +190,12 @@ static void M_LoadAndCacheRequiredUITextures() noexcept {
     I_PurgeTexCache();
     I_LoadAndCache_LOADING_TexLump(gTex_LOADING);
     I_LoadAndCacheTexLump(gTex_NETERR, "NETERR", 0);
-    I_LoadAndCacheTexLump(gTex_PAUSE, "PAUSE", 0);
+
+    // The 0.05 Alpha has the 'PAUSE' asset embedded in the 'STATUS' image
+    if (Game::gGameType != GameType::Doom_Alpha_0_05) {
+        I_LoadAndCacheTexLump(gTex_PAUSE, "PAUSE", 0);
+    }
+
     I_LoadAndCacheTexLump(gTex_BACK, Game::getTexLumpName_BACK());
 
     #if PSYDOOM_MODS

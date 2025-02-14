@@ -45,7 +45,7 @@ static void AddDiscFile(const CdFileId id, const char* const path) noexcept {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// Initialize the cd map table for [GEC] Master Edition PSX Doom for the PlayStation (Beta 3).
+// Initialize the cd map table for '[GEC] Master Edition PSX Doom for the PlayStation (Beta 3)'.
 // This needs to be done manually due to conflicting file names.
 //------------------------------------------------------------------------------------------------------------------------------------------
 static void CdMapTbl_Init_GEC_ME_Beta3() noexcept {
@@ -112,6 +112,59 @@ static void CdMapTbl_Init_GEC_ME_Beta3() noexcept {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
+// Initialize the cd map table for 'Doom Alpha v0.05'.
+// This needs to be done manually because the layout is so different to the retail game.
+//------------------------------------------------------------------------------------------------------------------------------------------
+static void CdMapTbl_Init_Doom_Alpha_0_05() noexcept {
+    char srcFileName[256];
+    char dstFileName[32];
+
+    // General files
+    AddDiscFile("DEMO1.LMP", "DEMO1.LMP");
+    AddDiscFile("DEMO2.LMP", "DEMO2.LMP");
+    AddDiscFile("MOVIE.STR", "MOVIE.STR");
+    AddDiscFile("PSXDOOM.WAD", "PSXDOOM.WAD");
+
+    // Music and sound
+    AddDiscFile("ARACNOID.LCD", "SOUND/ARACNOID.LCD");
+    AddDiscFile("BARON.LCD", "SOUND/BARON.LCD");
+    AddDiscFile("CACDEMON.LCD", "SOUND/CACDEMON.LCD");
+    AddDiscFile("CYBDEMON.LCD", "SOUND/CYBDEMON.LCD");
+    AddDiscFile("DOOMSFX.LCD", "SOUND/DOOMSFX.LCD");
+    AddDiscFile("DOOMSND.DAT", "SOUND/DOOMSND.DAT");
+    AddDiscFile("DOOMSND.WMD", "SOUND/DOOMSND.WMD");
+    AddDiscFile("HELLKNIT.LCD", "SOUND/HELLKNIT.LCD");
+    AddDiscFile("LOSTSOUL.LCD", "SOUND/LOSTSOUL.LCD");
+    AddDiscFile("MANCUBUS.LCD", "SOUND/MANCUBUS.LCD");
+    AddDiscFile("PAINELEM.LCD", "SOUND/PAINELEM.LCD");
+    AddDiscFile("REVENANT.LCD", "SOUND/REVENANT.LCD");
+    AddDiscFile("SPIDEMON.LCD", "SOUND/SPIDEMON.LCD");
+
+    for (int32_t i = 1; i <= 20; ++i) {
+        std::snprintf(srcFileName, C_ARRAY_SIZE(srcFileName), "MUSIC/MUSLEV%d.LCD", i);
+        std::snprintf(dstFileName, C_ARRAY_SIZE(dstFileName), "MUSLEV%d.LCD", i);
+        AddDiscFile(dstFileName, srcFileName);
+    }
+
+    // Maps
+    const auto defineMap = [&](const int32_t mapNum) noexcept {
+        std::snprintf(srcFileName, C_ARRAY_SIZE(srcFileName), "DOOM1MAP/MAP%02d/MAP.WAD", mapNum);
+        std::snprintf(dstFileName, C_ARRAY_SIZE(dstFileName), "MAP%02d.WAD", mapNum);
+        AddDiscFile(dstFileName, srcFileName);
+    };
+
+    for (int mapNum = 1; mapNum <= 9; ++mapNum) {
+        defineMap(mapNum);
+    }
+
+    defineMap(25);
+
+    for (int mapNum = 31; mapNum <= 33; ++mapNum) {
+        defineMap(mapNum);
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
 // Initialize the cd map table for the "PSX Doom Forever" ROM hack, which is a re-skin of Final Doom
 //------------------------------------------------------------------------------------------------------------------------------------------
 static void CdMapTbl_Init_PsxDoomForever() noexcept {
@@ -134,9 +187,14 @@ void CdMapTbl_Init() noexcept {
     gDiscFiles.clear();
     gDiscFiles.reserve(512);
 
-    // Special case the GEC Master Edition Beta 3
+    // Special cases that completely override the normal logic
     if (Game::gGameType == GameType::GEC_ME_Beta3) {
         CdMapTbl_Init_GEC_ME_Beta3();
+        return;
+    }
+
+    if (Game::gGameType == GameType::Doom_Alpha_0_05) {
+        CdMapTbl_Init_Doom_Alpha_0_05();
         return;
     }
 

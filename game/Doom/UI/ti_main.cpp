@@ -427,14 +427,21 @@ void START_Title() noexcept {
     // Load sounds for the menu
     S_LoadMapSoundAndMusic(0);
 
-    // Cache commonly used UI lumps for fast access and upload them to VRAM
+    // Cache commonly used UI lumps for fast access and upload them to VRAM.
+    // Note: the 0.05 Alpha has the 'PAUSE' asset embedded in the 'STATUS' image.
     W_CacheLumpName(Game::getTexLumpName_OptionsBg(), PU_STATIC, false);
     W_CacheLumpName("NETERR", PU_STATIC, false);
-    W_CacheLumpName("PAUSE", PU_STATIC, false);
+
+    if (Game::gGameType != GameType::Doom_Alpha_0_05) {
+        W_CacheLumpName("PAUSE", PU_STATIC, false);
+    }
 
     I_LoadAndCacheTexLump(gTex_OptionsBg, Game::getTexLumpName_OptionsBg());
     I_LoadAndCacheTexLump(gTex_NETERR, "NETERR", 0);
-    I_LoadAndCacheTexLump(gTex_PAUSE, "PAUSE", 0);
+
+    if (Game::gGameType != GameType::Doom_Alpha_0_05) {
+        I_LoadAndCacheTexLump(gTex_PAUSE, "PAUSE", 0);
+    }
 
     // PsyDoom: if we are doing the 'GEC Master Edition' style title screen then different lumps are used
     const TitleScreenStyle screenStyle = MapInfo::getGameInfo().titleScreenStyle;

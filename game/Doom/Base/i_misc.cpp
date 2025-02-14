@@ -259,7 +259,10 @@ void I_DrawPausedOverlay() noexcept {
     const player_t& player = gPlayers[gCurPlayerIndex];
 
     if ((player.cheats & CF_NOPAUSEMSG) == 0) {
-        I_CacheAndDrawSprite(gTex_PAUSE, 107, 108, Game::getTexClut_PAUSE());
+        // The 0.05 Alpha has the 'PAUSE' asset embedded in the 'STATUS' image
+        if (Game::gGameType != GameType::Doom_Alpha_0_05) {
+            I_CacheAndDrawSprite(gTex_PAUSE, 107, 108, Game::getTexClut_PAUSE());
+        }
     }
 
     if (player.cheats & CF_WARPMENU) {

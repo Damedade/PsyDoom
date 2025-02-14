@@ -268,6 +268,8 @@ set(SOURCE_FILES
     "PsyDoom/MapInfo/MapInfo_Defaults.h"
     "PsyDoom/MapInfo/MapInfo_Defaults_Doom.cpp"
     "PsyDoom/MapInfo/MapInfo_Defaults_Doom.h"
+    "PsyDoom/MapInfo/MapInfo_Defaults_Doom_Alpha_0_05.cpp"
+    "PsyDoom/MapInfo/MapInfo_Defaults_Doom_Alpha_0_05.h"
     "PsyDoom/MapInfo/MapInfo_Defaults_FinalDoom.cpp"
     "PsyDoom/MapInfo/MapInfo_Defaults_FinalDoom.h"
     "PsyDoom/MapInfo/MapInfo_Defaults_GEC_ME_Beta3.cpp"

@@ -20,6 +20,7 @@ static constexpr uint32_t NET_GAMEID_GEC_ME_BETA3               = 0xAB00AB22;
 static constexpr uint32_t NET_GAMEID_GEC_ME_TESTMAP_DOOM        = 0xBB00BB22;
 static constexpr uint32_t NET_GAMEID_GEC_ME_TESTMAP_FINAL_DOOM  = 0xBB00BB23;
 static constexpr uint32_t NET_GAMEID_GEC_ME_BETA4               = 0xAB00AB23;
+static constexpr uint32_t NET_GAMEID_DOOM_ALPHA_0_05            = 0xAA12AA22;
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Set the values of all constants for 'Doom'
@@ -184,6 +185,23 @@ static void populateConsts_GEC_ME_Beta4(GameConstants& consts) noexcept {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
+// Set the values of all constants for 'Doom Alpha v0.05'
+//------------------------------------------------------------------------------------------------------------------------------------------
+static void populateConsts_DoomAlpha_0_05(GameConstants& consts) noexcept {
+    consts.mainWads[0] = CdFile::PSXDOOM_WAD;
+    consts.introMovies[0] = "MOVIE.STR";
+    consts.demos[0] = BuiltInDemoDef{ "DEMO1.LMP", false, false, false };
+    consts.demos[1] = BuiltInDemoDef{ "DEMO2.LMP", false, false, false };
+    consts.saveFilePrefix = "ADoom_";
+    consts.pLastPasswordField = &PlayerPrefs::gLastPassword_Doom;
+    consts.netGameId = NET_GAMEID_DOOM_ALPHA_0_05;
+    consts.baseNumAnims = BASE_NUM_ANIMS_DOOM;
+    consts.texPalette_BUTTONS = MAINPAL;
+    consts.numPalettesRequired = 17;
+    consts.bUseFinalDoomSkyPalettes = false;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
 // Populates the set of game constants for the current game type
 //------------------------------------------------------------------------------------------------------------------------------------------
 void GameConstants::populate(const GameType gameType, const bool bIsDemoVersion) noexcept {
@@ -198,6 +216,7 @@ void GameConstants::populate(const GameType gameType, const bool bIsDemoVersion)
         case GameType::GEC_ME_TestMap_Doom:         populateConsts_GEC_ME_TestMap_Doom(*this);          break;
         case GameType::GEC_ME_TestMap_FinalDoom:    populateConsts_GEC_ME_TestMap_FinalDoom(*this);     break;
         case GameType::GEC_ME_Beta4:                populateConsts_GEC_ME_Beta4(*this);                 break;
+        case GameType::Doom_Alpha_0_05:             populateConsts_DoomAlpha_0_05(*this);               break;
 
         default:
             FatalErrors::raise("GameConstants::populate(): unhandled game type!");

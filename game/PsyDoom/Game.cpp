@@ -117,7 +117,12 @@ void determineGameTypeAndVariant() noexcept {
         gGameType = GameType::FinalDoom;
         gGameVariant = GameVariant::NTSC_U;
         gbIsPsxDoomForever = true;
-    } 
+    }
+    else if (discFileExists("PSX.EXE") && discFileExists("PSXDOOM.EXE", 0xBE4C872A5A6600B2, 0xD92F3CDF2096BDA3)) {
+        // PSX Doom Alpha: v0.05
+        gGameType = GameType::Doom_Alpha_0_05;
+        gGameVariant = GameVariant::NTSC_U;
+    }
     else {
         FatalErrors::raise(
             "Unknown/unrecognized PSX Doom game disc provided!\n"
@@ -127,7 +132,8 @@ void determineGameTypeAndVariant() noexcept {
             "   - [GEC] Master Edition PSX Doom (Beta 3 or 4).\n"
             "   - [GEC] Master Edition tools: single map test disc.\n"
             "   - PSX Doom Forever (ROM hack).\n"
-            "   - Doom single level PAL demo (standalone disc, or in a demo collection)."
+            "   - Doom single level PAL demo (standalone disc, or in a demo collection).\n"
+            "   - PSX Doom Alpha (0.05)."
         );
     }
 

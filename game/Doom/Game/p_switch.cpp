@@ -182,7 +182,19 @@ void P_InitSwitchDefs() noexcept {
     }
     else {
         // Normal case: Doom, Final Doom and so on - use a hardcoded set of base switch types:
+        const bool bIsAlpha0_05 = (Game::gGameType == GameType::Doom_Alpha_0_05);
+
         for (int32_t i = 0; i < BASE_NUM_SWITCHES; ++i) {
+            // For Doom Alpha 0.05 skip the 'SW1STAR' switch since the lump is not present in the main WAD
+            const switchlist_t& baseSwitch = gBaseAlphSwitchList[i];
+            const bool bSkipSwitch = (
+                bIsAlpha0_05 &&
+                (std::strncmp(baseSwitch.name1, "SW1STAR", C_ARRAY_SIZE(baseSwitch.name1)) == 0)
+            );
+
+            if (bSkipSwitch)
+                continue;
+
             gAlphSwitchList.push_back(gBaseAlphSwitchList[i]);
         }
     }

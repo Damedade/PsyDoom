@@ -182,6 +182,22 @@ struct mapsector_final_t {
 
 static_assert(sizeof(mapsector_final_t) == 16);
 
+// Data for a sector in a WAD file: Doom 0.05 Alpha format.
+struct mapsector_alpha_0_05_t {
+    static constexpr int32_t MAXNAME = 8;
+
+    int16_t     floorheight;            // Integer floor height for the sector
+    int16_t     ceilingheight;          // Integer ceiling height for the sector
+    char        floorpic[MAXNAME];      // Floor texture lump name
+    char        ceilingpic[MAXNAME];    // Ceiling texture lump name
+    uint8_t     lightlevel;             // Light level for the sector (normally 0-255)
+    uint8_t     colorid;                // Which of the sector light colors to use for the sector
+    int16_t     special;                // Special action for the sector: damage, secret, light flicker etc.
+    int16_t     tag;                    // Tag for the sector for use in targetted actions (triggered by switches, line crossings etc.)
+};
+
+static_assert(sizeof(mapsector_alpha_0_05_t) == 26);
+
 // Data for a line side in a WAD file - original PSX Doom format.
 // Final Doom uses a different variant of this.
 struct mapsidedef_t {
@@ -258,6 +274,19 @@ struct mapleaf_t {
 };
 
 static_assert(sizeof(mapleaf_t) == 2);
+
+// Doom 0.05 Alpha leaf format
+struct mapleaf_alpha_0_05_t {
+    uint32_t    numedges;       // How many edges in this leaf
+};
+
+static_assert(sizeof(mapleaf_alpha_0_05_t) == 4);
+
+// Enum representing a type of 'mapleaf' struct
+enum class MapLeafType {
+    Normal,         // The 'mapleaf_t' struct
+    Alpha_0_05      // The 'mapleaf_alpha_0_05_t' struct
+};
 
 // New to PSX: definition for an edge in a leaf
 struct mapleafedge_t {
