@@ -141,6 +141,7 @@ void I_DrawSprite(
 #endif
 
 void I_DrawLoadingPlaque(texture_t& tex, const int16_t xpos, const int16_t ypos, const int16_t clutId) noexcept;
+void I_DrawLoadingPlaque_LOADING() noexcept;
 void I_IncDrawnFrameCount() noexcept;
 void I_DrawPresent() noexcept;
 void I_VsyncCallback() noexcept;

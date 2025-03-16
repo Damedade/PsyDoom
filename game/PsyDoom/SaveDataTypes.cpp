@@ -1240,7 +1240,8 @@ void SavedSTBarT::deserializeTo(stbar_t& sbar) const noexcept {
     sbar.alertMessageTicsLeft = alertMessageTicsLeft;
 
     // This global is redundant, hence not serialized in 'SavedGlobals'
-    gpCurSBFaceSprite = &gFaceSprites[face];
+    const facesprite_t* const pFaceSprites = ST_GetFaceSprites();
+    gpCurSBFaceSprite = &pFaceSprites[face];
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -1376,8 +1377,11 @@ void SavedGlobals::deserializeToGlobals() const noexcept {
     gExtCameraAngle = extCameraAngle;
     gNumPasswordCharsEntered = numPasswordCharsEntered;
     std::memcpy(gPasswordCharBuffer, passwordCharBuffer, sizeof(passwordCharBuffer));
+    
+    const facesprite_t* const pFaceSprites = ST_GetFaceSprites();
+    
     statusBar.deserializeTo(gStatusBar);
-    gpCurSBFaceSprite = &gFaceSprites[statusBar.face];      // This redundant info is not serialized, derived from 'statusBar' instead
+    gpCurSBFaceSprite = &pFaceSprites[statusBar.face];      // This redundant info is not serialized, derived from 'statusBar' instead
     gFaceTics = faceTics;
     gbDrawSBFace = bDrawSBFace;
     gbGibDraw = bGibDraw;

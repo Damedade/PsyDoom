@@ -414,7 +414,7 @@ void START_Title() noexcept {
     // Show the loading plaque
     W_CacheLumpName("LOADING", PU_STATIC, false);
     I_LoadAndCache_LOADING_TexLump(gTex_LOADING);
-    I_DrawLoadingPlaque(gTex_LOADING, 95, 109, Game::getTexClut_LOADING());
+    I_DrawLoadingPlaque_LOADING();
 
     // PsyDoom: precache menu sounds if we didn't already do so
     #if PSYDOOM_MODS

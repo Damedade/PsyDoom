@@ -13,6 +13,7 @@ struct fontchar_t {
 // The list of big font characters
 static constexpr int32_t NUM_BIG_FONT_CHARS = 66;
 extern const fontchar_t gBigFontChars[NUM_BIG_FONT_CHARS];
+extern const fontchar_t gBigFontChars_alpha_0_05[NUM_BIG_FONT_CHARS]; // Alpha 0.05 font
 
 // Starting indices for various individual and groups of big font chars
 enum : int32_t {
@@ -28,6 +29,7 @@ enum : int32_t {
 // The size in pixels (width and height) of the small font and top V coordinate for all it's characters
 static constexpr int32_t SMALL_FONT_SIZE = 8;
 static constexpr int32_t SMALL_FONT_V_MIN = 168;
+static constexpr int32_t SMALL_FONT_V_MIN_ALPHA_0_05 = 169; // Alpha 0.05 coordinate
 
 // How high each line is for the big font and the width of a single space
 static constexpr int32_t BIG_FONT_LINE_HEIGHT = 16;
@@ -59,3 +61,6 @@ void I_UpdatePalette() noexcept;
 #endif
 
 void I_DrawString(const int32_t x, const int32_t y, const char* const str) noexcept;
+
+// PsyDoom helper: returns the 'gBigFontChars' array to use for the current game
+const fontchar_t* I_GetBigFontChars() noexcept;

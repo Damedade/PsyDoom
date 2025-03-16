@@ -592,6 +592,18 @@ void I_DrawLoadingPlaque(texture_t& tex, const int16_t xpos, const int16_t ypos,
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
+// Draws the loading plaque that says 'LOADING'
+//------------------------------------------------------------------------------------------------------------------------------------------
+void I_DrawLoadingPlaque_LOADING() noexcept {
+    // The Alpha 0.05 plaque is a lot bigger and needs to be drawn at a different location
+    if (Game::gGameType != GameType::Doom_Alpha_0_05) {
+        I_DrawLoadingPlaque(gTex_LOADING, 95, 109, Game::getTexClut_LOADING());
+    } else {
+        I_DrawLoadingPlaque(gTex_LOADING, 68, 78, Game::getTexClut_LOADING());
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
 // Increments the 'drawn frame' counter used to track texture cache overflows
 //------------------------------------------------------------------------------------------------------------------------------------------
 void I_IncDrawnFrameCount() noexcept {

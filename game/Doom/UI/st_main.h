@@ -64,6 +64,7 @@ static constexpr int32_t WEAPON_MICRO_INDEXES[NUMWEAPONS] = { 0, 1, 2, 3, 4, 5, 
 
 extern sbflash_t                gFlashCards[NUMCARDS];
 extern const facesprite_t       gFaceSprites[NUMFACES];
+extern const facesprite_t       gFaceSprites_alpha_0_05[NUMFACES];
 extern stbar_t                  gStatusBar;
 extern int32_t                  gFaceTics;
 extern bool                     gbDrawSBFace;
@@ -77,6 +78,9 @@ void ST_Init() noexcept;
 void ST_InitEveryLevel() noexcept;
 void ST_Ticker() noexcept;
 void ST_Drawer() noexcept;
+
+// PsyDoom helper: returns the 'gFaceSprites' array to use for the current game
+const facesprite_t* ST_GetFaceSprites() noexcept;
 
 #if PSYDOOM_MODS
     void ST_AlertMessage(const char* const msg, const uint32_t numTics) noexcept;

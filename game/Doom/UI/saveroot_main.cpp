@@ -62,13 +62,15 @@ static const MenuItem*  gpMenuItems;
 // Draw the cursor at the specified position
 //------------------------------------------------------------------------------------------------------------------------------------------
 static void DrawCursor(const int16_t cursorX, const int16_t cursorY) noexcept {
+    const uint8_t skullTexV = (Game::gGameType != GameType::Doom_Alpha_0_05) ? M_SKULL_TEX_V : M_SKULL_TEX_V_ALPHA_0_05;
+
     I_DrawSprite(
         gTex_STATUS.texPageId,
         Game::getTexClut_STATUS(),
         (int16_t) cursorX - 24,
         (int16_t) cursorY - 2,
         (int16_t)(gTex_STATUS.texPageCoordX + M_SKULL_TEX_U + (uint8_t) gCursorFrame * M_SKULL_W),
-        (int16_t)(gTex_STATUS.texPageCoordY + M_SKULL_TEX_V),
+        (int16_t)(gTex_STATUS.texPageCoordY + skullTexV),
         M_SKULL_W,
         M_SKULL_H
     );

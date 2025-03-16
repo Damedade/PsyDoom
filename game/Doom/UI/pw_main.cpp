@@ -355,6 +355,8 @@ void DRAW_PasswordScreen() noexcept {
     spritePrim.clut = Game::getTexClut_STATUS();
 
     // Draw the array of password characters
+    const fontchar_t* const pBigFontChars = I_GetBigFontChars();
+
     for (int32_t pwCharIdx = 0; pwCharIdx < NUM_PW_CHARS; ++pwCharIdx) {
         // Determine where to place the character
         constexpr int32_t CHARS_PER_ROW = 8;
@@ -391,7 +393,7 @@ void DRAW_PasswordScreen() noexcept {
             bigFontCharIdx = BIG_FONT_EXCLAMATION;
         }
 
-        const fontchar_t& fontChar = gBigFontChars[bigFontCharIdx];
+        const fontchar_t& fontChar = pBigFontChars[bigFontCharIdx];
 
         // Setup and submit the sprite primitive for this password character
         LIBGPU_setXY0(spritePrim, charX, charY);

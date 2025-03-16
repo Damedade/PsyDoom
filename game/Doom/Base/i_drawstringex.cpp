@@ -85,11 +85,12 @@ static int32_t DetermineLineWidth(const char* const str, const uint32_t numChars
         return numChars * SMALL_FONT_SIZE;
 
     // Harder case: the big font has variable character widths
+    const fontchar_t* const pBigFontChars = I_GetBigFontChars();
     int32_t width = 0;
 
     for (uint32_t i = 0; i < numChars; ++i) {
         const int32_t fontCharIdx = GetBigFontCharIndex(str[i]);
-        width += (fontCharIdx >= 0) ? gBigFontChars[fontCharIdx].w : BIG_FONT_WHITESPACE_CHAR_WIDTH;
+        width += (fontCharIdx >= 0) ? pBigFontChars[fontCharIdx].w : BIG_FONT_WHITESPACE_CHAR_WIDTH;
     }
 
     return width;
@@ -100,6 +101,7 @@ static int32_t DetermineLineWidth(const char* const str, const uint32_t numChars
 // The current draw mode and most shared draw state of the sprite primitive is expected to have been setup prior to calling.
 //------------------------------------------------------------------------------------------------------------------------------------------
 static void DrawStringLine_BigFont(const DrawStringLine& line, const DrawStringParams& params, SPRT& spritePrim) noexcept {
+    const fontchar_t* const pBigFontChars = I_GetBigFontChars();
     int32_t curX = line.posX;
 
     for (uint32_t i = 0; i < line.length; ++i) {
@@ -124,7 +126,7 @@ static void DrawStringLine_BigFont(const DrawStringLine& line, const DrawStringP
         const int32_t yAdjust = (charIdx >= BIG_FONT_LCASE_ALPHA) ? 3 : 0;
 
         // Populate and submit the draw primitive
-        const fontchar_t& fontchar = gBigFontChars[charIdx];
+        const fontchar_t& fontchar = pBigFontChars[charIdx];
 
         LIBGPU_setXY0(spritePrim, (int16_t) curX, (int16_t)(line.posY + yAdjust));
         LIBGPU_setUV0(spritePrim, fontchar.u, fontchar.v);
@@ -141,6 +143,8 @@ static void DrawStringLine_BigFont(const DrawStringLine& line, const DrawStringP
 // The current draw mode and most shared draw state of the sprite primitive is expected to have been setup prior to calling.
 //------------------------------------------------------------------------------------------------------------------------------------------
 void DrawStringLine_SmallFont(const DrawStringLine& line, const DrawStringParams& params, SPRT& spritePrim) noexcept {
+    const int32_t smallFontVMin = (Game::gGameType != GameType::Doom_Alpha_0_05) ? SMALL_FONT_V_MIN : SMALL_FONT_V_MIN_ALPHA_0_05;
+
     spritePrim.y0 = (int16_t) line.posY;
     int32_t curX = line.posX;
 
@@ -169,7 +173,7 @@ void DrawStringLine_SmallFont(const DrawStringLine& line, const DrawStringParams
             const int32_t fontRow = charIdx / 32;
             const int32_t fontCol = charIdx - fontRow * 32;
             const int32_t texU = fontCol * SMALL_FONT_SIZE;
-            const int32_t texV = fontRow * SMALL_FONT_SIZE + SMALL_FONT_V_MIN;
+            const int32_t texV = fontRow * SMALL_FONT_SIZE + smallFontVMin;
 
             // Populate and submit the draw primitive
             spritePrim.x0 = (int16_t) curX;

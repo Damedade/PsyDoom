@@ -95,6 +95,75 @@ const fontchar_t gBigFontChars[NUM_BIG_FONT_CHARS] = {
     { 192, 243,  13,  13 }  // z - 65
 };
 
+const fontchar_t gBigFontChars_alpha_0_05[NUM_BIG_FONT_CHARS] = {
+    {   0, 196,  12,  16 }, // 0 - 0
+    {  12, 196,  12,  16 }, // 1 - 1
+    {  24, 196,  12,  16 }, // 2 - 2
+    {  36, 196,  12,  16 }, // 3 - 3
+    {  48, 196,  12,  16 }, // 4 - 4
+    {  60, 196,  12,  16 }, // 5 - 5
+    {  72, 196,  12,  16 }, // 6 - 6
+    {  84, 196,  12,  16 }, // 7 - 7
+    {  96, 196,  12,  16 }, // 8 - 8
+    { 108, 196,  12,  16 }, // 9 - 9
+    { 166, 196,  12,  16 }, // - - 10 (Note: this character doesn't actually exist in Alpha 0.05 - it's blank)
+    { 120, 196,  12,  15 }, // % - 11
+    {   0, 212,   7,  16 }, // ! - 12
+    {   8, 212,   7,  16 }, // . - 13
+    {  16, 212,  15,  16 }, // A - 14
+    {  32, 212,  13,  16 }, // B - 15
+    {  46, 212,  12,  16 }, // C - 16
+    {  60, 212,  13,  16 }, // D - 17
+    {  74, 212,  13,  16 }, // E - 18
+    {  88, 212,  13,  16 }, // F - 19
+    { 102, 212,  13,  16 }, // G - 20
+    { 116, 212,  13,  16 }, // H - 21
+    { 130, 212,   6,  16 }, // I - 22
+    { 136, 212,  12,  16 }, // J - 23
+    { 148, 212,  14,  16 }, // K - 24
+    { 162, 212,  13,  16 }, // L - 25
+    { 176, 212,  15,  16 }, // M - 26
+    { 192, 212,  15,  16 }, // N - 27
+    { 208, 212,  13,  16 }, // O - 28
+    { 222, 212,  13,  16 }, // P - 29
+    { 236, 212,  13,  16 }, // Q - 30
+    {   0, 228,  13,  16 }, // R - 31
+    {  14, 228,  13,  16 }, // S - 32
+    {  28, 228,  14,  16 }, // T - 33
+    {  42, 228,  13,  16 }, // U - 34
+    {  56, 228,  15,  16 }, // V - 35
+    {  72, 228,  15,  16 }, // W - 36
+    {  88, 228,  15,  16 }, // X - 37
+    { 104, 228,  13,  16 }, // Y - 38
+    { 118, 228,  13,  16 }, // Z - 39
+    { 132, 231,  13,  12 }, // a - 40
+    { 146, 231,  12,  12 }, // b - 41
+    { 158, 231,  11,  12 }, // c - 42
+    { 170, 231,  11,  12 }, // d - 43
+    { 182, 231,  10,  12 }, // e - 44
+    { 192, 231,  11,  12 }, // f - 45
+    { 204, 231,  11,  12 }, // g - 46
+    { 216, 231,  12,  12 }, // h - 47
+    { 228, 231,   5,  12 }, // i - 48
+    { 234, 231,  10,  12 }, // j - 49
+    {   0, 244,  12,  12 }, // k - 50
+    {  12, 244,   9,  12 }, // l - 51
+    {  22, 244,  13,  12 }, // m - 52
+    {  36, 244,  13,  12 }, // n - 53
+    {  50, 244,  11,  12 }, // o - 54
+    {  62, 244,  11,  12 }, // p - 55
+    {  74, 244,  11,  12 }, // q - 56
+    {  86, 244,  11,  12 }, // r - 57
+    {  98, 244,  12,  12 }, // s - 58
+    { 110, 244,  11,  12 }, // t - 59
+    { 122, 244,  11,  12 }, // u - 60
+    { 134, 244,  13,  12 }, // v - 61
+    { 148, 244,  13,  12 }, // w - 62
+    { 162, 244,  13,  12 }, // x - 63
+    { 176, 244,  13,  12 }, // y - 64
+    { 190, 244,  13,  12 }  // z - 65
+};
+
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Draw a number using the large font at the specified pixel location
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -127,9 +196,12 @@ void I_DrawNumber(const int32_t x, const int32_t y, const int32_t value) noexcep
         spritePrim.clut = Game::getTexClut_STATUS();
     #endif
 
+    const uint8_t texV0 = (Game::gGameType != GameType::Doom_Alpha_0_05) ? 195 : 196;
+    const int16_t charW = (Game::gGameType != GameType::Doom_Alpha_0_05) ? 11 : 12;
+
     spritePrim.y0 = (int16_t) y;            // Always on the same row
-    spritePrim.v0 = 195;                    // Digits are all on the same line in VRAM
-    LIBGPU_setWH(spritePrim, 11, 16);       // Digits are always this size
+    spritePrim.v0 = texV0;                  // Digits are all on the same line in VRAM
+    LIBGPU_setWH(spritePrim, charW, 16);    // Digits are always this size
 
     // Work with unsigned while we are printing, until the end
     bool bNegativeVal;
@@ -159,6 +231,7 @@ void I_DrawNumber(const int32_t x, const int32_t y, const int32_t value) noexcep
     }
 
     // Print the digits, starting with the least significant and move backwards across the screen
+    const fontchar_t* const pBigFontChars = I_GetBigFontChars();
     const uint32_t numDigits = digitIdx + 1;
     int32_t curX = x;
 
@@ -166,16 +239,16 @@ void I_DrawNumber(const int32_t x, const int32_t y, const int32_t value) noexcep
         const int32_t digit = digits[digitIdx];
 
         spritePrim.x0 = (int16_t) curX;
-        spritePrim.u0 = gBigFontChars[BIG_FONT_DIGITS + digit].u;
+        spritePrim.u0 = pBigFontChars[BIG_FONT_DIGITS + digit].u;
         I_AddPrim(spritePrim);
 
-        curX -= 11;
+        curX -= charW;
     }
 
     // Print the minus symbol if the value was negative
     if (bNegativeVal) {
         spritePrim.x0 = (int16_t) curX;
-        spritePrim.u0 = gBigFontChars[BIG_FONT_MINUS].u;
+        spritePrim.u0 = pBigFontChars[BIG_FONT_MINUS].u;
         I_AddPrim(spritePrim);
     }
 }
@@ -219,6 +292,7 @@ void I_DrawStringSmall(
     spritePrim.y0 = (int16_t) y;
 
     // Draw each visible character in the string
+    const int32_t smallFontVMin = (Game::gGameType != GameType::Doom_Alpha_0_05) ? SMALL_FONT_V_MIN : SMALL_FONT_V_MIN_ALPHA_0_05;
     int32_t curX = x;
     const char* pCurChar = str;
 
@@ -238,7 +312,7 @@ void I_DrawStringSmall(
             const int32_t fontRow = charIdx / 32;
             const int32_t fontCol = charIdx - fontRow * 32;
             const int32_t texU = fontCol * SMALL_FONT_SIZE;
-            const int32_t texV = fontRow * SMALL_FONT_SIZE + SMALL_FONT_V_MIN;
+            const int32_t texV = fontRow * SMALL_FONT_SIZE + smallFontVMin;
 
             // Populate and submit the primitive
             LIBGPU_setUV0(spritePrim, (uint8_t) texU, (uint8_t) texV);
@@ -262,6 +336,18 @@ void I_DrawPausedOverlay() noexcept {
         // The 0.05 Alpha has the 'PAUSE' asset embedded in the 'STATUS' image
         if (Game::gGameType != GameType::Doom_Alpha_0_05) {
             I_CacheAndDrawSprite(gTex_PAUSE, 107, 108, Game::getTexClut_PAUSE());
+        }
+        else {
+            I_DrawSprite(
+                gTex_STATUS.texPageId,
+                Game::getTexClut_STATUS(),
+                107,
+                108,
+                (int16_t)(gTex_STATUS.texPageCoordX + 214),
+                (int16_t)(gTex_STATUS.texPageCoordY + 189),
+                42,
+                23
+            );
         }
     }
 
@@ -384,6 +470,7 @@ void I_UpdatePalette() noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 static int32_t I_GetStringXPosToCenter(const char* const str) noexcept {
     // Go through the entire string and get the width of all characters that would be drawn
+    const fontchar_t* const pBigFontChars = I_GetBigFontChars();
     int32_t width = 0;
     const char* pCurChar = str;
 
@@ -417,7 +504,7 @@ static int32_t I_GetStringXPosToCenter(const char* const str) noexcept {
             continue;
         }
 
-        const fontchar_t& fontchar = gBigFontChars[charIdx];
+        const fontchar_t& fontchar = pBigFontChars[charIdx];
         width += fontchar.w;
     }
 
@@ -431,6 +518,7 @@ static int32_t I_GetStringXPosToCenter(const char* const str) noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 int32_t I_GetStringWidth(const char* const str) noexcept {
     // Go through the entire string and get the width of all characters that would be drawn
+    const fontchar_t* const pBigFontChars = I_GetBigFontChars();
     int32_t width = 0;
     const char* pCurChar = str;
 
@@ -464,7 +552,7 @@ int32_t I_GetStringWidth(const char* const str) noexcept {
             continue;
         }
 
-        const fontchar_t& fontchar = gBigFontChars[charIdx];
+        const fontchar_t& fontchar = pBigFontChars[charIdx];
         width += fontchar.w;
     }
 
@@ -510,6 +598,7 @@ void I_DrawString(const int32_t x, const int32_t y, const char* const str) noexc
     int32_t curX = (x != -1) ? x : I_GetStringXPosToCenter(str);
 
     // Draw all the characters in the string
+    const fontchar_t* const pBigFontChars = I_GetBigFontChars();
     const char* pCurChar = str;
 
     for (char c = *pCurChar; c != 0; ++pCurChar, c = *pCurChar) {
@@ -545,7 +634,7 @@ void I_DrawString(const int32_t x, const int32_t y, const char* const str) noexc
         }
 
         // Populate and submit the sprite primitive
-        const fontchar_t& fontchar = gBigFontChars[charIdx];
+        const fontchar_t& fontchar = pBigFontChars[charIdx];
 
         LIBGPU_setXY0(spritePrim, (int16_t) curX, (int16_t) curY);
         LIBGPU_setUV0(spritePrim, fontchar.u, fontchar.v);
@@ -556,4 +645,8 @@ void I_DrawString(const int32_t x, const int32_t y, const char* const str) noexc
         // Move past the drawn character
         curX += fontchar.w;
     }
+}
+
+const fontchar_t* I_GetBigFontChars() noexcept {
+    return (Game::gGameType != GameType::Doom_Alpha_0_05) ? gBigFontChars : gBigFontChars_alpha_0_05;
 }

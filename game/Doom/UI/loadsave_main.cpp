@@ -180,11 +180,13 @@ static void DrawStatusSprite(
 // Draw the skull cursor at the specified position
 //------------------------------------------------------------------------------------------------------------------------------------------
 static void DrawCursor(const int16_t cursorX, const int16_t cursorY) noexcept {
+    const uint8_t skullTexV = (Game::gGameType != GameType::Doom_Alpha_0_05) ? M_SKULL_TEX_V : M_SKULL_TEX_V_ALPHA_0_05;
+
     DrawStatusSprite(
         (int16_t) cursorX,
         (int16_t) cursorY,
         (int16_t)(M_SKULL_TEX_U + (uint8_t) gCursorFrame * M_SKULL_W),
-        (int16_t)(M_SKULL_TEX_V),
+        (int16_t)(skullTexV),
         M_SKULL_W,
         M_SKULL_H,
         128,
@@ -220,11 +222,14 @@ static void DrawSaveSlot(const SaveFileInfo& save, const int16_t slotX, const in
         I_AddPrim(quad);
     }
 
-    // Draw the background for the slot
-    DrawSaveSlotBgPiece(slotX, slotY, 193, 60, bDim);
-    DrawSaveSlotBgPiece(slotX + 60, slotY, 196, 57, bDim);
-    DrawSaveSlotBgPiece(slotX + 117, slotY, 196, 57, bDim);
-    DrawSaveSlotBgPiece(slotX + 174, slotY, 196, 60, bDim);
+    // Draw the background for the slot.
+    // Alpha 0.05: don't have suitable sprites in the STATUS image for this, skip drawing the background.
+    if (Game::gGameType != GameType::Doom_Alpha_0_05) {
+        DrawSaveSlotBgPiece(slotX, slotY, 193, 60, bDim);
+        DrawSaveSlotBgPiece(slotX + 60, slotY, 196, 57, bDim);
+        DrawSaveSlotBgPiece(slotX + 117, slotY, 196, 57, bDim);
+        DrawSaveSlotBgPiece(slotX + 174, slotY, 196, 60, bDim);
+    }
 
     // Draw the slot label
     {

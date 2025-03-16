@@ -464,6 +464,9 @@ void O_Drawer() noexcept {
             // If the option has a slider associated with it, draw that too
             if (pMenuItem->option <= opt_sound) {
                 // Draw the slider backing/container
+                const int16_t sliderBgU = 0;
+                const int16_t sliderBgV = (Game::gGameType != GameType::Doom_Alpha_0_05) ? 184 : 185;
+                
                 I_DrawSprite(
                     gTex_STATUS.texPageId,
                     Game::getTexClut_STATUS(),
@@ -471,17 +474,19 @@ void O_Drawer() noexcept {
                     (int16_t)(pMenuItem->y + 20),
                     // PsyDoom: the STATUS texture atlas might not be at UV 0,0 anymore! (if limit removing, but always offset to be safe)
                     #if PSYDOOM_MODS
-                        (int16_t)(gTex_STATUS.texPageCoordX + 0),
-                        (int16_t)(gTex_STATUS.texPageCoordY + 184),
+                        (int16_t)(gTex_STATUS.texPageCoordX + sliderBgU),
+                        (int16_t)(gTex_STATUS.texPageCoordY + sliderBgV),
                     #else
-                        0,
-                        184,
+                        sliderBgU,
+                        sliderBgV,
                     #endif
                     108,
                     11
                 );
 
                 // Draw the slider handle
+                const int16_t sliderHandleU = 108;
+                const int16_t sliderHandleV = (Game::gGameType != GameType::Doom_Alpha_0_05) ? 184 : 185;
                 const int32_t sliderVal = (pMenuItem->option == opt_sound) ? gOptionsSndVol : gOptionsMusVol;
 
                 I_DrawSprite(
@@ -491,11 +496,11 @@ void O_Drawer() noexcept {
                     (int16_t)(pMenuItem->y + 20),
                     // PsyDoom: the STATUS texture atlas might not be at UV 0,0 anymore! (if limit removing, but always offset to be safe)
                     #if PSYDOOM_MODS
-                        (int16_t)(gTex_STATUS.texPageCoordX + 108),
-                        (int16_t)(gTex_STATUS.texPageCoordY + 184),
+                        (int16_t)(gTex_STATUS.texPageCoordX + sliderHandleU),
+                        (int16_t)(gTex_STATUS.texPageCoordY + sliderHandleV),
                     #else
-                        108,
-                        184,
+                        sliderHandleU,
+                        sliderHandleV,
                     #endif
                     6,
                     11
@@ -506,6 +511,7 @@ void O_Drawer() noexcept {
         // Draw the skull cursor
         const int32_t cursorPos = gCursorPos[gCurPlayerIndex];
         const menuitem_t& menuItem = gpOptionsMenuItems[cursorPos];
+        const uint8_t skullTexV = (Game::gGameType != GameType::Doom_Alpha_0_05) ? M_SKULL_TEX_V : M_SKULL_TEX_V_ALPHA_0_05;
 
         I_DrawSprite(
             gTex_STATUS.texPageId,
@@ -515,7 +521,7 @@ void O_Drawer() noexcept {
             // PsyDoom: the STATUS texture atlas might not be at UV 0,0 anymore! (if limit removing, but always offset to be safe)
             #if PSYDOOM_MODS
                 (int16_t)(gTex_STATUS.texPageCoordX + M_SKULL_TEX_U + (uint8_t) gCursorFrame * M_SKULL_W),
-                (int16_t)(gTex_STATUS.texPageCoordY + M_SKULL_TEX_V),
+                (int16_t)(gTex_STATUS.texPageCoordY + skullTexV),
             #else
                 M_SKULL_TEX_U + (uint8_t) gCursorFrame * M_SKULL_W,
                 M_SKULL_TEX_V,

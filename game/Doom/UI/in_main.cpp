@@ -583,6 +583,8 @@ void IN_CoopDrawer() noexcept {
     #else
         constexpr int32_t layoutNudgeUp = 0;
     #endif
+    
+    const facesprite_t* const pFaceSprites = ST_GetFaceSprites();
 
     I_DrawSprite(
         gTex_STATUS.texPageId,
@@ -591,14 +593,14 @@ void IN_CoopDrawer() noexcept {
         (int16_t)(20 - layoutNudgeUp),
         // PsyDoom: the STATUS texture atlas might not be at UV 0,0 anymore! (if limit removing, but always offset to be safe)
         #if PSYDOOM_MODS
-            (int16_t)(gTex_STATUS.texPageCoordX + gFaceSprites[0].texU),
-            (int16_t)(gTex_STATUS.texPageCoordY + gFaceSprites[0].texV),
+            (int16_t)(gTex_STATUS.texPageCoordX + pFaceSprites[0].texU),
+            (int16_t)(gTex_STATUS.texPageCoordY + pFaceSprites[0].texV),
         #else
-            gFaceSprites[0].texU,
-            gFaceSprites[0].texV,
+            pFaceSprites[0].texU,
+            pFaceSprites[0].texV,
         #endif
-        gFaceSprites[0].w,
-        gFaceSprites[0].h
+        pFaceSprites[0].w,
+        pFaceSprites[0].h
     );
 
     I_DrawString(130, 52 - layoutNudgeUp, "you");
@@ -610,14 +612,14 @@ void IN_CoopDrawer() noexcept {
         (int16_t)(20 - layoutNudgeUp),
         // PsyDoom: the STATUS texture atlas might not be at UV 0,0 anymore! (if limit removing, but always offset to be safe)
         #if PSYDOOM_MODS
-            (int16_t)(gTex_STATUS.texPageCoordX + gFaceSprites[0].texU),
-            (int16_t)(gTex_STATUS.texPageCoordY + gFaceSprites[0].texV),
+            (int16_t)(gTex_STATUS.texPageCoordX + pFaceSprites[0].texU),
+            (int16_t)(gTex_STATUS.texPageCoordY + pFaceSprites[0].texV),
         #else
-            gFaceSprites[0].texU,
-            gFaceSprites[0].texV,
+            pFaceSprites[0].texU,
+            pFaceSprites[0].texV,
         #endif
-        gFaceSprites[0].w,
-        gFaceSprites[0].h
+        pFaceSprites[0].w,
+        pFaceSprites[0].h
     );
 
     I_DrawString(208, 52 - layoutNudgeUp, "him");
@@ -704,26 +706,28 @@ void IN_DeathmatchDrawer() noexcept {
         I_DrawString(-1, 20, Game::getMapName(gGameMap).c_str().data());
         I_DrawString(-1, 36, "Finished");
     #endif
+    
+    const facesprite_t* const pFaceSprites = ST_GetFaceSprites();
 
     const facesprite_t* pFaceSpriteP1;
     const facesprite_t* pFaceSpriteP2;
 
     if (gFragValue[0] > gFragValue[1]) {
         if (gCurPlayerIndex == 0) {
-            pFaceSpriteP1 = &gFaceSprites[EVILFACE];
-            pFaceSpriteP2 = &gFaceSprites[DEADFACE];
+            pFaceSpriteP1 = &pFaceSprites[EVILFACE];
+            pFaceSpriteP2 = &pFaceSprites[DEADFACE];
         } else {
-            pFaceSpriteP1 = &gFaceSprites[DEADFACE];
-            pFaceSpriteP2 = &gFaceSprites[EVILFACE];
+            pFaceSpriteP1 = &pFaceSprites[DEADFACE];
+            pFaceSpriteP2 = &pFaceSprites[EVILFACE];
         }
     }
     else if (gFragValue[0] < gFragValue[1]) {
         if (gCurPlayerIndex == 0) {
-            pFaceSpriteP1 = &gFaceSprites[DEADFACE];
-            pFaceSpriteP2 = &gFaceSprites[EVILFACE];
+            pFaceSpriteP1 = &pFaceSprites[DEADFACE];
+            pFaceSpriteP2 = &pFaceSprites[EVILFACE];
         } else {
-            pFaceSpriteP1 = &gFaceSprites[EVILFACE];
-            pFaceSpriteP2 = &gFaceSprites[DEADFACE];
+            pFaceSpriteP1 = &pFaceSprites[EVILFACE];
+            pFaceSpriteP2 = &pFaceSprites[DEADFACE];
         }
     }
 // PsyDoom: This check will always evaluate to 'true' so help compilers which might warn we are using unitialized vars...
@@ -732,8 +736,8 @@ void IN_DeathmatchDrawer() noexcept {
 #else
     else if (gFragValue[0] == gFragValue[1]) {
 #endif
-        pFaceSpriteP1 = &gFaceSprites[0];
-        pFaceSpriteP2 = &gFaceSprites[0];
+        pFaceSpriteP1 = &pFaceSprites[0];
+        pFaceSpriteP2 = &pFaceSprites[0];
     }
 
     I_DrawSprite(

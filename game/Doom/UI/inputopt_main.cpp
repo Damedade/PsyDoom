@@ -34,13 +34,15 @@ enum MenuItem : int32_t {
 // Draw the cursor at the specified position
 //------------------------------------------------------------------------------------------------------------------------------------------
 static void DrawCursor(const int16_t cursorX, const int16_t cursorY) noexcept {
+    const uint8_t skullTexV = (Game::gGameType != GameType::Doom_Alpha_0_05) ? M_SKULL_TEX_V : M_SKULL_TEX_V_ALPHA_0_05;
+
     I_DrawSprite(
         gTex_STATUS.texPageId,
         Game::getTexClut_STATUS(),
         (int16_t) cursorX - 24,
         (int16_t) cursorY - 2,
         (int16_t)(gTex_STATUS.texPageCoordX + M_SKULL_TEX_U + (uint8_t) gCursorFrame * M_SKULL_W),
-        (int16_t)(gTex_STATUS.texPageCoordY + M_SKULL_TEX_V),
+        (int16_t)(gTex_STATUS.texPageCoordY + skullTexV),
         M_SKULL_W,
         M_SKULL_H
     );
@@ -224,18 +226,23 @@ void InputOpt_Draw() noexcept {
             I_DrawString(menuItemX, menuItemY, turnSpeedLabel);
 
             // Draw the slider background
+            const int16_t sliderBgU = 0;
+            const int16_t sliderBgV = (Game::gGameType != GameType::Doom_Alpha_0_05) ? 184 : 185;
+            
             I_DrawSprite(
                 gTex_STATUS.texPageId,
                 Game::getTexClut_STATUS(),
                 (int16_t)(menuItemX + 13),
                 (int16_t)(menuItemY + 20),
-                (int16_t)(gTex_STATUS.texPageCoordX + 0),
-                (int16_t)(gTex_STATUS.texPageCoordY + 184),
+                (int16_t)(gTex_STATUS.texPageCoordX + sliderBgU),
+                (int16_t)(gTex_STATUS.texPageCoordY + sliderBgV),
                 108,
                 11
             );
 
             // Draw the slider handle
+            const int16_t sliderHandleU = 108;
+            const int16_t sliderHandleV = (Game::gGameType != GameType::Doom_Alpha_0_05) ? 184 : 185;
             const int16_t sliderVal = (int16_t)(PlayerPrefs::gTurnSpeedMult100 / 5);
 
             I_DrawSprite(
@@ -243,8 +250,8 @@ void InputOpt_Draw() noexcept {
                 Game::getTexClut_STATUS(),
                 (int16_t)(menuItemX + 14 + sliderVal),
                 (int16_t)(menuItemY + 20),
-                (int16_t)(gTex_STATUS.texPageCoordX + 108),
-                (int16_t)(gTex_STATUS.texPageCoordY + 184),
+                (int16_t)(gTex_STATUS.texPageCoordX + sliderHandleU),
+                (int16_t)(gTex_STATUS.texPageCoordY + sliderHandleV),
                 6,
                 11
             );

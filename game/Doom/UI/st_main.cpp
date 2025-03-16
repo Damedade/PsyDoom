@@ -38,6 +38,7 @@ static const int16_t gMicronumsY[NUMMICROS] = { 204, 204, 204, 204, 216, 216, 21
 
 // Keycard y positions on the status bar
 static const int16_t gCardY[NUMCARDS] = { 204, 212, 220, 204, 212, 220 };
+static const int16_t gCardY_alpha_0_05[NUMCARDS] = { 207, 217, 227, 207, 217, 227 };
 
 // The definitions for each face sprite
 const facesprite_t gFaceSprites[NUMFACES] = {
@@ -88,6 +89,57 @@ const facesprite_t gFaceSprites[NUMFACES] = {
     { 114, 204, 148, 137, 28, 30 },     // STSPLAT2 - 44
     { 114, 204, 176, 137, 28, 30 },     // STSPLAT3 - 45
     { 114, 204, 204, 137, 28, 30 }      // STSPLAT4 - 46
+};
+
+// Alpha 0.05 versions of the sprites
+const facesprite_t gFaceSprites_alpha_0_05[NUMFACES] = {
+    { 119, 205,   0,  41, 19, 29 },     // STFST01  - 0
+    { 119, 205,  20,  41, 19, 29 },     // STFST02  - 1
+    { 119, 205, 224, 138, 19, 29 },     // STFST00  - 2
+    { 119, 205,  40,  41, 21, 31 },     // STFTL00  - 3
+    { 119, 205,  62,  41, 21, 31 },     // STFTR00  - 4
+    { 119, 205,  84,  41, 19, 31 },     // STFOUCH0 - 5
+    { 119, 205, 104,  41, 19, 31 },     // STFEVL0  - 6 (EVILFACE)
+    { 119, 205, 124,  41, 19, 31 },     // STFKILL0 - 7
+    { 119, 205, 144,  41, 19, 31 },     // STFST11  - 8
+    { 119, 205, 164,  41, 19, 31 },     // STFST10  - 9
+    { 119, 205, 184,  41, 19, 31 },     // STFST12  - 10
+    { 119, 205, 204,  41, 20, 31 },     // STFTL10  - 11
+    { 119, 205, 226,  41, 21, 31 },     // STFTR10  - 12
+    { 119, 205,   0,  73, 19, 31 },     // STFOUCH1 - 13
+    { 119, 205,  20,  73, 19, 31 },     // STFEVL1  - 14
+    { 119, 205,  40,  73, 19, 31 },     // STFKILL1 - 15
+    { 119, 205,  60,  73, 19, 31 },     // STFST21  - 16
+    { 119, 205,  80,  73, 19, 31 },     // STFST20  - 17
+    { 119, 205, 100,  73, 19, 31 },     // STFST22  - 18
+    { 119, 205, 120,  73, 22, 31 },     // STFTL20  - 19
+    { 119, 205, 142,  73, 22, 31 },     // STFTR20  - 20
+    { 119, 205, 166,  73, 19, 31 },     // STFOUCH2 - 21
+    { 119, 205, 186,  73, 19, 31 },     // STFEVL2  - 22
+    { 119, 205, 206,  73, 19, 31 },     // STFKILL2 - 23
+    { 119, 205, 226,  73, 19, 31 },     // STFST31  - 24
+    { 119, 205,   0, 105, 19, 31 },     // STFST30  - 25
+    { 119, 205,  20, 105, 19, 31 },     // STFST32  - 26
+    { 119, 205,  40, 105, 23, 31 },     // STFTL30  - 27
+    { 119, 205,  64, 105, 23, 31 },     // STFTR30  - 28
+    { 119, 205,  88, 105, 19, 31 },     // STFOUCH3 - 29
+    { 119, 205, 108, 105, 19, 31 },     // STFEVL3  - 30
+    { 119, 205, 128, 105, 19, 31 },     // STFKILL3 - 31
+    { 119, 205, 148, 105, 19, 31 },     // STFST41  - 32
+    { 119, 205, 168, 105, 19, 31 },     // STFST40  - 33
+    { 119, 205, 188, 105, 19, 31 },     // STFST42  - 34
+    { 119, 205, 208, 105, 24, 31 },     // STFTL40  - 35
+    { 119, 205, 232, 105, 23, 31 },     // STFTR40  - 36
+    { 119, 205,   0, 137, 18, 31 },     // STFOUCH4 - 37
+    { 119, 205,  20, 137, 19, 31 },     // STFEVL4  - 38
+    { 119, 205,  40, 137, 19, 31 },     // STFKILL4 - 39
+    { 119, 205,  60, 137, 19, 31 },     // STFGOD0  - 40 (GODFACE)
+    { 119, 205,  80, 137, 19, 31 },     // STFDEAD0 - 41 (DEADFACE)
+    { 119, 205, 100, 137, 19, 30 },     // STSPLAT0 - 42 (FIRSTSPLAT)
+    { 115, 204, 118, 138, 27, 30 },     // STSPLAT1 - 43
+    { 115, 207, 146, 138, 28, 30 },     // STSPLAT2 - 44
+    { 115, 207, 174, 138, 28, 30 },     // STSPLAT3 - 45
+    { 115, 207, 202, 138, 28, 30 }      // STSPLAT4 - 46
 };
 
 sbflash_t   gFlashCards[NUMCARDS];      // State relating to flashing keycards on the status bar
@@ -173,6 +225,8 @@ void ST_Init() noexcept {
 // Status bar initialization done at the beginning of each level
 //------------------------------------------------------------------------------------------------------------------------------------------
 void ST_InitEveryLevel() noexcept {
+    const facesprite_t* const pFaceSprites = ST_GetFaceSprites();
+
     gStatusBar.gotgibbed = false;
     gStatusBar.specialFace = f_none;
     gStatusBar.messageTicsLeft = 0;
@@ -184,7 +238,7 @@ void ST_InitEveryLevel() noexcept {
 
     gbDrawSBFace = true;
     gFaceTics = 0;
-    gpCurSBFaceSprite = &gFaceSprites[0];
+    gpCurSBFaceSprite = &pFaceSprites[0];
     gbGibDraw = false;
     gbDoSpclFace = false;
 
@@ -340,7 +394,8 @@ void ST_Ticker() noexcept {
         gStatusBar.face = std::clamp(gStatusBar.face, 0u, (uint32_t) NUMFACES - 1u);
     #endif
 
-    gpCurSBFaceSprite = &gFaceSprites[gStatusBar.face];
+    const facesprite_t* const pFaceSprites = ST_GetFaceSprites();
+    gpCurSBFaceSprite = &pFaceSprites[gStatusBar.face];
 
     // Update the current palette in use
     I_UpdatePalette();
@@ -489,8 +544,17 @@ void ST_Drawer() noexcept {
 
     // PsyDoom: draw extensions to the status bar for the Vulkan renderer in widescreen mode.
     // Use the panel containing the weapon numbers as filler.
+    const bool bIsAlpha_0_05 = (Game::gGameType == GameType::Doom_Alpha_0_05);
+    
     #if PSYDOOM_VULKAN_RENDERER
-        if (Video::isUsingVulkanRenderPath() && Config::gbVulkanWidescreenEnabled && Config::gbVulkanDrawExtendedStatusBar) {
+        const bool bDrawStatusBarExtensions = (
+            Video::isUsingVulkanRenderPath() &&
+            Config::gbVulkanWidescreenEnabled &&
+            Config::gbVulkanDrawExtendedStatusBar &&
+            (!bIsAlpha_0_05) // Alpha 0.05 doesn't have the graphic to draw this
+        );
+
+        if (bDrawStatusBarExtensions) {
             // Note: adjusting the calculation slightly by 1 pixel to account for the adjustment by 1 pixel below (left status bar drawing)
             constexpr int16_t EXT_PIECE_WIDTH = 62;
             const int32_t extraSpaceAtSides = (int32_t) std::max(std::floor(VRenderer::gPsxCoordsFbX), 0.0f);
@@ -530,15 +594,19 @@ void ST_Drawer() noexcept {
     const int32_t ammo = (ammoType != am_noammo) ? player.ammo[ammoType] : 0;
 
     // Draw ammo, health and armor amounts
-    I_DrawNumber(28, 204, ammo);
-    I_DrawNumber(71, 204, player.health);
-    I_DrawNumber(168, 204, player.armorpoints);
+    {
+        const int32_t amountsY = (!bIsAlpha_0_05) ? 204 : 208;
+    
+        I_DrawNumber(28, amountsY, ammo);
+        I_DrawNumber(71, amountsY, player.health);
+        I_DrawNumber(168, amountsY, player.armorpoints);
+    }
 
     // Draw keycards and skull keys
     {
         LIBGPU_setWH(spritePrim, 11, 8);
         spritePrim.x0 = 100;
-        spritePrim.v0 = 184;
+        spritePrim.v0 = (!bIsAlpha_0_05) ? 184 : 185;
 
         uint8_t texU = 114;
 
@@ -548,7 +616,7 @@ void ST_Drawer() noexcept {
             // Draw the card if we have it or if it's currently flashing
             if (bHaveCard || (gFlashCards[cardIdx].active && gFlashCards[cardIdx].doDraw)) {
                 spritePrim.u0 = texU;
-                spritePrim.y0 = gCardY[cardIdx];
+                spritePrim.y0 = (!bIsAlpha_0_05) ? gCardY[cardIdx] : gCardY_alpha_0_05[cardIdx];
 
                 I_AddPrim(spritePrim);
             }
@@ -559,20 +627,30 @@ void ST_Drawer() noexcept {
 
     // Draw weapon selector or frags (if deathmatch)
     if (gNetGame != gt_deathmatch) {
-        // Draw the weapon number box/container
-        LIBGPU_setXY0(spritePrim, 200, 205);
-        LIBGPU_setUV0(spritePrim, 180, 184);
-        LIBGPU_setWH(spritePrim, 51, 23);
-
-        I_AddPrim(spritePrim);
+        // Draw the weapon number box/container.
+        // Note: for Alpha 0.05 this is already baked into the status bar background.
+        if (Game::gGameType != GameType::Doom_Alpha_0_05) {
+            LIBGPU_setXY0(spritePrim, 200, 205);
+            LIBGPU_setUV0(spritePrim, 180, 184);
+            LIBGPU_setWH(spritePrim, 51, 23);
+            
+            I_AddPrim(spritePrim);
+        }
 
         // Draw the micro numbers for each weapon.
         // Note that numbers '1' and '2' are already baked into the status bar graphic, so we start at the shotgun.
         {
             LIBGPU_setWH(spritePrim, 4, 6);
-            spritePrim.v0 = 184;
+            uint8_t texU;
 
-            uint8_t texU = 232;
+            if (!bIsAlpha_0_05) {
+                spritePrim.v0 = 184;
+                texU = 232;
+            }
+            else {
+                spritePrim.v0 = 185;
+                texU = 180;
+            }
 
             for (int32_t weaponIdx = wp_shotgun; weaponIdx < NUMMICROS; ++weaponIdx) {
                 if (player.weaponowned[weaponIdx]) {
@@ -588,9 +666,14 @@ void ST_Drawer() noexcept {
 
         // Draw the white box or highlight for the currently selected weapon
         const int32_t microNumIdx = WEAPON_MICRO_INDEXES[weapon];
-
         LIBGPU_setXY0(spritePrim, gMicronumsX[microNumIdx], gMicronumsY[microNumIdx]);
-        LIBGPU_setUV0(spritePrim, 164, 192);
+
+        if (Game::gGameType != GameType::Doom_Alpha_0_05) {
+            LIBGPU_setUV0(spritePrim, 164, 192);
+        } else {
+            LIBGPU_setUV0(spritePrim, 204, 244);
+        }
+
         LIBGPU_setWH(spritePrim, 12, 12);
 
         I_AddPrim(spritePrim);
@@ -685,6 +768,13 @@ void ST_Drawer() noexcept {
     if (gbGamePaused) {
         I_DrawPausedOverlay();
     }
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// PsyDoom helper: returns the 'gFaceSprites' array to use for the current game
+//------------------------------------------------------------------------------------------------------------------------------------------
+const facesprite_t* ST_GetFaceSprites() noexcept {
+    return (Game::gGameType != GameType::Doom_Alpha_0_05) ? gFaceSprites : gFaceSprites_alpha_0_05;
 }
 
 #if PSYDOOM_MODS

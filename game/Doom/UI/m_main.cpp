@@ -434,7 +434,12 @@ gameaction_t RunMenu() noexcept {
         if (gStartGameType == gt_single)
             break;
 
-        I_DrawLoadingPlaque(gTex_CONNECT, 54, 103, Game::getTexClut_CONNECT());
+        if (Game::gGameType != GameType::Doom_Alpha_0_05) {
+            I_DrawLoadingPlaque(gTex_CONNECT, 54, 103, Game::getTexClut_CONNECT());
+        } else {
+            I_DrawLoadingPlaque(gTex_CONNECT, 41, 108, Game::getTexClut_CONNECT());
+        }
+        
         I_NetSetup();
 
         // PsyDoom: abort if app quit was requested
@@ -510,7 +515,7 @@ void M_Start() noexcept {
 
     // Show the loading plaque
     I_LoadAndCache_LOADING_TexLump(gTex_LOADING);
-    I_DrawLoadingPlaque(gTex_LOADING, 95, 109, Game::getTexClut_LOADING());
+    I_DrawLoadingPlaque_LOADING();
 
     // PsyDoom: precache menu sounds if we didn't already do so
     #if PSYDOOM_MODS
@@ -959,6 +964,8 @@ void M_Drawer() noexcept {
     #endif
 
     // Draw the skull cursor
+    const uint8_t skullTexV = (Game::gGameType != GameType::Doom_Alpha_0_05) ? M_SKULL_TEX_V : M_SKULL_TEX_V_ALPHA_0_05;
+
     I_DrawSprite(
         gTex_STATUS.texPageId,
         Game::getTexClut_STATUS(),
@@ -967,7 +974,7 @@ void M_Drawer() noexcept {
         // PsyDoom: the STATUS texture atlas might not be at UV 0,0 anymore! (if limit removing, but always offset to be safe)
         #if PSYDOOM_MODS
             (int16_t)(gTex_STATUS.texPageCoordX + M_SKULL_TEX_U + (uint8_t) gCursorFrame * M_SKULL_W),
-            (int16_t)(gTex_STATUS.texPageCoordY + M_SKULL_TEX_V),
+            (int16_t)(gTex_STATUS.texPageCoordY + skullTexV),
         #else
             M_SKULL_TEX_U + (uint8_t) gCursorFrame * M_SKULL_W,
             M_SKULL_TEX_V,
@@ -1027,7 +1034,12 @@ void M_DrawNetworkConnectDisplay() noexcept {
 
     I_CacheAndDrawBackgroundSprite(gTex_BACK, Game::getTexClut_BACK());
     M_DrawDoomLogo();
-    I_CacheAndDrawSprite(gTex_CONNECT, 54, 103, Game::getTexClut_CONNECT());
+    
+    if (Game::gGameType != GameType::Doom_Alpha_0_05) {
+        I_CacheAndDrawSprite(gTex_CONNECT, 54, 103, Game::getTexClut_CONNECT());
+    } else {
+        I_CacheAndDrawSprite(gTex_CONNECT, 41, 108, Game::getTexClut_CONNECT());
+    }
 
     I_SubmitGpuCmds();
     I_DrawPresent();

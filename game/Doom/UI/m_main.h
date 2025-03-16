@@ -7,6 +7,7 @@ struct texture_t;
 // UV coordinates and size of the menu cursor
 static constexpr uint8_t M_SKULL_TEX_U = 132;
 static constexpr uint8_t M_SKULL_TEX_V = 192;
+static constexpr uint8_t M_SKULL_TEX_V_ALPHA_0_05 = 193; // Alpha 0.05 has a different location for this
 static constexpr uint8_t M_SKULL_W = 16;
 static constexpr uint8_t M_SKULL_H = 18;
 

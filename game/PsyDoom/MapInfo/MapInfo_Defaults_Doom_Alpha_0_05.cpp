@@ -28,7 +28,7 @@ void initGameInfo_Doom_Alpha_0_05(GameInfo& gameInfo) noexcept {
     gameInfo.creditsScreenStyle = CreditsScreenStyle::Doom;
     gameInfo.texPalette_titleScreenFire = FIRESKYPAL;
     gameInfo.texPalette_STATUS = UIPAL;
-    gameInfo.texPalette_TITLE = TITLEPAL;
+    gameInfo.texPalette_TITLE = MAINPAL;
     gameInfo.texPalette_BACK = MAINPAL;
     gameInfo.texLumpName_BACK = "BACK";
     gameInfo.texPalette_Inter_BACK = {};    // Default: use the same 'BACK' graphic as the main menu
@@ -59,6 +59,12 @@ void addEpisodes_Doom_Alpha_0_05(std::vector<Episode>& episodes) noexcept {
     addEpisode(episodes, 11, 31,  "Level 31");
     addEpisode(episodes, 12, 32,  "Level 32");
     addEpisode(episodes, 13, 33,  "Level 33");
+    
+    // Corrections for the DOOM logo on the main menu
+    for (Episode& episode : episodes) {
+        episode.logoPal = MAINPAL;
+        episode.logoX = 64;
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
