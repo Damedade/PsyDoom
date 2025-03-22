@@ -256,8 +256,6 @@ set(SOURCE_FILES
     "PsyDoom/LIBGPU_CmdDispatch.h"
     "PsyDoom/LogoPlayer.cpp"
     "PsyDoom/LogoPlayer.h"
-    "PsyDoom/MacDisplayLink.h"
-    "PsyDoom/MacDisplayLink.mm"
     "PsyDoom/MapHash.cpp"
     "PsyDoom/MapHash.h"
     "PsyDoom/MapInfo/GecMapInfo.cpp"
@@ -529,6 +527,8 @@ elseif (PLATFORM_MAC)
     # macOS
     list(APPEND SOURCE_FILES
         "Main_Mac.mm"
+        "PsyDoom/MacDisplayLink.h"
+        "PsyDoom/MacDisplayLink.mm"
         "Resources/macOS/icon.icns"
     )
 

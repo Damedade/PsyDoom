@@ -26,7 +26,7 @@ static void activateWidget(Fl_Widget& widget, const bool bActivate) noexcept {
     } else {
         widget.deactivate();
     }
-};
+}
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Applies the 'Modern, high resolution' Vulkan renderer settings preset
