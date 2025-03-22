@@ -1,6 +1,11 @@
 PsyDoom contributors (sorted alphabetically)
 ============================================
 
+* **[7dog123](https://github.com/7dog123)**
+    * Various Linux build fixes:
+        https://github.com/BodbDearg/PsyDoom/pull/118
+        https://github.com/BodbDearg/PsyDoom/pull/120
+
 * **[Akis-02](https://github.com/Akis-02)**
     * Discovered issues with alt-tabbing out of the game:
         https://github.com/BodbDearg/PsyDoom/issues/38
@@ -69,24 +74,26 @@ PsyDoom contributors (sorted alphabetically)
             https://github.com/BodbDearg/PsyDoom/commit/7e97c311acd4b8528737d219c35ef8ad36608a34#commitcomment-52113983
 
 * **[fenderc01](https://github.com/fenderc01)**
+    * Enable frags overlay (you/them) for deathmatch
+        https://github.com/BodbDearg/PsyDoom/pull/57
     * Various multiplayer quality of life improvements:
         https://github.com/BodbDearg/PsyDoom/pull/64
     * Found and raised an issue with a 'ptrToVmAddr' error:
-         https://www.doomworld.com/forum/topic/111024-psydoom-060-psx-doom-port-reverse-engineered-for-pc/?do=findComment&comment=2121606
+        https://www.doomworld.com/forum/topic/111024-psydoom-060-psx-doom-port-reverse-engineered-for-pc/?do=findComment&comment=2121606
     * Suggestion to make opposite movement directions cancel:
-         https://www.doomworld.com/forum/topic/111024-psydoom-060-psx-doom-port-reverse-engineered-for-pc/?do=findComment&comment=2144091
+        https://www.doomworld.com/forum/topic/111024-psydoom-060-psx-doom-port-reverse-engineered-for-pc/?do=findComment&comment=2144091
     * Discovered weapon switching issues when switching really quickly:
-         https://www.doomworld.com/forum/topic/111024-psydoom-060-psx-doom-port-reverse-engineered-for-pc/?do=findComment&comment=2151142
+        https://www.doomworld.com/forum/topic/111024-psydoom-060-psx-doom-port-reverse-engineered-for-pc/?do=findComment&comment=2151142
     * Raised a bug about the invalid password flash overlapping text:
-         https://www.doomworld.com/forum/topic/111024-psydoom-060-psx-doom-port-reverse-engineered-for-pc/?do=findComment&comment=2181219
+        https://www.doomworld.com/forum/topic/111024-psydoom-060-psx-doom-port-reverse-engineered-for-pc/?do=findComment&comment=2181219
     * Discovered issues with using a PlayStation classic controller:
-         https://www.doomworld.com/forum/topic/111024-psydoom-060-psx-doom-port-reverse-engineered-for-pc/?do=findComment&comment=2224903
+        https://www.doomworld.com/forum/topic/111024-psydoom-060-psx-doom-port-reverse-engineered-for-pc/?do=findComment&comment=2224903
     * Spotted a saved_prefs.ini handling inconsistency:
-         https://github.com/BodbDearg/PsyDoom/issues/1
+        https://github.com/BodbDearg/PsyDoom/issues/1
     * Made a separate Doom/Final-Doom password suggestion:
-         https://github.com/BodbDearg/PsyDoom/issues/1
+        https://github.com/BodbDearg/PsyDoom/issues/1
     * Found issues with the 'Inv Mouse Wheel' control binding:
-         https://github.com/BodbDearg/PsyDoom/issues/3
+        https://github.com/BodbDearg/PsyDoom/issues/3
     * Discovered and a raised bug with text disappearing on Finale:
         https://github.com/BodbDearg/PsyDoom/issues/7
     * Discovered issues creating the Vulkan PSX VRAM texture on an AMD Radeon HD 8790M.
@@ -155,6 +162,10 @@ PsyDoom contributors (sorted alphabetically)
     * Reporting co-op desync issues:
         https://github.com/BodbDearg/PsyDoom/issues/18
 
+* **[Michael Mouton (michaelmouton)](https://github.com/michaelmouton)**
+    * Release notes for 1.1.1 and script to build DOOMSFX.LCD:
+        https://github.com/BodbDearg/PsyDoom/pull/100
+
 * **[minirop](https://github.com/minirop)**
     * Compile fixes for Linux:
         https://github.com/BodbDearg/PsyDoom/pull/21
@@ -189,7 +200,10 @@ PsyDoom contributors (sorted alphabetically)
     * Identified the need for separate 'borderless windowed' vs 'exclusive' fullscreen modes:
         https://github.com/BodbDearg/PsyDoom/issues/90
 
+* **[Steven (StevenSYS)](https://github.com/StevenSYS)**
+    * Fix compile error:
+        https://github.com/BodbDearg/PsyDoom/pull/121
+
 * **[ts-miller](https://github.com/ts-miller)**
     * Various multiplayer quality of life improvements:
         https://github.com/BodbDearg/PsyDoom/pull/64
-
