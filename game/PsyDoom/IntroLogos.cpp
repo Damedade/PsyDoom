@@ -3,6 +3,7 @@
 #include "Doom/Base/w_wad.h"
 #include "Doom/Game/doomdata.h"
 #include "Game.h"
+#include "ImageOps.h"
 #include "LogoPlayer.h"
 #include "PsxVm.h"
 #include "Utils.h"
@@ -65,12 +66,16 @@ static const char* getPsxDoomBootExePath() noexcept {
             case GameVariant::NTSC_J:   return "SLPS_003.08";
             case GameVariant::PAL:      return (Game::gbIsDemoVersion) ? "SLES_001.57" : "SLES_001.32";
         }
-    } else if (Game::gGameType == GameType::FinalDoom) {
+    }
+    else if (Game::gGameType == GameType::FinalDoom) {
         switch (Game::gGameVariant) {
             case GameVariant::NTSC_U:   return "SLUS_003.31";
             case GameVariant::NTSC_J:   return "SLPS_007.27";
             case GameVariant::PAL:      return "SLES_004.87";
         }
+    }
+    else if (Game::gGameType == GameType::Doom_Alpha_0_05) {
+        return "PSX.EXE";
     }
 
     return nullptr;
@@ -268,14 +273,73 @@ static LogoPlayer::Logo decodeWadLogo(const WadLumpName logoLumpName, const uint
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
+// Gets the Sony intro logo for Alpha 0.05
+//------------------------------------------------------------------------------------------------------------------------------------------
+static LogoPlayer::Logo getSonyLogo_Alpha_0_05() noexcept {
+    ASSERT(Game::gGameType == GameType::Doom_Alpha_0_05);
+
+    // Read the raw bytes for the logo, which is a 256x256 image @ 8bpp.
+    // I don't know where the palette for this logo is stored so I will hard code instead.
+    constexpr uint32_t NUM_LOGO_PIXELS = 256 * 256;
+    std::unique_ptr<std::byte[]> rawLogoBytes = readFromDiscFile(getPsxDoomBootExePath(), 0x2008, NUM_LOGO_PIXELS);
+
+    if (rawLogoBytes == nullptr)
+        return {};
+
+    // Define the palette for the logo in XBGR8888 format. Just needs 5 entries but allocate 256 to be safe:
+    const uint32_t logoPalette[256] = {
+        0xFF000000,
+        0xFF313131,
+        0xFF6B6B6B,
+        0xFFB5B5B5,
+        0xFFEFEFEF
+    };
+
+    // Convert the logo from 8 to 32-bit:
+    std::unique_ptr<uint32_t[]> rawLogo32bpp = std::make_unique<uint32_t[]>(NUM_LOGO_PIXELS);
+    ImageOps::Convert8bppTo32bit(
+        reinterpret_cast<const uint8_t*>(rawLogoBytes.get()),
+        rawLogo32bpp.get(),
+        256,
+        256,
+        logoPalette
+    );
+
+    // We only want a small region of this image, the top left 167x73 rectangle.
+    // That gets blitted into a 320x224 destination image to form the logo which is actually displayed.
+    LogoPlayer::Logo logo = {};
+    logo.pPixels = std::make_unique<uint32_t[]>(320 * 224);
+    logo.width = 320;
+    logo.height = 224;
+    logo.holdTime = 3.0f;
+    logo.fadeOutTime = 0.5f;
+
+    std::memset(logo.pPixels.get(), 0, logo.width * logo.height * sizeof(uint32_t));    // Clear the entire image before the blit
+
+    ImageOps::Blit(
+        ImageOps::Image<uint32_t>{ rawLogo32bpp.get(), 256, 256, 256 },
+        ImageOps::Image<uint32_t>{ logo.pPixels.get(), logo.width, logo.height, logo.width },
+        ImageOps::Rect{ 0, 0, 167, 73 },
+        ImageOps::Vec2i{ 76, 65 } // Centered horizontally, but slightly more to the top vertically
+    );
+
+    return logo;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
 // Helper: gets the Sony intro logo for the current variant of the game by extracting it from the boot executable
 //------------------------------------------------------------------------------------------------------------------------------------------
 static LogoPlayer::Logo getSonyLogo_FromBootExe() noexcept {
     // Only if there are embedded logos defined for this version of the game
     const PsxDoomBootExeLogos* const pLogos = getPsxDoomBootExeLogos();
 
-    if (!pLogos)
+    if (pLogos == nullptr) {
+        // Other special cases:
+        if (Game::gGameType == GameType::Doom_Alpha_0_05)
+            return getSonyLogo_Alpha_0_05();
+
         return {};
+    }
 
     // This logo is only used for the US and Europe editions of PSX Doom.
     // The Japanese version of the game doesn't show any Sony specific logo:
@@ -318,7 +382,7 @@ static LogoList getLegalLogos_FromBootExe() noexcept {
     // Only if there are embedded logos defined for this version of the game
     const PsxDoomBootExeLogos* const pLogos = getPsxDoomBootExeLogos();
 
-    if (!pLogos)
+    if (pLogos == nullptr)
         return {};
 
     // Read the single legals logo used for this game and define it's display settings
