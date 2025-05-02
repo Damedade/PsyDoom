@@ -1578,9 +1578,17 @@ void G_ExitLevelImmediately() noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 void G_SecretExitLevel(const int32_t nextMap) noexcept {
     // PsyDoom: if the specified next map does not exist, issue a warning and just skip to the next level.
+    // Also recognize map numbers <= 0 as not specifying any destination map, in which case we just go to the next map.
+    // Alpha 0.05 uses a map number of '0' for the secret exit in 'MAP03: Toxin Refinery', and the behavior is to just go to the next level.
     #if PSYDOOM_MODS
         if (MapInfo::mapExists(nextMap)) {
+            // Normal case: the specified map exists so we go to it
             gNextMap = nextMap;
+            P_ScheduleDelayedAction(4, G_CompleteLevel);
+        }
+        else if (nextMap <= 0) {
+            // No next map specified, just skip to the next one
+            gNextMap = MapInfo::incrementMapNumToNext(gGameMap);
             P_ScheduleDelayedAction(4, G_CompleteLevel);
         }
         else {
@@ -1588,11 +1596,11 @@ void G_SecretExitLevel(const int32_t nextMap) noexcept {
             static char msgBuffer[64];
             std::snprintf(msgBuffer, C_ARRAY_SIZE(msgBuffer), "W:Bad map num:%d!", gNextMap);
             gStatusBar.message = msgBuffer;
-            gStatusBar.messageTicsLeft = 45;
+            gStatusBar.messageTicsLeft = 60;
 
-            // Skip to the next map instead but delay the exit a while to show the error
+            // Skip to the next map instead but delay the exit a little so the error can be seen
             gNextMap = MapInfo::incrementMapNumToNext(gGameMap);
-            P_ScheduleDelayedAction(45, G_CompleteLevel);
+            P_ScheduleDelayedAction(60, G_CompleteLevel);
         }
     #else
         gNextMap = nextMap;
