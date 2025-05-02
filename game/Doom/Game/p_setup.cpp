@@ -1383,9 +1383,11 @@ static void P_Init() noexcept {
             #endif
 
             // This gets the fire going, so it doesn't take a while to creep up when the map is started.
-            // Do a number of fire update rounds before the player even enters the map:
-            for (int32_t i = 0; i < 64; ++i) {
-                P_UpdateFireSky(skyTex);
+            // Do a number of fire update rounds before the player even enters the map. Alpha 0.05 does not do this, however:
+            if (Game::gGameType != GameType::Doom_Alpha_0_05) {
+                for (int32_t i = 0; i < 64; ++i) {
+                    P_UpdateFireSky(skyTex);
+                }
             }
         };
 
