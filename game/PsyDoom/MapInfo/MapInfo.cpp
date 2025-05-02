@@ -616,6 +616,104 @@ const Map* getMap(const int32_t mapNum) noexcept {
     return pMap;
 }
 
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Query if the specified map exists in the game
+//------------------------------------------------------------------------------------------------------------------------------------------
+bool mapExists(const int32_t mapNum) noexcept {
+    return (getMap(mapNum) != nullptr);
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Return the map number for the first and last map in the game.
+// If there are no maps in the game then '0' is returned.
+//------------------------------------------------------------------------------------------------------------------------------------------
+int32_t getFirstMapNum() noexcept {
+    return (!gMaps.empty()) ? gMaps.front().mapNum : 0;
+}
+
+int32_t getLastMapNum() noexcept {
+    return (!gMaps.empty()) ? gMaps.back().mapNum : 0;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Return the first and last available map in the game.
+// If there are no maps in the game then 'nullptr' is returned.
+//------------------------------------------------------------------------------------------------------------------------------------------
+const Map* getFirstMap() noexcept {
+    return (!gMaps.empty()) ? &gMaps.front() : nullptr;
+}
+
+const Map* getLastMap() noexcept {
+    return (!gMaps.empty()) ? &gMaps.back() : nullptr;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Find the next map (if it exists) after the specified map number
+//------------------------------------------------------------------------------------------------------------------------------------------
+const Map* getNextMap(const int32_t mapNum) noexcept {
+    // The maps will be sorted in ascending order of map number so return the first that has a greater map number:
+    for (const Map& map : gMaps) {
+        if (map.mapNum > mapNum)
+            return &map;
+    }
+
+    return nullptr;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Find the previous map (if it exists) before the specified map number
+//------------------------------------------------------------------------------------------------------------------------------------------
+const Map* getPrevMap(const int32_t mapNum) noexcept {
+    const Map* pPrevMap = nullptr;
+
+    // The maps will be sorted in ascending order of map number, so just return the last that has a lesser map number:
+    for (const Map& map : gMaps) {
+        if (map.mapNum < mapNum) {
+            pPrevMap = &map;
+        } else {
+            break;
+        }
+    }
+
+    return pPrevMap;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Increment the specified map number to the map number of the next map.
+// If there is no next map then the number will be incremented by '1'.
+//------------------------------------------------------------------------------------------------------------------------------------------
+int32_t incrementMapNumToNext(const int32_t mapNum) noexcept {
+    const Map* const pNextMap = getNextMap(mapNum);
+    return (pNextMap) ? pNextMap->mapNum : mapNum + 1;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Decrement the specified map number to the map number of the previous map.
+// If there is no previous map then the number will be decremented by '1'.
+//------------------------------------------------------------------------------------------------------------------------------------------
+int32_t decrementMapNumToPrev(const int32_t mapNum) noexcept {
+    const Map* const pPrevMap = getPrevMap(mapNum);
+    return (pPrevMap) ? pPrevMap->mapNum : mapNum - 1;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Increment the specified map number to the map number of the next map.
+// If there is no next map then the first map number will be returned.
+//------------------------------------------------------------------------------------------------------------------------------------------
+int32_t incrementMapNumToNextWithWraparound(const int32_t mapNum) noexcept {
+    const Map* const pNextMap = getNextMap(mapNum);
+    return (pNextMap) ? pNextMap->mapNum : getFirstMapNum();
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Decrement the specified map number to the map number of the previous map.
+// If there is no previous map then the last map number will be returned.
+//------------------------------------------------------------------------------------------------------------------------------------------
+int32_t decrementMapNumToPrevWithWraparound(const int32_t mapNum) noexcept {
+    const Map* const pPrevMap = getPrevMap(mapNum);
+    return (pPrevMap) ? pPrevMap->mapNum : getLastMapNum();
+}
+
 const std::vector<Map>& allMaps() noexcept {
     return gMaps;
 }

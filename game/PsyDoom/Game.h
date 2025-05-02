@@ -45,6 +45,7 @@ void getUserGameSettings(GameSettings& settings) noexcept;
 void getClassicDemoGameSettings(GameSettings& settings) noexcept;
 int32_t getNumMaps() noexcept;
 int32_t getNumRegularMaps() noexcept;
+bool isValidMapNum(const int32_t mapNum) noexcept;
 const String32& getMapName(const int32_t mapNum) noexcept;
 int32_t getNumEpisodes() noexcept;
 const String32& getEpisodeName(const int32_t episodeNum) noexcept;

@@ -122,6 +122,7 @@ static const char gSkillNames[NUMSKILLS][16] = {
 };
 
 // Restricts what maps or episodes the player can pick
+static int32_t gMinStartEpisodeOrMap;
 static int32_t gMaxStartEpisodeOrMap;
 
 #if PSYDOOM_MODS
@@ -564,18 +565,24 @@ void M_Start() noexcept {
     gVBlanksUntilMenuMove[0] = 0;
 
     if (gStartGameType == gt_single) {
+        gMinStartEpisodeOrMap = 1;
         gMaxStartEpisodeOrMap = Game::getNumEpisodes();
-    } else {
+    }
+    else {
         #if PSYDOOM_MODS
-            gMaxStartEpisodeOrMap = Game::getNumMaps();         // For multiplayer any of the maps (including secret maps) can be selected
+            // For multiplayer any of the maps (including secret maps) can be selected
+            gMinStartEpisodeOrMap = MapInfo::getFirstMapNum();
+            gMaxStartEpisodeOrMap = MapInfo::getLastMapNum();
         #else
-            gMaxStartEpisodeOrMap = Game::getNumRegularMaps();  // For multiplayer any of the normal (non secret) maps can be selected
+            // For multiplayer any of the normal (non secret) maps can be selected
+            gMinStartEpisodeOrMap = 1;
+            gMaxStartEpisodeOrMap = Game::getNumRegularMaps();
         #endif
     }
 
     if (gStartMapOrEpisode > gMaxStartEpisodeOrMap) {
         // Wrap back around if we have to...
-        gStartMapOrEpisode = 1;
+        gStartMapOrEpisode = gMinStartEpisodeOrMap;
     }
     else if (gStartMapOrEpisode < 0) {
         // Start map or episode will be set to '-NextEpisodeNum' when an episode like 'Ultimate Doom' is finished, which has a next episode.
@@ -584,7 +591,7 @@ void M_Start() noexcept {
 
         // PsyDoom: an added check, just in case...
         #if PSYDOOM_MODS
-            gStartMapOrEpisode = std::min(gStartMapOrEpisode, gMaxStartEpisodeOrMap);
+            gStartMapOrEpisode = std::clamp(gStartMapOrEpisode, gMinStartEpisodeOrMap, gMaxStartEpisodeOrMap);
         #endif
     }
 
@@ -783,7 +790,11 @@ gameaction_t M_Ticker() noexcept {
                     gStartGameType = (gametype_t)((uint32_t) gStartGameType + 1);
 
                     if (gStartGameType == gt_coop) {
-                        gStartMapOrEpisode = 1;
+                        #if PSYDOOM_MODS
+                            gStartMapOrEpisode = MapInfo::getFirstMapNum();
+                        #else
+                            gStartMapOrEpisode = 1;
+                        #endif
                     }
 
                     S_StartSound(nullptr, sfx_swtchx);
@@ -791,7 +802,7 @@ gameaction_t M_Ticker() noexcept {
             }
             else if (bMenuLeft) {
                 if (gStartGameType != gt_single) {
-                    gStartGameType = (gametype_t)((uint32_t) gStartGameType -1);
+                    gStartGameType = (gametype_t)((uint32_t) gStartGameType - 1);
 
                     if (gStartGameType == gt_single) {
                         gStartMapOrEpisode = 1;
@@ -800,7 +811,8 @@ gameaction_t M_Ticker() noexcept {
                     S_StartSound(nullptr, sfx_swtchx);
                 }
             }
-        } else {
+        }
+        else {
             #if PSYDOOM_MODS
                 if (bMenuRight || bMenuLeft) {
                     // PsyDoom: play a sound when trying to switch to multiplayer when it is not allowed.
@@ -813,19 +825,28 @@ gameaction_t M_Ticker() noexcept {
         }
 
         if (gStartGameType == gt_single) {
+            gMinStartEpisodeOrMap = 1;
             gMaxStartEpisodeOrMap = Game::getNumEpisodes();
-        } else {
+        } 
+        else {
             #if PSYDOOM_MODS
                 // PsyDoom: allow selection of all maps for co-op/dm, including secret ones:
-                gMaxStartEpisodeOrMap = Game::getNumMaps();
+                gMinStartEpisodeOrMap = MapInfo::getFirstMapNum();
+                gMaxStartEpisodeOrMap = MapInfo::getLastMapNum();
             #else
+                gMinStartEpisodeOrMap = 1;
                 gMaxStartEpisodeOrMap = Game::getNumRegularMaps();
             #endif
         }
 
-        if (gStartMapOrEpisode > gMaxStartEpisodeOrMap) {
-            gStartMapOrEpisode = 1;
-        }
+        // PsyDoom: make this check more thorough
+        #if PSYDOOM_MODS
+            gStartMapOrEpisode = std::clamp(gStartMapOrEpisode, gMinStartEpisodeOrMap, gMaxStartEpisodeOrMap);
+        #else
+            if (gStartMapOrEpisode > gMaxStartEpisodeOrMap) {
+                gStartMapOrEpisode = gMinStartEpisodeOrMap;
+            }
+        #endif
 
         // PsyDoom: make sure the start episode is valid in single player and skip past hidden ones
         #if PSYDOOM_MODS
@@ -837,15 +858,26 @@ gameaction_t M_Ticker() noexcept {
     else if (gCursorPos[0] == level) {
         // Menu left/right movements: level/episode select
         if (bMenuRight) {
-            gStartMapOrEpisode += 1;
+            // PsyDoom: map numbers can now be non-contiguous.
+            // When selecting start maps instead of episodes (in multiplayer) then we need to account for this here.
+            #if PSYDOOM_MODS
+                if (gStartGameType == gt_single) {
+                    gStartMapOrEpisode++;
+                } else {
+                    gStartMapOrEpisode = MapInfo::incrementMapNumToNext(gStartMapOrEpisode);
+                }
+            #else
+                gStartMapOrEpisode++;
+            #endif
 
             if (gStartMapOrEpisode <= gMaxStartEpisodeOrMap) {
                 S_StartSound(nullptr, sfx_swtchx);
-            } else {
+            }
+            else {
                 #if PSYDOOM_MODS
                     // PsyDoom: loop around to the beginning
                     S_StartSound(nullptr, sfx_swtchx);
-                    gStartMapOrEpisode = 1;
+                    gStartMapOrEpisode = gMinStartEpisodeOrMap;
                 #else
                     gStartMapOrEpisode = gMaxStartEpisodeOrMap;
                 #endif
@@ -857,11 +889,22 @@ gameaction_t M_Ticker() noexcept {
             #endif
         }
         else if (bMenuLeft) {
-            gStartMapOrEpisode -= 1;
+            // PsyDoom: map numbers can now be non-contiguous.
+            // When selecting start maps instead of episodes (in multiplayer) then we need to account for this here.
+            #if PSYDOOM_MODS
+                if (gStartGameType == gt_single) {
+                    gStartMapOrEpisode--;
+                } else {
+                    gStartMapOrEpisode = MapInfo::decrementMapNumToPrev(gStartMapOrEpisode);
+                }
+            #else
+                gStartMapOrEpisode--;
+            #endif
 
-            if (gStartMapOrEpisode > 0) {
+            if (gStartMapOrEpisode > gMinStartEpisodeOrMap) {
                 S_StartSound(nullptr, sfx_swtchx);
-            } else {
+            }
+            else {
                 #if PSYDOOM_MODS
                     // PsyDoom: loop around to the end
                     S_StartSound(nullptr, sfx_swtchx);

@@ -231,11 +231,9 @@ static void P_OnGameUnpause() noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 void P_CheckCheats() noexcept {
     // The maximum level for the warp cheat.
-    // PsyDoom: For this version of the game I'm allowing the user to warp to the secret levels!
-    // If you're cheating you can more or less do anything anyway, so not much point in hiding these.
-    #if PSYDOOM_MODS
-        const int32_t maxCheatWarpLevel = Game::getNumMaps();
-    #else
+    // PsyDoom: I'm now allowing the user to warp to secret levels, and enabling wraparound for the level select cheat.
+    // As a result, this constant is not needed anymore...
+    #if !PSYDOOM_MODS
         const int32_t maxCheatWarpLevel = Game::getNumRegularMaps();
     #endif
 
@@ -404,34 +402,27 @@ void P_CheckCheats() noexcept {
         gVBlanksUntilMenuMove[0] -= gPlayersElapsedVBlanks[0];
 
         if (gVBlanksUntilMenuMove[0] <= 0) {
-            if (bMenuLeft) {
-                gMapNumToCheatWarpTo--;
-
-                if (gMapNumToCheatWarpTo <= 0) {
-                    // PsyDoom: wraparound for convenience: provides a fast way to access opposite ends of the list
-                    #if PSYDOOM_MODS
-                        gMapNumToCheatWarpTo = maxCheatWarpLevel;
-                    #else
-                        gMapNumToCheatWarpTo = 1;
-                    #endif
+            // PsyDoom: allow map numbers to be non-contiguous here (to support Alpha 0.05).
+            // Also allow wraparound when using the warp cheat for convenience; provides a fast way to access opposite ends of the list.
+            #if PSYDOOM_MODS
+                if (bMenuLeft) {
+                    gMapNumToCheatWarpTo = MapInfo::decrementMapNumToPrevWithWraparound(gMapNumToCheatWarpTo);
+                    gVBlanksUntilMenuMove[0] = MENU_MOVE_VBLANK_DELAY;
                 }
-
-                gVBlanksUntilMenuMove[0] = MENU_MOVE_VBLANK_DELAY;
-            }
-            else if (bMenuRight) {
-                gMapNumToCheatWarpTo++;
-
-                if (gMapNumToCheatWarpTo > maxCheatWarpLevel) {
-                    // PsyDoom: wraparound for convenience: provides a fast way to access opposite ends of the list
-                    #if PSYDOOM_MODS
-                        gMapNumToCheatWarpTo = 1;
-                    #else
-                        gMapNumToCheatWarpTo = maxCheatWarpLevel;
-                    #endif
+                else if (bMenuRight) {
+                    gMapNumToCheatWarpTo = MapInfo::incrementMapNumToNextWithWraparound(gMapNumToCheatWarpTo);
+                    gVBlanksUntilMenuMove[0] = MENU_MOVE_VBLANK_DELAY;
                 }
-
-                gVBlanksUntilMenuMove[0] = MENU_MOVE_VBLANK_DELAY;
-            }
+            #else
+                if (bMenuLeft) {
+                    gMapNumToCheatWarpTo = std::max(gMapNumToCheatWarpTo - 1, 1);
+                    gVBlanksUntilMenuMove[0] = MENU_MOVE_VBLANK_DELAY;
+                }
+                else if (bMenuRight) {
+                    gMapNumToCheatWarpTo = std::min(gMapNumToCheatWarpTo + 1, maxCheatWarpLevel);
+                    gVBlanksUntilMenuMove[0] = MENU_MOVE_VBLANK_DELAY;
+                }
+            #endif
         }
 
         // Are we initiating the the actual warp?
@@ -583,11 +574,20 @@ void P_CheckCheats() noexcept {
 
                     player.cheats |= CF_WARPMENU;
 
-                    if (gGameMap > maxCheatWarpLevel) {
-                        gMapNumToCheatWarpTo = maxCheatWarpLevel;
-                    } else {
-                        gMapNumToCheatWarpTo = gGameMap;
-                    }
+                    // PsyDoom: make the validity checks a little more thorough here
+                    #if PSYDOOM_MODS
+                        if (MapInfo::mapExists(gGameMap)) {
+                            gMapNumToCheatWarpTo = gGameMap;
+                        } else {
+                            gMapNumToCheatWarpTo = MapInfo::incrementMapNumToNextWithWraparound(gGameMap); // Should always land us on a valid map (if there are any)
+                        }
+                    #else
+                        if (gGameMap > maxCheatWarpLevel) {
+                            gMapNumToCheatWarpTo = maxCheatWarpLevel;
+                        } else {
+                            gMapNumToCheatWarpTo = gGameMap;
+                        }
+                    #endif
                 }   break;
 
                 // Enable/disable 'xray vision' cheat

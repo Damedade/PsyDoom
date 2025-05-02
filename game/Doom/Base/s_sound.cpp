@@ -332,7 +332,7 @@ void S_LoadMapSoundAndMusic(const int32_t mapNum) noexcept {
     }
 
     // Either load or unload the main Doom SFX LCD
-    const int32_t finaleMapNum = Game::getNumMaps() + 1;
+    const int32_t finaleMapNum = MapInfo::getLastMapNum() + 1;
     const bool bIsFinale = (mapNum == finaleMapNum);
 
     if (bIsFinale) {
@@ -397,7 +397,7 @@ void S_LoadMapSoundAndMusic(const int32_t mapNum) noexcept {
     #if PSYDOOM_MODS
         bool bLoadedMapSounds = false;
 
-        if ((!bIsFinale) && (mapNum > 0) && ModMgr::areOverridesAvailableForFile("ALLMAPS.LCD")) {
+        if ((!bIsFinale) && (pMap != nullptr) && ModMgr::areOverridesAvailableForFile("ALLMAPS.LCD")) {
             destSpuAddr += wess_dig_lcd_load("ALLMAPS.LCD", destSpuAddr, &gMapSndBlock, false);
             bLoadedMapSounds = true;
         }
@@ -423,7 +423,7 @@ void S_LoadMapSoundAndMusic(const int32_t mapNum) noexcept {
             // Normally we load the LCD file associated with the map
             CdFileId mapSoundLcdFileId = {};
 
-            if (mapNum > Game::getNumMaps()) {
+            if (mapNum > MapInfo::getLastMapNum()) {
                 // Load the finale LCD, which is normally 'MAP60.LCD' for both Doom and Final Doom.
                 // PsyDoom: this can now be flexibly specified in MAPINFO.
             #if PSYDOOM_MODS
@@ -434,9 +434,16 @@ void S_LoadMapSoundAndMusic(const int32_t mapNum) noexcept {
             #else
                 mapSoundLcdFileId = S_GetSoundLcdFileId(std::max(60, Game::getNumMaps() + 1));
             #endif
-            } else if (mapNum > 0) {
-                mapSoundLcdFileId = S_GetSoundLcdFileId(mapNum);    // Normal map LCD
             }
+        #if PSYDOOM_MODS
+            else if (pMap != nullptr) {
+                mapSoundLcdFileId = S_GetSoundLcdFileId(mapNum); // Normal map LCD
+            }
+        #else
+            else if (mapNum > 0) {
+                mapSoundLcdFileId = S_GetSoundLcdFileId(mapNum); // Normal map LCD
+            }
+        #endif
 
             if (mapSoundLcdFileId != CdFileId{}) {
                 wess_dig_lcd_load(mapSoundLcdFileId, destSpuAddr, &gMapSndBlock, false);

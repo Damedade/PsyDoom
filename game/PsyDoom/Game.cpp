@@ -284,7 +284,10 @@ void getClassicDemoGameSettings(GameSettings& settings) noexcept {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// Get the total number of maps for this game
+// Get the total number of maps in this game.
+//
+// Note: this function does NOT give the last/highest map number since the list of map numbers may be non-contiguous.
+// It merely tells you how many maps there are in the game. Call 'getLastMapNum()' to get the highest map number.
 //------------------------------------------------------------------------------------------------------------------------------------------
 int32_t getNumMaps() noexcept {
     return MapInfo::getGameInfo().numMaps;
@@ -295,6 +298,13 @@ int32_t getNumMaps() noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 int32_t getNumRegularMaps() noexcept {
     return MapInfo::getGameInfo().numRegularMaps;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Checks to see if the specified map number is valid
+//------------------------------------------------------------------------------------------------------------------------------------------
+bool isValidMapNum(const int32_t mapNum) noexcept {
+    return MapInfo::mapExists(mapNum);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------

@@ -204,7 +204,7 @@ bool P_ProcessPassword(const uint8_t pPasswordIn[10], int32_t& mapNumOut, skill_
 
     mapNumOut = mapNum;
 
-    if ((mapNum <= 0) || (mapNum > Game::getNumMaps()))
+    if (!Game::isValidMapNum(mapNum))
         return false;
 
     skillOut = (skill_t)(pwdata[0] & 3);

@@ -660,7 +660,7 @@ void G_RunGame() noexcept {
 
         // PsyDoom: don't allow the finale to trigger in deathmatch mode, just go straight to the next (non secret) map unless there is no next one.
         // Apparently the Doom II finale could trigger in the original code for deathmatch, if the last non-secret map was completed...
-        const bool bNextMapExists = (gNextMap <= Game::getNumMaps());
+        const bool bNextMapExists = Game::isValidMapNum(gNextMap);
         const bool bIsGameEndMap = (gGameMap == Game::getNumRegularMaps());
 
         // Should we do a finale and which one should we do, one with a cast call (Finale 2) or one without? (Finale 1).

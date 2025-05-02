@@ -1279,7 +1279,7 @@ void SavedGlobals::byteSwap() noexcept {
 }
 
 bool SavedGlobals::validate() const noexcept {
-    if ((gameMap < 1) || (gameMap > Game::getNumMaps()))
+    if (!Game::isValidMapNum(gameMap))
         return false;
 
     if ((gameSkill < sk_baby) || (gameSkill >= NUMSKILLS))
@@ -1461,7 +1461,7 @@ bool SaveFileHdr::validateVersion() const noexcept {
 }
 
 bool SaveFileHdr::validateMapNum() const noexcept {
-    return ((mapNum >= 1) && (mapNum <= Game::getNumMaps()));
+    return Game::isValidMapNum(mapNum);
 }
 
 bool SaveFileHdr::validateMapHash() const noexcept {

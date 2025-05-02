@@ -18,6 +18,7 @@
 #include "Doom/UI/st_main.h"
 #include "Game.h"
 #include "Input.h"
+#include "MapInfo/MapInfo.h"
 #include "Wess/psxcd.h"
 #include "Wess/wessapi.h"
 
@@ -204,12 +205,11 @@ static void doOpenLevelWarpCheat() noexcept {
     // If an attempt to open the warp menu is made while we are looking at it, then just ignore the input.
     if ((player.cheats & CF_WARPMENU) == 0) {
         player.cheats |= CF_WARPMENU;
-        const int32_t maxCheatWarpLevel = Game::getNumMaps();
 
-        if (gGameMap > maxCheatWarpLevel) {
-            gMapNumToCheatWarpTo = maxCheatWarpLevel;
-        } else {
+        if (Game::isValidMapNum(gGameMap)) {
             gMapNumToCheatWarpTo = gGameMap;
+        } else {
+            gMapNumToCheatWarpTo = MapInfo::incrementMapNumToNextWithWraparound(gGameMap); // Should always land us on a valid map (if there are any)
         }
     }
 }

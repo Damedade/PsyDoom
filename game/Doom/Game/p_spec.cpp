@@ -28,6 +28,7 @@
 #include "PsyDoom/Config/Config.h"
 #include "PsyDoom/Game.h"
 #include "PsyDoom/MapInfo/GecMapInfo.h"
+#include "PsyDoom/MapInfo/MapInfo.h"
 #include "PsyDoom/ParserTokenizer.h"
 #include "PsyDoom/ScriptingEngine.h"
 
@@ -1546,7 +1547,13 @@ void T_DelayedAction(delayaction_t& action) noexcept {
 // Schedules the level to end in 4 tics and go to the next map; this is the usual method of exiting a level
 //------------------------------------------------------------------------------------------------------------------------------------------
 void G_ExitLevel() noexcept {
-    gNextMap = gGameMap + 1;
+    // PsyDoom: map numbers can now be non-contigous - need to do more than a simple increment here:
+    #if PSYDOOM_MODS
+        gNextMap = MapInfo::incrementMapNumToNext(gGameMap);
+    #else
+        gNextMap = gGameMap + 1;
+    #endif
+
     P_ScheduleDelayedAction(4, G_CompleteLevel);
 }
 
@@ -1555,7 +1562,13 @@ void G_ExitLevel() noexcept {
 // PsyDoom: same as 'G_ExitLevel()' except it happens immediately
 //------------------------------------------------------------------------------------------------------------------------------------------
 void G_ExitLevelImmediately() noexcept {
-    gNextMap = gGameMap + 1;
+    // PsyDoom: map numbers can now be non-contigous - need to do more than a simple increment here:
+    #if PSYDOOM_MODS
+        gNextMap = MapInfo::incrementMapNumToNext(gGameMap);
+    #else
+        gNextMap = gGameMap + 1;
+    #endif
+
     G_CompleteLevel();
 }
 #endif  // #if PSYDOOM_MODS
@@ -1564,8 +1577,27 @@ void G_ExitLevelImmediately() noexcept {
 // Schedules the level to end in 4 tics and go to the specified map; used for entering/exiting secret maps
 //------------------------------------------------------------------------------------------------------------------------------------------
 void G_SecretExitLevel(const int32_t nextMap) noexcept {
-    gNextMap = nextMap;
-    P_ScheduleDelayedAction(4, G_CompleteLevel);
+    // PsyDoom: if the specified next map does not exist, issue a warning and just skip to the next level.
+    #if PSYDOOM_MODS
+        if (MapInfo::mapExists(nextMap)) {
+            gNextMap = nextMap;
+            P_ScheduleDelayedAction(4, G_CompleteLevel);
+        }
+        else {
+            // Map does not exist: show a warning about the bad map number
+            static char msgBuffer[64];
+            std::snprintf(msgBuffer, C_ARRAY_SIZE(msgBuffer), "W:Bad map num:%d!", gNextMap);
+            gStatusBar.message = msgBuffer;
+            gStatusBar.messageTicsLeft = 45;
+
+            // Skip to the next map instead but delay the exit a while to show the error
+            gNextMap = MapInfo::incrementMapNumToNext(gGameMap);
+            P_ScheduleDelayedAction(45, G_CompleteLevel);
+        }
+    #else
+        gNextMap = nextMap;
+        P_ScheduleDelayedAction(4, G_CompleteLevel);
+    #endif
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------

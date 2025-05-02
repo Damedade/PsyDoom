@@ -528,7 +528,7 @@ void F2_Start() noexcept {
     #endif
 
     // Load sound for the finale
-    S_LoadMapSoundAndMusic(Game::getNumMaps() + 1);
+    S_LoadMapSoundAndMusic(MapInfo::getLastMapNum() + 1);
 
     // Play the finale cd track.
     // PsyDoom: finale data is now defined in the 'MapInfo' module.

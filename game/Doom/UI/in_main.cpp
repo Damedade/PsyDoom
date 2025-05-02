@@ -15,6 +15,7 @@
 #include "PsyDoom/Config/Config.h"
 #include "PsyDoom/Game.h"
 #include "PsyDoom/Input.h"
+#include "PsyDoom/MapInfo/MapInfo.h"
 #include "PsyDoom/PlayerPrefs.h"
 #include "PsyDoom/PsxPadButtons.h"
 #include "PsyDoom/Utils.h"
@@ -219,7 +220,7 @@ void IN_Start() noexcept {
     gMenuTimeoutStartTicCon = gTicCon;
 
     // Compute the password for the next map and mark it as entered (so we don't do a pistol start)
-    if (gNextMap <= Game::getNumMaps()) {
+    if (gNextMap <= MapInfo::getLastMapNum()) {
         P_ComputePassword(gPasswordCharBuffer);
         gNumPasswordCharsEntered = 10;
 
@@ -527,7 +528,7 @@ void IN_SingleDrawer() noexcept {
     #endif
 
     // Only draw the next map and password if there is a next map
-    if (gNextMap <= Game::getNumMaps()) {
+    if (gNextMap <= MapInfo::getLastMapNum()) {
         // PsyDoom: the next map and password can now be hidden via MAPINFO for the last map in the cluster
         #if PSYDOOM_MODS
             const bool bShowNextMap = (!gbIntermissionHideNextMap);
@@ -643,7 +644,7 @@ void IN_CoopDrawer() noexcept {
     I_DrawNumber(216, 123 - layoutNudgeUp, gSecretValue[(gCurPlayerIndex == 0) ? 1 : 0]);
 
     // Only draw the next map and password if there is a next map
-    if (gNextMap <= Game::getNumMaps()) {
+    if (gNextMap <= MapInfo::getLastMapNum()) {
         // PsyDoom: the next map and password can now be hidden via MAPINFO for the last map in the cluster
         #if PSYDOOM_MODS
             const bool bShowNextMap = (!gbIntermissionHideNextMap);
@@ -783,7 +784,7 @@ void IN_DeathmatchDrawer() noexcept {
     I_DrawNumber(206, 138, gFragValue[(gCurPlayerIndex == 0) ? 1 : 0]);
 
     // Only draw the next map if there is one
-    if (gNextMap <= Game::getNumMaps()) {
+    if (gNextMap <= MapInfo::getLastMapNum()) {
         // PsyDoom: the next map can now be hidden via MAPINFO for the last map in the cluster
         #if PSYDOOM_MODS
             const bool bShowNextMap = (!gbIntermissionHideNextMap);

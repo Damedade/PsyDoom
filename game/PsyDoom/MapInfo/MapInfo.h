@@ -199,6 +199,17 @@ const Cluster* getCluster(const int32_t clusterNum) noexcept;
 const std::vector<Cluster>& allClusters() noexcept;
 
 const Map* getMap(const int32_t mapNum) noexcept;
+bool mapExists(const int32_t mapNum) noexcept;
+int32_t getFirstMapNum() noexcept;
+int32_t getLastMapNum() noexcept;
+const Map* getFirstMap() noexcept;
+const Map* getLastMap() noexcept;
+const Map* getNextMap(const int32_t mapNum) noexcept;
+const Map* getPrevMap(const int32_t mapNum) noexcept;
+int32_t incrementMapNumToNext(const int32_t mapNum) noexcept;
+int32_t decrementMapNumToPrev(const int32_t mapNum) noexcept;
+int32_t incrementMapNumToNextWithWraparound(const int32_t mapNum) noexcept;
+int32_t decrementMapNumToPrevWithWraparound(const int32_t mapNum) noexcept;
 const std::vector<Map>& allMaps() noexcept;
 
 const std::vector<CreditsPage>& getCredits() noexcept;

@@ -16,6 +16,7 @@
 #include "Doom/UI/errormenu_main.h"
 #include "Game.h"
 #include "MapHash.h"
+#include "MapInfo/MapInfo.h"
 #include "SaveDataTypes.h"
 
 #include <cstring>
@@ -95,7 +96,7 @@ static bool verifyDemoSkill(const skill_t skill) noexcept {
 }
 
 static bool verifyDemoMapNum(const int32_t mapNum) noexcept {
-    if ((mapNum >= 1) && (mapNum <= Game::getNumMaps())) {
+    if (Game::isValidMapNum(mapNum)) {
         return true;
     } else {
         RunDemoErrorMenu_InvalidMapNumber();
