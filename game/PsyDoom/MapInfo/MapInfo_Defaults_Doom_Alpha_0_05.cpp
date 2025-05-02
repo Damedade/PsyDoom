@@ -82,19 +82,19 @@ void addClusters_Doom_Alpha_0_05(std::vector<Cluster>& clusters) noexcept {
 // Adds the default maps for 'Doom Alpha v0.05' to the given list
 //------------------------------------------------------------------------------------------------------------------------------------------
 void addMaps_Doom_Alpha_0_05(std::vector<Map>& maps) noexcept {
-    addMap(maps, 1 , 1, "Hangar",               1,    SPU_REV_MODE_SPACE,     0x0FFF);
-    addMap(maps, 2 , 1, "Plant",                2,    SPU_REV_MODE_SPACE,     0x0FFF);
-    addMap(maps, 3 , 1, "Toxin Refinery",       3,    SPU_REV_MODE_STUDIO_B,  0x27FF);
-    addMap(maps, 4 , 1, "Command Control",      4,    SPU_REV_MODE_HALL,      0x17FF);
-    addMap(maps, 5 , 1, "Phobos Lab",           5,    SPU_REV_MODE_STUDIO_A,  0x23FF);
-    addMap(maps, 6 , 1, "Central Processing",   6,    SPU_REV_MODE_HALL,      0x1FFF);
-    addMap(maps, 7 , 1, "Computer Station",     7,    SPU_REV_MODE_STUDIO_C,  0x26FF);
-    addMap(maps, 8 , 1, "Phobos Anomaly",       8,    SPU_REV_MODE_STUDIO_B,  0x2DFF);
-    addMap(maps, 9 , 1, "Deimos Anomaly",       11,   SPU_REV_MODE_HALL,      0x1FFF);
-    addMap(maps, 25, 1, "Unknown Alpha Map",    11,   SPU_REV_MODE_HALL,      0x1FFF);
-    addMap(maps, 31, 2, "Entryway",             1,    SPU_REV_MODE_SPACE,     0x0FFF);
-    addMap(maps, 32, 2, "Underhalls",           9,    SPU_REV_MODE_STUDIO_C,  0x2FFF);
-    addMap(maps, 33, 2, "The Gantlet",          14,   SPU_REV_MODE_HALL,      0x1FFF);
+    addMap(maps, 1 , 1, "Hangar",               2,    SPU_REV_MODE_SPACE,     0x1FFF);
+    addMap(maps, 2 , 1, "Plant",                3,    SPU_REV_MODE_STUDIO_B,  0x27FF);
+    addMap(maps, 3 , 1, "Toxin Refinery",       4,    SPU_REV_MODE_HALL,      0x27FF);
+    addMap(maps, 4 , 1, "Command Control",      5,    SPU_REV_MODE_STUDIO_A,  0x23FF);
+    addMap(maps, 5 , 1, "Phobos Lab",           6,    SPU_REV_MODE_HALL,      0x2FFF);
+    addMap(maps, 6 , 1, "Central Processing",   7,    SPU_REV_MODE_STUDIO_C,  0x26FF);
+    addMap(maps, 7 , 1, "Computer Station",     8,    SPU_REV_MODE_STUDIO_B,  0x2DFF);
+    addMap(maps, 8 , 1, "Phobos Anomaly",       9,    SPU_REV_MODE_STUDIO_C,  0x2FFF);
+    addMap(maps, 9 , 1, "Deimos Anomaly",       10,   SPU_REV_MODE_SPACE,     0x1FFF);
+    addMap(maps, 25, 1, "Unknown Alpha Map",    0,    SPU_REV_MODE_OFF,       0x0000);
+    addMap(maps, 31, 2, "Entryway",             0,    SPU_REV_MODE_OFF,       0x0000);
+    addMap(maps, 32, 2, "Underhalls",           0,    SPU_REV_MODE_OFF,       0x0000);
+    addMap(maps, 33, 2, "The Gantlet",          0,    SPU_REV_MODE_OFF,       0x0000);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------

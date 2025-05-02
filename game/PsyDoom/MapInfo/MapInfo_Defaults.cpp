@@ -191,8 +191,17 @@ static void initMusicTracks(std::vector<MusicTrack>& musicTracks) noexcept {
     musicTracks.clear();
     addMusicTrack(musicTracks, 0, 0);
 
-    for (int32_t trackNum = 1; trackNum <= 30; ++trackNum) {
-        addMusicTrack(musicTracks, trackNum, 89 + trackNum);
+    if (Game::gGameType != GameType::Doom_Alpha_0_05) {
+        // Normal case: Doom, Final Doom etc.
+        for (int32_t trackNum = 1; trackNum <= 30; ++trackNum) {
+            addMusicTrack(musicTracks, trackNum, 89 + trackNum);
+        }
+    }
+    else {
+        // Alpha 0.05 is a little different...
+        for (int32_t trackNum = 1; trackNum <= 20; ++trackNum) {
+            addMusicTrack(musicTracks, trackNum, 86 + trackNum);
+        }
     }
 }
 
