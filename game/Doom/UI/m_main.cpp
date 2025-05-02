@@ -111,6 +111,12 @@ static const char gGameTypeNames[NUMGAMETYPES][16] = {
     "Deathmatch"
 };
 
+static const char gGameTypeNames_Alpha_0_05[NUMGAMETYPES][16] = {
+    "Single Player",
+    "Co Op",
+    "Deathmatch"
+};
+
 static const char gSkillNames[NUMSKILLS][16] = {
     "I am a Wimp",
     "Not Too Rough",
@@ -1028,7 +1034,7 @@ void M_Drawer() noexcept {
 
     // Draw the text for the various menu entries
     I_DrawString(74, gameModeLine1Y, "Game Mode");
-    I_DrawString(90, gameModeLine2Y, gGameTypeNames[gStartGameType]);
+    I_DrawString(90, gameModeLine2Y, (Game::gGameType != GameType::Doom_Alpha_0_05) ? gGameTypeNames[gStartGameType] : gGameTypeNames_Alpha_0_05[gStartGameType]);
 
     if (gStartGameType == gt_single) {
         I_DrawString(74, levelY, Game::getEpisodeName(gStartMapOrEpisode).c_str().data());
