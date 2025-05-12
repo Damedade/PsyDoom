@@ -87,7 +87,8 @@ static void RV_DrawPlane(
     }
 
     // Decide light diminishing mode depending on whether view lighting is disabled or not (disabled for visor powerup)
-    const VLightDimMode lightDimMode = (gbDoViewLighting) ? VLightDimMode::Flats : VLightDimMode::None;
+    uint8_t lightDimModeFlags = (gbDoViewLighting) ? V_LIGHTDIM_FLAG_FLATS : V_LIGHTDIM_FLAG_NO_LIGHTDIM;
+    lightDimModeFlags |= (R_UseAlpha_0_05_ShadingMode()) ? V_LIGHTDIM_FLAG_ALPHA_0_05 : 0;
 
     // Ensure we have the correct draw pipeline set
     VDrawing::setDrawPipeline(gOpaqueGeomPipeline);
@@ -113,7 +114,7 @@ static void RV_DrawPlane(
                 colR, colG, colB,
                 gClutX, gClutY,
                 texWinX, texWinY, texWinW, texWinH,
-                lightDimMode,
+                lightDimModeFlags,
                 128, 128, 128, 128
             );
         } else {
@@ -124,7 +125,7 @@ static void RV_DrawPlane(
                 colR, colG, colB,
                 gClutX, gClutY,
                 texWinX, texWinY, texWinW, texWinH,
-                lightDimMode,
+                lightDimModeFlags,
                 128, 128, 128, 128
             );
         }

@@ -7,9 +7,9 @@
 // Meaning:
 //
 //  in_pos                  Vertex XYZ position.
-//  in_color_lightDimMode   RGB value: color for the vertex where 128.0 = fully white.
+//  in_color_lightDimFlags  RGB value: color for the vertex where 128.0 = fully white.
 //                                     Values over 128.0 are overbright.
-//                          Alpha value: light diminishing mode (VLightDimMode) for the 3D view shaders only.
+//                          Alpha value: light diminishing mode flags (V_LIGHTDIM_FLAG_XXX) for the 3D view shaders.
 //                                       Ignored by UI shaders.
 //  in_uv                   UV texture coordinate (in pixels)
 //  in_texWinPos            Top left XY position (in current format pixel coords) of the texture wrapping window
@@ -19,7 +19,7 @@
 //----------------------------------------------------------------------------------------------------------------------
 #define DECLARE_VS_INPUTS_VVERTEX_DRAW()\
     layout(location = 0) in vec3    in_pos;                 \
-    layout(location = 1) in uvec4   in_color_lightDimMode;  \
+    layout(location = 1) in uvec4   in_color_lightDimFlags; \
     layout(location = 2) in vec2    in_uv;                  \
     layout(location = 3) in uvec2   in_texWinPos;           \
     layout(location = 4) in uvec2   in_texWinSize;          \

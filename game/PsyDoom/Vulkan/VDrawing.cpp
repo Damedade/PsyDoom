@@ -449,18 +449,18 @@ void addUISprite(
 
     for (uint32_t i = 0; i < 6; ++i) {
         VVertex_Draw& vert = pVerts[i];
-        vert.z = {};                // Unused for UI shaders
+        vert.z = {};                    // Unused for UI shaders
         vert.r = r;
         vert.g = g;
         vert.b = b;
-        vert.lightDimMode = {};     // Unused for UI shaders
+        vert.lightDimModeFlags = {};    // Unused for UI shaders
         vert.texWinX = texPageX;
         vert.texWinY = texPageY;
         vert.texWinW = texWinW;
         vert.texWinH = texWinH;
         vert.clutX = clutX;
         vert.clutY = clutY;
-        vert.stmulR = 128;          // Fully white (128 = 100% strength)
+        vert.stmulR = 128;              // Fully white (128 = 100% strength)
         vert.stmulG = 128;
         vert.stmulB = 128;
         vert.stmulA = a;
@@ -525,7 +525,7 @@ void addWorldTriangle(
     const uint16_t texWinY,
     const uint16_t texWinW,
     const uint16_t texWinH,
-    const VLightDimMode lightDimMode,
+    const uint8_t lightDimModeFlags,
     const uint8_t stMulR,
     const uint8_t stMulG,
     const uint8_t stMulB,
@@ -549,7 +549,7 @@ void addWorldTriangle(
         vert.stmulG = stMulG;
         vert.stmulB = stMulB;
         vert.stmulA = stMulA;
-        vert.lightDimMode = lightDimMode;
+        vert.lightDimModeFlags = lightDimModeFlags;
     }
 
     // Fill in verts xy and uv positions
@@ -581,7 +581,7 @@ void addWorldQuad(
     const uint16_t texWinY,
     const uint16_t texWinW,
     const uint16_t texWinH,
-    const VLightDimMode lightDimMode,
+    const uint8_t lightDimModeFlags,
     const uint8_t stMulR,
     const uint8_t stMulG,
     const uint8_t stMulB,
@@ -602,7 +602,7 @@ void addWorldQuad(
         vert.stmulG = stMulG;
         vert.stmulB = stMulB;
         vert.stmulA = stMulA;
-        vert.lightDimMode = lightDimMode;
+        vert.lightDimModeFlags = lightDimModeFlags;
     }
 
     // Fill in the unique vertex attributes
@@ -655,7 +655,7 @@ void addWorldInfiniteSkyWall(
         vert.r = 128;
         vert.g = 128;
         vert.b = 128;
-        vert.lightDimMode = VLightDimMode::None;    // Unused for sky rendering
+        vert.lightDimModeFlags = {};    // Unused for sky rendering
         vert.u = skyUOffset;
         vert.texWinX = texWinX;
         vert.texWinY = texWinY;
@@ -732,7 +732,7 @@ void addWorldSkyQuad(
         vert.r = 128;
         vert.g = 128;
         vert.b = 128;
-        vert.lightDimMode = VLightDimMode::None;    // Unused for sky rendering
+        vert.lightDimModeFlags = {};    // Unused for sky rendering
         vert.u = skyUOffset;
         vert.v = 0.0f;
         vert.texWinX = texWinX;

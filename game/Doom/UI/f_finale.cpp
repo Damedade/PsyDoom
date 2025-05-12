@@ -926,7 +926,8 @@ void F2_Drawer() noexcept {
                             { xl, yb, 0.0f, ul, vb, 128, 128, 128 },
                             clutX, clutY,
                             texWinX, texWinY, texWinW, texWinH,
-                            VLightDimMode::None, 128, 128, 128, 128
+                            V_LIGHTDIM_FLAG_NO_LIGHTDIM,
+                            128, 128, 128, 128
                         );
                     }
 

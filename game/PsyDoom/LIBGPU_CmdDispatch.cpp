@@ -530,7 +530,7 @@ void submit(const POLY_FT4& poly) noexcept {
                     texWinY,
                     texWinW,
                     texWinH,
-                    VLightDimMode::None,
+                    {},         // Light diminishing mode unused for UI shaders
                     128,
                     128,
                     128,

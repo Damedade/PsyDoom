@@ -20,7 +20,6 @@ namespace Gpu {
     enum class TexFmt : uint8_t;
 }
 
-enum class VLightDimMode : uint8_t;
 enum class VPipelineType_Main : uint8_t;
 struct VShaderUniforms_Draw;
 
@@ -131,7 +130,7 @@ void addWorldTriangle(
     const uint16_t texWinY,
     const uint16_t texWinW,
     const uint16_t texWinH,
-    const VLightDimMode lightDimMode,
+    const uint8_t lightDimModeFlags,
     const uint8_t stMulR,
     const uint8_t stMulG,
     const uint8_t stMulB,
@@ -149,7 +148,7 @@ void addWorldQuad(
     const uint16_t texWinY,
     const uint16_t texWinW,
     const uint16_t texWinH,
-    const VLightDimMode lightDimMode,
+    const uint8_t lightDimModeFlags,
     const uint8_t stMulR,
     const uint8_t stMulG,
     const uint8_t stMulB,

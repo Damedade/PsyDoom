@@ -228,9 +228,10 @@ static void RV_InitSpriteFrag(
     uint8_t sprColR, sprColG, sprColB;
 
     if (thing.frame & FF_FULLBRIGHT) {
-        sprColR = LIGHT_INTENSTIY_MAX;
-        sprColG = LIGHT_INTENSTIY_MAX;
-        sprColB = LIGHT_INTENSTIY_MAX;
+        const uint8_t maxLightIntensity = R_GetMaxLightDiminishingIntensity();
+        sprColR = maxLightIntensity;
+        sprColG = maxLightIntensity;
+        sprColB = maxLightIntensity;
     } else {
         sprColR = secR;
         sprColG = secG;
@@ -282,7 +283,7 @@ static void RV_DrawSpriteFrag(const SpriteFrag& sprFrag) noexcept {
         gClutX, gClutY,
         sprFrag.texWinX, sprFrag.texWinY,
         sprFrag.texWinW, sprFrag.texWinH,
-        VLightDimMode::None,
+        V_LIGHTDIM_FLAG_NO_LIGHTDIM,
         sprFrag.stMulR, sprFrag.stMulG, sprFrag.stMulB, sprFrag.stMulA
     );
 }

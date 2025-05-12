@@ -52,7 +52,8 @@ static void RV_DrawWall(
     RV_GetTexWinXyWh(tex, texWinX, texWinY, texWinW, texWinH);
 
     // Decide light diminishing mode depending on whether view lighting is disabled or not (disabled for visor powerup)
-    const VLightDimMode lightDimMode = (gbDoViewLighting) ? VLightDimMode::Walls : VLightDimMode::None;
+    uint8_t lightDimModeFlags = (gbDoViewLighting) ? V_LIGHTDIM_FLAG_WALLS : V_LIGHTDIM_FLAG_NO_LIGHTDIM;
+    lightDimModeFlags |= (R_UseAlpha_0_05_ShadingMode()) ? V_LIGHTDIM_FLAG_ALPHA_0_05 : 0;
 
     // Get the floating point top and bottom y values
     const float ytF = RV_FixedToFloat(yt);
@@ -75,7 +76,7 @@ static void RV_DrawWall(
         { x2, ybF, z2, u2, vb, colR_b, colG_b, colB_b },
         gClutX, gClutY,
         texWinX, texWinY, texWinW, texWinH,
-        lightDimMode,
+        lightDimModeFlags,
         128, 128, 128, alpha
     );
 }

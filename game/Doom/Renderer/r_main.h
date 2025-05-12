@@ -76,6 +76,8 @@ int32_t R_SlopeDiv(const uint32_t num, const uint32_t den) noexcept;
 angle_t R_PointToAngle2(const fixed_t x1, const fixed_t y1, const fixed_t x2, const fixed_t y2) noexcept;
 int32_t R_PointOnSide(const fixed_t x, const fixed_t y, const node_t& node) noexcept;
 subsector_t* R_PointInSubsector(const fixed_t x, const fixed_t y) noexcept;
+bool R_UseAlpha_0_05_ShadingMode() noexcept;
+uint8_t R_GetMaxLightDiminishingIntensity() noexcept;
 
 #if PSYDOOM_MODS
     void R_SnapPlayerInterpolation() noexcept;

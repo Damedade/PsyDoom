@@ -22,8 +22,9 @@ struct line_t;
 static constexpr int32_t TEXCOORD_MAX = UINT8_MAX;
 
 // Min/max light diminishing intensities
-static constexpr int32_t LIGHT_INTENSTIY_MIN = 64;
-static constexpr int32_t LIGHT_INTENSTIY_MAX = 160;
+static constexpr uint8_t LIGHT_INTENSTIY_MIN = 64;
+static constexpr uint8_t LIGHT_INTENSTIY_MAX = 160;
+static constexpr uint8_t LIGHT_INTENSTIY_MAX_ALPHA_0_05 = 192; // Alpha 0.05 has a higher value for this
 
 // Represents a vertex in a line
 struct vertex_t {

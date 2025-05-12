@@ -469,6 +469,22 @@ subsector_t* R_PointInSubsector(const fixed_t x, const fixed_t y) noexcept {
     return &gpSubsectors[actualNodeNum];
 }
 
+//------------------------------------------------------------------------------------------------------------------------------------------
+// PsyDoom helper which tells whether we are using Alpha 0.05 style shading
+//------------------------------------------------------------------------------------------------------------------------------------------
+bool R_UseAlpha_0_05_ShadingMode() noexcept {
+    return (Game::gGameType == GameType::Doom_Alpha_0_05);
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// PsyDoom helper to wrap returning the correct value of the 'LIGHT_INTENSITY_MAX' constant depending on the current game type.
+// Technically not specific to PsyDoom, just handles all the game variants.
+//------------------------------------------------------------------------------------------------------------------------------------------
+uint8_t R_GetMaxLightDiminishingIntensity() noexcept {
+    const bool bAlpha_0_05_Shading = R_UseAlpha_0_05_ShadingMode();
+    return (!bAlpha_0_05_Shading) ? LIGHT_INTENSTIY_MAX : LIGHT_INTENSTIY_MAX_ALPHA_0_05;
+}
+
 #if PSYDOOM_MODS
 //------------------------------------------------------------------------------------------------------------------------------------------
 // PsyDoom addition: update the 'previous' player values used in interpolation to their current (actual) values.

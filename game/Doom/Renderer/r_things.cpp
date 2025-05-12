@@ -303,7 +303,8 @@ void R_DrawSubsectorSprites(subsector_t& subsec) noexcept {
         #endif
 
         if (thing.frame & FF_FULLBRIGHT) {
-            LIBGPU_setRGB0(polyPrim, LIGHT_INTENSTIY_MAX, LIGHT_INTENSTIY_MAX, LIGHT_INTENSTIY_MAX);
+            const int32_t maxLightIntensity = R_GetMaxLightDiminishingIntensity();
+            LIBGPU_setRGB0(polyPrim, maxLightIntensity, maxLightIntensity, maxLightIntensity);
         } else {
             // PsyDoom: need to account for dual colored lighting now when setting the thing color
             #if PSYDOOM_MODS

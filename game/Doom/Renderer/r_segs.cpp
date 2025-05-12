@@ -631,13 +631,14 @@ static void R_DrawWallPieceImpl(
             #endif
 
             if (gbDoViewLighting) {
+                const int32_t maxLightIntensity = R_GetMaxLightDiminishingIntensity();
                 int32_t lightIntensity = d_rshift<8>(scaleCur);
 
                 if (lightIntensity < LIGHT_INTENSTIY_MIN) {
                     lightIntensity = LIGHT_INTENSTIY_MIN;
                 }
-                else if (lightIntensity > LIGHT_INTENSTIY_MAX) {
-                    lightIntensity = LIGHT_INTENSTIY_MAX;
+                else if (lightIntensity > maxLightIntensity) {
+                    lightIntensity = maxLightIntensity;
                 }
 
                 // PsyDoom: changes to account for dual colored lighting

@@ -15,7 +15,7 @@ layout(set = 0, binding = 0) uniform usampler2D vramTex;
 
 layout(location = 0) in vec3 in_color;
 layout(location = 1) in vec3 in_uv_z;
-layout(location = 2) flat in vec3 in_lightDimModeStrength;
+layout(location = 2) flat in vec4 in_lightDimMode;
 layout(location = 3) flat in ivec2 in_texWinPos;
 layout(location = 4) flat in ivec2 in_texWinSize;
 layout(location = 5) flat in ivec2 in_clutPos;
@@ -25,23 +25,27 @@ layout(location = 0) out vec4 out_color;
 
 //----------------------------------------------------------------------------------------------------------------------
 // Compute the light diminishing multiplier for a pixel Z depth and strength vector for the different diminish styles.
-// We use the strength vector here to avoid 'if()' branching when supporting the different light diminishing modes.
+// We use a strength vector here to avoid 'if()' branching when supporting the different light diminishing modes.
 //----------------------------------------------------------------------------------------------------------------------
-float getLightDiminishingMultiplier(float z, vec3 lightDimModeStrength) {
+float getLightDiminishingMultiplier(float z, vec4 in_lightDimMode) {
+    // Minimum and maximum light diminishing intensity
+    float minLightIntensity = 64;
+    float maxLightIntensity = in_lightDimMode.w;
+
     // This is the light diminishing intensity when the effect is off (no change)
     float offDimIntensity = 128.0;
 
     // Compute the light diminishing intensity for floors
-    float floorDimIntensity = 160.0 - z * 0.5;
+    float floorDimIntensity = maxLightIntensity - z * 0.5;
 
     // Compute the light diminishing intensity for walls
     float wallDimintensity = ((128 * 65536) / z) / 256;
 
     // Compute the light diminishing intensity we will use
     float intensity = (
-        offDimIntensity * lightDimModeStrength.x +
-        wallDimintensity * lightDimModeStrength.y + 
-        floorDimIntensity * lightDimModeStrength.z
+        offDimIntensity * in_lightDimMode.x +
+        wallDimintensity * in_lightDimMode.y + 
+        floorDimIntensity * in_lightDimMode.z
     );
 
     // Clamp the intensity to the min/max allowed amounts (0.5x to 1.25x in normalized coords).
@@ -53,7 +57,7 @@ float getLightDiminishingMultiplier(float z, vec3 lightDimModeStrength) {
     // artifacts appear. Leaving the intensity in unquantized format instead makes the banding smoother, curved, and less
     // noticeable. It also doesn't appear to cause any (visible) extra difference between the classic and Vulkan renderers.
     //
-    intensity = clamp(intensity, 64, 160);
+    intensity = clamp(intensity, minLightIntensity, maxLightIntensity);
     return intensity / 128.0;
 }
 
@@ -66,7 +70,7 @@ void main() {
 
     // Compute color multiply after accounting for input color and light diminishing effects.
     // Add a little bias also to prevent switching back and forth between cases that are close, due to float inprecision...
-    vec3 colorMul = trunc(in_color * getLightDiminishingMultiplier(in_uv_z.z, in_lightDimModeStrength) + 0.0001) / 128.0;
+    vec3 colorMul = trunc(in_color * getLightDiminishingMultiplier(in_uv_z.z, in_lightDimMode) + 0.0001) / 128.0;
 
     // The PSX renderer doesn't allow the color multiply to go larger than this:
     colorMul = min(colorMul, 255.0 / 128.0);

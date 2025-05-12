@@ -55,13 +55,12 @@ enum class VPipelineType_PSX : uint8_t {
 };
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// Light diminishing mode for 3D view triangles
+// Light diminishing mode flags for 3D view triangles
 //------------------------------------------------------------------------------------------------------------------------------------------
-enum class VLightDimMode : uint8_t {
-    None,       // No light diminishing (used for things/sprites)
-    Walls,      // Wall light diminishing mode: a bit brighter than the floor
-    Flats       // Floor diminishing mode: darkens quicker than walls
-};
+static constexpr uint8_t V_LIGHTDIM_FLAG_NO_LIGHTDIM = 0x1;     // Render with no light diminishing (used for things/sprites)
+static constexpr uint8_t V_LIGHTDIM_FLAG_WALLS       = 0x2;     // Render using the wall light diminishing: a bit brighter than the floor
+static constexpr uint8_t V_LIGHTDIM_FLAG_FLATS       = 0x4;     // Render using the floor light diminishing: darkens quicker than walls
+static constexpr uint8_t V_LIGHTDIM_FLAG_ALPHA_0_05  = 0x8;     // Use Alpha 0.05 style light diminishing? Affects maximum brightness.
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Shader uniforms for the various shaders in the main 'draw' subpass
@@ -103,8 +102,8 @@ struct VVertex_Draw {
     // Color for the vertex: rgb where '128' is regarded as 1.0
     uint8_t r, g, b;
 
-    // Light diminishing mode for the 3D view: unused by UI shaders
-    VLightDimMode lightDimMode;
+    // Light diminishing mode flags (V_LIGHTDIM_FLAG_XXX) for the 3D view: unused by UI shaders
+    uint8_t lightDimModeFlags;
 
     // 2D Texture coordinates for the vertex.
     // These coordinates are in terms of 16-bit pixels in VRAM.
