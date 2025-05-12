@@ -275,8 +275,7 @@ void P_AnimLiquid_Blood(const anim_t& anim) noexcept {
 }
 
 void P_AnimLiquid_Lava(const anim_t& anim) noexcept {
-    // For some strange reason Alpha 0.05 lava liquids appear as though they are slime. This line is not a typo...
-    UpdateLiquid(anim, gSlimeState, SLIME_INTENSITY_LUT);
+    UpdateLiquid(anim, gLavaState, LAVA_INTENSITY_LUT);
 }
 
 #endif  // #if PSYDOOM_MODS

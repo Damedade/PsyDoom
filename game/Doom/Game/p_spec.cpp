@@ -1492,7 +1492,8 @@ void P_UpdateSpecials() noexcept {
             }
             
             if (gpFlatAnim_Lava) {
-                P_AnimLiquid_Lava(*gpFlatAnim_Lava);
+                // For some strange reason Alpha 0.05 lava liquids appear as though they are slime. This line is NOT a typo!
+                P_AnimLiquid_Slime(*gpFlatAnim_Lava);
             }
         }
     #endif
