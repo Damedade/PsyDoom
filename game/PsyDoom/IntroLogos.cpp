@@ -319,7 +319,7 @@ static LogoPlayer::Logo getSonyLogo_Alpha_0_05() noexcept {
     ImageOps::Blit(
         ImageOps::Image<uint32_t>{ rawLogo32bpp.get(), 256, 256, 256 },
         ImageOps::Image<uint32_t>{ logo.pPixels.get(), logo.width, logo.height, logo.width },
-        ImageOps::Rect{ 0, 0, 167, 73 },
+        ImageOps::Rect{{ 0, 0 }, { 167, 73 }},
         ImageOps::Vec2i{ 76, 65 } // Centered horizontally, but slightly more to the top vertically
     );
 

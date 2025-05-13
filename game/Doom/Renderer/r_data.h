@@ -55,7 +55,7 @@ struct texture_t {
     #if PSYDOOM_LIMIT_REMOVING
         uint16_t    texPageCoordX;      // Texture coordinate (X/U) inside the current texture page
         uint16_t    texPageCoordY;      // Texture coordinate (Y/V) inside the current texture page
-    #else                               
+    #else
         uint8_t     texPageCoordX;      // Texture coordinate (X/U) inside the current texture page
         uint8_t     texPageCoordY;      // Texture coordinate (Y/V) inside the current texture page
     #endif

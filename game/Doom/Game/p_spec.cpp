@@ -20,6 +20,7 @@
 #include "p_floor.h"
 #include "p_inter.h"
 #include "p_lights.h"
+#include "p_liquidfx.h"
 #include "p_plats.h"
 #include "p_setup.h"
 #include "p_switch.h"
@@ -84,6 +85,14 @@ int32_t     gMapBossSpecialFlags;   // PSX addition: What types of boss specials
     static std::vector<anim_t> gAnims;
 #else
     static anim_t gAnims[BASE_NUM_ANIMS_FDOOM];
+#endif
+
+// PsyDoom: pointer to the water, slime, blood and lava flat animations (for Alpha 0.05 procedural liquids).
+#if PSYDOOM_MODS
+    static anim_t* gpFlatAnim_Water = nullptr;
+    static anim_t* gpFlatAnim_Slime = nullptr;
+    static anim_t* gpFlatAnim_Blood = nullptr;
+    static anim_t* gpFlatAnim_Lava = nullptr;
 #endif
 
 // Points to the end of the list of animated textures
@@ -192,6 +201,23 @@ void P_InitAnimDefs() noexcept {
     // Init the animation list - 1 slot per anim definition
     gAnims.clear();
     gAnims.resize(gAnimDefs.size());
+    
+    // Find the water, slime, blood and lava flat animations:
+
+
+    for (animdef_t& animDef : gAnimDefs) {
+        const ptrdiff_t animIndex = &animDef - gAnimDefs.data();
+    
+        if (std::strncmp(animDef.startname, "WATER01", 7) == 0) {
+            gpFlatAnim_Water = &gAnims[animIndex];
+        } else if (std::strncmp(animDef.startname, "SLIME01", 7) == 0) {
+            gpFlatAnim_Slime = &gAnims[animIndex];
+        } else if (std::strncmp(animDef.startname, "BLOOD1", 6) == 0) {
+            gpFlatAnim_Blood = &gAnims[animIndex];
+        } else if (std::strncmp(animDef.startname, "LAVA01", 6) == 0) {
+            gpFlatAnim_Lava = &gAnims[animIndex];
+        }
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -253,6 +279,14 @@ void P_SetAnimsToBasePic() noexcept {
 // Also sets up the spot in VRAM where these animations will go - they occupy the same spot as the base animation frame.
 //------------------------------------------------------------------------------------------------------------------------------------------
 void P_InitPicAnims() noexcept {
+    // PsyDoom: no active animations for these initially
+    #if PSYDOOM_MODS
+        gpFlatAnim_Water = nullptr;
+        gpFlatAnim_Slime = nullptr;
+        gpFlatAnim_Blood = nullptr;
+        gpFlatAnim_Lava = nullptr;
+    #endif
+
     // PsyDoom: the list of anims and anim defs is now dynamic
     #if PSYDOOM_MODS
         const int32_t maxAnims = (int32_t) gAnims.size();
@@ -307,7 +341,8 @@ void P_InitPicAnims() noexcept {
                 dstTex.texPageId = basetex.texPageId;
                 dstTex.ppTexCacheEntries = basetex.ppTexCacheEntries;
             }
-        } else {
+        }
+        else {
             // Determine the lump range for the animation
             lastanim.basepic = R_FlatNumForName(animdef.startname, bAnimTexturesMustExist);
             lastanim.picnum = R_FlatNumForName(animdef.endname, bAnimTexturesMustExist);
@@ -331,7 +366,9 @@ void P_InitPicAnims() noexcept {
                 texture_t& dstTex = gpFlatTextures[picNum];
 
                 #if PSYDOOM_MODS
-                    W_CacheLumpNum(dstTex.lumpNum, PU_ANIMATION, false);
+                    // Alpha 0.05: always decompress flat textures so we can do procedural liquid effects and store the result in the lump data
+                    const bool bDecompressLump = (Game::gGameType == GameType::Doom_Alpha_0_05);
+                    W_CacheLumpNum(dstTex.lumpNum, PU_ANIMATION, bDecompressLump);
                 #else
                     W_CacheLumpNum(gFirstFlatLumpNum + picNum, PU_ANIMATION, false);
                 #endif
@@ -341,6 +378,20 @@ void P_InitPicAnims() noexcept {
                 dstTex.texPageId = basetex.texPageId;
                 dstTex.ppTexCacheEntries = basetex.ppTexCacheEntries;
             }
+            
+            // PsyDoom: make a note of of the animation if it's water, slime, blood or lava.
+            // This is so we can do procedural liquid fx for Alpha 0.05:
+            #if PSYDOOM_MODS
+                if (std::strncmp(animdef.startname, "WATER01", 7) == 0) {
+                    gpFlatAnim_Water = &lastanim;
+                } else if (std::strncmp(animdef.startname, "SLIME01", 7) == 0) {
+                    gpFlatAnim_Slime = &lastanim;
+                } else if (std::strncmp(animdef.startname, "BLOOD1", 6) == 0) {
+                    gpFlatAnim_Blood = &lastanim;
+                } else if (std::strncmp(animdef.startname, "LAVA01", 6) == 0) {
+                    gpFlatAnim_Lava = &lastanim;
+                }
+            #endif
         }
 
         // Init the anim state and move onto the next
@@ -351,6 +402,13 @@ void P_InitPicAnims() noexcept {
 
         gpLastAnim++;
     }
+    
+    // Initialize Alpha 0.05 liquid effects
+    #if PSYDOOM_MODS
+        if (Game::gGameType == GameType::Doom_Alpha_0_05) {
+            P_InitLiquids();
+        }
+    #endif
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -1417,6 +1475,27 @@ void P_UpdateSpecials() noexcept {
     if (gbIsSkyVisible && gUpdateFireSkyFunc) {
         gUpdateFireSkyFunc(*gpSkyTexture);
     }
+    
+    // Update Alpha 0.05 liquid effects
+    #if PSYDOOM_MODS
+        if (Game::gGameType == GameType::Doom_Alpha_0_05) {
+            if (gpFlatAnim_Water) {
+                P_AnimLiquid_Water(*gpFlatAnim_Water);
+            }
+            
+            if (gpFlatAnim_Slime) {
+                P_AnimLiquid_Slime(*gpFlatAnim_Slime);
+            }
+            
+            if (gpFlatAnim_Blood) {
+                P_AnimLiquid_Blood(*gpFlatAnim_Blood);
+            }
+            
+            if (gpFlatAnim_Lava) {
+                P_AnimLiquid_Lava(*gpFlatAnim_Lava);
+            }
+        }
+    #endif
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
