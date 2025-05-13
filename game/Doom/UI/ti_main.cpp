@@ -514,7 +514,10 @@ void STOP_Title([[maybe_unused]] const gameaction_t exitAction) noexcept {
             return;
     #endif
 
-    S_StartSound(nullptr, sfx_barexp);
+    // Alpha 0.05 doesn't play any sound when going from the title screen
+    if (Game::gGameType != GameType::Doom_Alpha_0_05) {
+        S_StartSound(nullptr, sfx_barexp);
+    }
 
     #if PSYDOOM_MODS
         // PsyDoom: update sounds so that the barrel explosion plays while the music fades out.
@@ -522,7 +525,23 @@ void STOP_Title([[maybe_unused]] const gameaction_t exitAction) noexcept {
         S_UpdateSounds();
     #endif
 
-    psxcd_stop();
+    // PsyDoom: only stop the title music if the main menu music is different.
+    // This is to support Alpha 0.05 which uses the same music for both title screen and main menu.
+    // Alpha 0.05 does not stop the music in between the title screen and main menu...
+    #if PSYDOOM_MODS
+        const int32_t mainMenuCdTrack = gCDTrackNum[cdmusic_main_menu];
+        const bool bContinuePlayingCdMusic = (
+            (exitAction == ga_exit) &&                      // Going to the main menu
+            (psxcd_get_playing_track() == mainMenuCdTrack)  // Already playing the main menu music
+        );
+        const bool bStopCdMusic = (!bContinuePlayingCdMusic);
+    #else
+        constexpr bool bStopCdMusic = true;
+    #endif
+
+    if (bStopCdMusic) {
+        psxcd_stop();
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------

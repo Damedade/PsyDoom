@@ -161,22 +161,33 @@ static void S_DetermineCDAudioTrackNumbers() noexcept {
             trackNum = 0;
         }
     }
+    
+    if (Game::gGameType != GameType::Doom_Alpha_0_05) {
+        // These will only be present for the demo on some combined demo discs like 'Essential PlayStation CD Three/3'
+        lookupCDTrackNumber("PSXDOOM/CDAUDIO/SAMPLEV.RAW",  cdmusic_title_screen);
+        lookupCDTrackNumber("PSXDOOM/CDAUDIO/SAMPMAIN.RAW", cdmusic_main_menu);
+        lookupCDTrackNumber("PSXDOOM/CDAUDIO/SAMPMAIN.RAW", cdmusic_credits_demo);  // Main menu music is repeated for in-game on some demo discs!
+        lookupCDTrackNumber("PSXDOOM/CDAUDIO/SAMPCOMP.RAW", cdmusic_intermission);
 
-    // These will only be present for the demo on some combined demo discs like 'Essential PlayStation CD Three/3'
-    lookupCDTrackNumber("PSXDOOM/CDAUDIO/SAMPLEV.RAW",  cdmusic_title_screen);
-    lookupCDTrackNumber("PSXDOOM/CDAUDIO/SAMPMAIN.RAW", cdmusic_main_menu);
-    lookupCDTrackNumber("PSXDOOM/CDAUDIO/SAMPMAIN.RAW", cdmusic_credits_demo);  // Main menu music is repeated for in-game on some demo discs!
-    lookupCDTrackNumber("PSXDOOM/CDAUDIO/SAMPCOMP.RAW", cdmusic_intermission);
-
-    // These are expected on the regular retail versions of the game and the standalone PSX Doom demo disc
-    lookupCDTrackNumber("PSXDOOM/CDAUDIO/DOOMMAIN.RAW", cdmusic_title_screen);
-    lookupCDTrackNumber("PSXDOOM/CDAUDIO/DMSELECT.RAW", cdmusic_main_menu);
-    lookupCDTrackNumber("PSXDOOM/CDAUDIO/CREDITS.RAW",  cdmusic_credits_demo);
-    lookupCDTrackNumber("PSXDOOM/CDAUDIO/COMPLETE.RAW", cdmusic_intermission);
-    lookupCDTrackNumber("PSXDOOM/CDAUDIO/DOOMRAVE.RAW", cdmusic_club_doom);
-    lookupCDTrackNumber("PSXDOOM/CDAUDIO/DOOM1FIN.RAW", cdmusic_finale_doom1_final_doom);
-    lookupCDTrackNumber("PSXDOOM/CDAUDIO/FINALE2.RAW",  cdmusic_finale_doom1_final_doom);   // Final Doom uses 'FINALE2'
-    lookupCDTrackNumber("PSXDOOM/CDAUDIO/FINALE1.RAW",  cdmusic_finale_doom2);
+        // These are expected on the regular retail versions of the game and the standalone PSX Doom demo disc
+        lookupCDTrackNumber("PSXDOOM/CDAUDIO/DOOMMAIN.RAW", cdmusic_title_screen);
+        lookupCDTrackNumber("PSXDOOM/CDAUDIO/DMSELECT.RAW", cdmusic_main_menu);
+        lookupCDTrackNumber("PSXDOOM/CDAUDIO/CREDITS.RAW",  cdmusic_credits_demo);
+        lookupCDTrackNumber("PSXDOOM/CDAUDIO/COMPLETE.RAW", cdmusic_intermission);
+        lookupCDTrackNumber("PSXDOOM/CDAUDIO/DOOMRAVE.RAW", cdmusic_club_doom);
+        lookupCDTrackNumber("PSXDOOM/CDAUDIO/DOOM1FIN.RAW", cdmusic_finale_doom1_final_doom);
+        lookupCDTrackNumber("PSXDOOM/CDAUDIO/FINALE2.RAW",  cdmusic_finale_doom1_final_doom);   // Final Doom uses 'FINALE2'
+        lookupCDTrackNumber("PSXDOOM/CDAUDIO/FINALE1.RAW",  cdmusic_finale_doom2);
+    }
+    else {
+        // The track locations for Alpha 0.05 are a lot different. Some tracks are also missing...
+        lookupCDTrackNumber("DOOMMAIN.RAW", cdmusic_title_screen);
+        lookupCDTrackNumber("DOOMMAIN.RAW", cdmusic_main_menu);     // No separate main menu music in this build, re-uses the title screen music instead
+        lookupCDTrackNumber("CREDITS.RAW",  cdmusic_credits_demo);
+        lookupCDTrackNumber("COMPLETE.RAW", cdmusic_intermission);
+        lookupCDTrackNumber("FINALE2.RAW",  cdmusic_finale_doom1_final_doom);
+        lookupCDTrackNumber("FINALE1.RAW",  cdmusic_finale_doom2);
+    }
 }
 #endif
 

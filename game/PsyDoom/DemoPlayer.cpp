@@ -727,11 +727,11 @@ DemoFormat getPlayingDemoFormat() noexcept {
 // If this is the case then the credits music should play instead.
 //------------------------------------------------------------------------------------------------------------------------------------------
 bool shouldOverrideMapMusicForDemo() noexcept {
-    // Classic and GEC ME demos override map music
-    return (
-        (gPlayingDemoFormat == DemoFormat::Classic) ||
-        (gPlayingDemoFormat == DemoFormat::GecMe)
-    );
+    // Classic (non-Alpha 0.05) and GEC ME demos override map music
+    if (gPlayingDemoFormat == DemoFormat::Classic)
+        return (Game::gGameType != GameType::Doom_Alpha_0_05);
+    
+    return (gPlayingDemoFormat == DemoFormat::GecMe);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------

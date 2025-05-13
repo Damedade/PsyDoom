@@ -606,20 +606,20 @@ void M_Start() noexcept {
         M_FixupStartEpisodeNumber(true);
     #endif
 
-    // Play the main menu music
-    psxcd_play_at_andloop(
-        gCDTrackNum[cdmusic_main_menu],
-        gCdMusicVol,
-        0,
-        0,
-        gCDTrackNum[cdmusic_main_menu],
-        gCdMusicVol,
-        0,
-        0
-    );
-
-    // Wait until some cd audio has been read
-    Utils::waitForCdAudioPlaybackStart();
+    // Play the main menu music.
+    // PsyDoom: don't interrupt it however if it's already playing.
+    const int32_t cdTrackToPlay = gCDTrackNum[cdmusic_main_menu];
+        
+    #if PSYDOOM_MODS
+        const bool bPlayCdTrack = (psxcd_get_playing_track() != cdTrackToPlay);
+    #else
+        constexpr bool bPlayCdTrack = true;
+    #endif
+    
+    if (bPlayCdTrack) {
+        psxcd_play_at_andloop(cdTrackToPlay, gCdMusicVol, 0, 0, cdTrackToPlay, gCdMusicVol, 0, 0);
+        Utils::waitForCdAudioPlaybackStart();   // Wait until some cd audio has been read
+    }
 
     // Don't clear the screen when setting a new draw environment.
     // Need to preserve the screen contents for the cross fade:
