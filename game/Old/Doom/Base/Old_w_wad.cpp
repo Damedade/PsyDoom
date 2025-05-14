@@ -426,4 +426,4 @@ uint32_t getDecodedSize(const void* const pSrc) noexcept {
     return size;
 }
 
-#endif  #if !PSYDOOM_MODS
+#endif  // #if !PSYDOOM_MODS

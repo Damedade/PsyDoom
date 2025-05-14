@@ -2,7 +2,7 @@
 // Module containing a partial reimplementation of the PSY-Q 'LIBCD' library.
 // These functions are not neccesarily faithful to the original code, and are reworked to make the game run in it's new environment.
 //------------------------------------------------------------------------------------------------------------------------------------------
-#include "OLD_LIBCD.h"
+#include "Old_LIBCD.h"
 
 #if !PSYDOOM_MODS
 
