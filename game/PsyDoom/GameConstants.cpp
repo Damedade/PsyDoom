@@ -190,8 +190,6 @@ static void populateConsts_GEC_ME_Beta4(GameConstants& consts) noexcept {
 static void populateConsts_DoomAlpha_0_05(GameConstants& consts) noexcept {
     consts.mainWads[0] = CdFile::PSXDOOM_WAD;
     consts.introMovies[0] = "MOVIE.STR";
-    consts.demos[0] = BuiltInDemoDef{ "DEMO1.LMP", false, false, false };
-    consts.demos[1] = BuiltInDemoDef{ "DEMO2.LMP", false, false, false };
     consts.saveFilePrefix = "ADoom_";
     consts.pLastPasswordField = &PlayerPrefs::gLastPassword_Doom;
     consts.netGameId = NET_GAMEID_DOOM_ALPHA_0_05;

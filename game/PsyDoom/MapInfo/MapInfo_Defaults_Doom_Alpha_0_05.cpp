@@ -102,6 +102,7 @@ void addMaps_Doom_Alpha_0_05(std::vector<Map>& maps) noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 void addCredits_Doom_Alpha_0_05([[maybe_unused]] std::vector<CreditsPage>& credits) noexcept {
     // No proper credits screen in this build...
+    // There was a placeholder screen, but PsyDoom does not implement it.
 }
 
 END_NAMESPACE(MapInfo)
