@@ -817,6 +817,18 @@ static void P_LoadLineDefs(const int32_t lumpNum) noexcept {
         ++pSrcLine;
         ++pDstLine;
     }
+    
+    // Hack for Alpha 0.05: it doesn't seem to have 'ML_DONTPEGBOTTOM' implemented for lower walls.
+    // Remove the flag on two sided lines to emulate this behavior.
+    if (Game::gGameType == GameType::Doom_Alpha_0_05) {
+        for (int32_t lineIdx = 0; lineIdx < gNumLines; ++lineIdx) {
+            line_t& line = gpLines[lineIdx];
+            
+            if (line.backsector) {
+                line.flags &= (~ML_DONTPEGBOTTOM);
+            }
+        }
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
