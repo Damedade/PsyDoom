@@ -9,7 +9,7 @@
 #include <cctype>
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// Header for a WAD file: constains high level information about the contents of the WAD
+// Header for a WAD file: contains high level information about the contents of the WAD
 //------------------------------------------------------------------------------------------------------------------------------------------
 struct WadHdr {
     char        fileid[4];          // Should always be "IWAD" for PSX DOOM
