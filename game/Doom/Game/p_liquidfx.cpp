@@ -164,7 +164,7 @@ static LiquidState gLavaState;
 //----------------------------------------------------------------------------------------------------------------------
 // Initialize the state for a single liquid
 //----------------------------------------------------------------------------------------------------------------------
-static void InitLiquidState(LiquidState& state) noexcept {
+static void InitLiquidAnim(LiquidState& state) noexcept {
     state.rngIndex = 0;
     state.pos = {};
     state.vel = { 2, 1, 3, 4 };
@@ -173,11 +173,11 @@ static void InitLiquidState(LiquidState& state) noexcept {
 //----------------------------------------------------------------------------------------------------------------------
 // Reset all liquid effects back to their initial state
 //----------------------------------------------------------------------------------------------------------------------
-void P_InitLiquids() noexcept {
-    InitLiquidState(gWaterState);
-    InitLiquidState(gSlimeState);
-    InitLiquidState(gBloodState);
-    InitLiquidState(gLavaState);
+void P_InitLiquidAnims() noexcept {
+    InitLiquidAnim(gWaterState);
+    InitLiquidAnim(gSlimeState);
+    InitLiquidAnim(gBloodState);
+    InitLiquidAnim(gLavaState);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -336,6 +336,13 @@ void P_InitPicAnims() noexcept {
                     W_CacheLumpNum(gFirstTexLumpNum + picNum, PU_ANIMATION, false);
                 #endif
 
+            #if PSYDOOM_MODS
+                // PsyDoom: fill in a few more details here too
+                dstTex.width = basetex.width;
+                dstTex.height =  basetex.height;
+                dstTex.width16 = basetex.width16;
+                dstTex.height16 = basetex.height16;
+            #endif
                 dstTex.texPageCoordX = basetex.texPageCoordX;
                 dstTex.texPageCoordY = basetex.texPageCoordY;
                 dstTex.texPageId = basetex.texPageId;
@@ -373,6 +380,13 @@ void P_InitPicAnims() noexcept {
                     W_CacheLumpNum(gFirstFlatLumpNum + picNum, PU_ANIMATION, false);
                 #endif
 
+            #if PSYDOOM_MODS
+                // PsyDoom: fill in a few more details here too
+                dstTex.width = basetex.width;
+                dstTex.height =  basetex.height;
+                dstTex.width16 = basetex.width16;
+                dstTex.height16 = basetex.height16;
+            #endif
                 dstTex.texPageCoordX = basetex.texPageCoordX;
                 dstTex.texPageCoordY = basetex.texPageCoordY;
                 dstTex.texPageId = basetex.texPageId;
@@ -403,10 +417,20 @@ void P_InitPicAnims() noexcept {
         gpLastAnim++;
     }
     
-    // Initialize Alpha 0.05 liquid effects
     #if PSYDOOM_MODS
+        // Initialize Alpha 0.05 liquid effects
         if (Game::gGameType == GameType::Doom_Alpha_0_05) {
-            P_InitLiquids();
+            P_InitLiquidAnims();
+            P_UpdateProceduralLiquids();
+        }
+        
+        // Update the texture translation table
+        for (const anim_t& anim : gAnims) {
+            if (anim.istexture) {
+                gpTextureTranslation[anim.basepic] = anim.current;
+            } else {
+                gpFlatTranslation[anim.basepic] = anim.current;
+            }
         }
     #endif
 }
@@ -1479,22 +1503,7 @@ void P_UpdateSpecials() noexcept {
     // Update Alpha 0.05 liquid effects
     #if PSYDOOM_MODS
         if (Game::gGameType == GameType::Doom_Alpha_0_05) {
-            if (gpFlatAnim_Water) {
-                P_AnimLiquid_Water(*gpFlatAnim_Water);
-            }
-            
-            if (gpFlatAnim_Slime) {
-                P_AnimLiquid_Slime(*gpFlatAnim_Slime);
-            }
-            
-            if (gpFlatAnim_Blood) {
-                P_AnimLiquid_Blood(*gpFlatAnim_Blood);
-            }
-            
-            if (gpFlatAnim_Lava) {
-                // For some strange reason Alpha 0.05 lava liquids appear as though they are slime. This line is NOT a typo!
-                P_AnimLiquid_Slime(*gpFlatAnim_Lava);
-            }
+            P_UpdateProceduralLiquids();
         }
     #endif
 }
@@ -1832,3 +1841,27 @@ void P_SpawnSpecials() noexcept {
         D_memset(gButtonList, std::byte(0), MAXBUTTONS * sizeof(gButtonList[0]));
     #endif
 }
+
+#if PSYDOOM_MODS
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Updates procedural liquids for Alpha 0.05
+//------------------------------------------------------------------------------------------------------------------------------------------
+void P_UpdateProceduralLiquids() noexcept {
+    if (gpFlatAnim_Water) {
+        P_AnimLiquid_Water(*gpFlatAnim_Water);
+    }
+    
+    if (gpFlatAnim_Slime) {
+        P_AnimLiquid_Slime(*gpFlatAnim_Slime);
+    }
+    
+    if (gpFlatAnim_Blood) {
+        P_AnimLiquid_Blood(*gpFlatAnim_Blood);
+    }
+    
+    if (gpFlatAnim_Lava) {
+        // For some strange reason Alpha 0.05 lava liquids appear as though they are slime. This line is NOT a typo!
+        P_AnimLiquid_Slime(*gpFlatAnim_Lava);
+    }
+}
+#endif  // #if PSYDOOM_MODS

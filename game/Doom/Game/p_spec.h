@@ -75,3 +75,7 @@ void G_ExitLevel() noexcept;
 
 void G_SecretExitLevel(const int32_t nextMap) noexcept;
 void P_SpawnSpecials() noexcept;
+
+#if PSYDOOM_MODS
+    void P_UpdateProceduralLiquids() noexcept;
+#endif

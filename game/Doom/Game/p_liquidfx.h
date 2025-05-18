@@ -4,7 +4,7 @@
 
 struct anim_t;
 
-void P_InitLiquids() noexcept;
+void P_InitLiquidAnims() noexcept;
 void P_AnimLiquid_Water(const anim_t& anim) noexcept;
 void P_AnimLiquid_Slime(const anim_t& anim) noexcept;
 void P_AnimLiquid_Blood(const anim_t& anim) noexcept;
