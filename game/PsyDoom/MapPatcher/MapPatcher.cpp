@@ -22,7 +22,7 @@ static MapPatches::PatchList getGamePatchList() noexcept {
         case GameType::GEC_ME_TestMap_Doom:         return {};
         case GameType::GEC_ME_TestMap_FinalDoom:    return {};
         case GameType::GEC_ME_Beta4:                return MapPatches::gPatches_GEC_ME_Beta4;
-        case GameType::Doom_Alpha_0_05:             return {};
+        case GameType::Doom_Alpha_0_05:             return MapPatches::gPatches_Doom_Alpha_0_05;
     }
 
     I_Error("MapPatcher: getGamePatchList(): unhandled game type!");

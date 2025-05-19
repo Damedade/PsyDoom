@@ -42,6 +42,7 @@ extern const PatchList gPatches_Doom;
 extern const PatchList gPatches_FinalDoom;
 extern const PatchList gPatches_GEC_ME_Beta3;
 extern const PatchList gPatches_GEC_ME_Beta4;
+extern const PatchList gPatches_Doom_Alpha_0_05;
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Helpers: check if various forms of map patches should be applied

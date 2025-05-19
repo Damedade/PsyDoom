@@ -288,6 +288,7 @@ set(SOURCE_FILES
     "PsyDoom/MapPatcher/MapPatcherUtils.h"
     "PsyDoom/MapPatcher/MapPatches.h"
     "PsyDoom/MapPatcher/MapPatches_Doom.cpp"
+    "PsyDoom/MapPatcher/MapPatches_Doom_Alpha_0_05.cpp"
     "PsyDoom/MapPatcher/MapPatches_FinalDoom.cpp"
     "PsyDoom/MapPatcher/MapPatches_GEC_ME_Beta3.cpp"
     "PsyDoom/MapPatcher/MapPatches_GEC_ME_Beta4.cpp"
