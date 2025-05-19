@@ -223,7 +223,7 @@ std::optional<WadFileData> readWadFile(const char* const filePath) noexcept {
             lumpEndOffset = lumpHdrs[lumpIdx + 1].wadFileOffset;
         }
         else {
-            if (wadHdr.lumpHdrsOffset < lumpHdr.wadFileOffset) {
+            if ((uint32_t) wadHdr.lumpHdrsOffset < lumpHdr.wadFileOffset) {
                 // End of lump is end of file
                 lumpEndOffset = (uint32_t) fileData.size;
             } else {
@@ -384,7 +384,7 @@ static bool transformLeafsLump(FileData& fileData) noexcept {
         for (mapleaf_t& leaf : leafs) {
             const uint32_t numLeafEdges = leaf.numedges;
         
-            leaf.numedges = Endian::hostToLittle(numLeafEdges);
+            leaf.numedges = (uint16_t) Endian::hostToLittle(numLeafEdges);
             std::memcpy(pCurOutputBytes, &leaf, sizeof(mapleaf_t));
             pCurOutputBytes += sizeof(mapleaf_t);
             
