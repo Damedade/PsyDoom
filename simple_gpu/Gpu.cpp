@@ -1089,7 +1089,7 @@ void draw(Core& core, const DrawWallCol& col) noexcept {
 
     for (int32_t y = ty; y <= by; ++y) {
         // Compute the 'v' texture coordinate to use
-        const uint16_t v = (uint16_t)(v1 * tinv + v2 * t);
+        const uint16_t v = (uint16_t)(int16_t) std::floor(v1 * tinv + v2 * t);
 
         // Step these to the next pixel
         t += tStep;
