@@ -5,6 +5,7 @@
 
 #include "Asserts.h"
 #include "Config/Config.h"
+#include "Game.h"
 #include "GammaTable.h"
 #include "Gpu.h"
 #include "MacDisplayLink.h"
@@ -202,6 +203,11 @@ void initVideo() noexcept {
     // Set and sanitize overscan settings
     gTopOverscan = std::clamp(Config::gTopOverscanPixels, 0, ORIG_DRAW_RES_Y / 2 - 1);
     gBotOverscan = std::clamp(Config::gBottomOverscanPixels, 0, ORIG_DRAW_RES_Y / 2 - 1);
+    
+    // Hack for Alpha 0.05: force bottom overscan to '0' so the entire HUD can be seen
+    if (Game::gGameType == GameType::Doom_Alpha_0_05) {
+        gBotOverscan = 0;
+    }
 
     // Initialize gamma table
     gGammaTbl.build((float) PlayerPrefs::gGamma1000 / 1000.0f);
