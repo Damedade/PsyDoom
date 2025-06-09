@@ -68,6 +68,17 @@ static std::vector<VShaderUniforms_Draw> gFrameUniforms;
 static std::vector<DrawCmd> gFrameDrawCmds;
 
 //------------------------------------------------------------------------------------------------------------------------------------------
+// Tells if the specified 'Main' pipeline type uses a descriptor set or not.
+// This will be false for pipelines that don't use textures.
+//------------------------------------------------------------------------------------------------------------------------------------------
+static bool doesPipelineTypeUseDescriptorSet(const VPipelineType_Main pipelineType) noexcept {
+    return (
+        (pipelineType != VPipelineType_Main::Lines) &&
+        (pipelineType != VPipelineType_Main::Colored)
+    );
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
 // Records all drawing commands for the current frame to a Vulkan command buffer
 //------------------------------------------------------------------------------------------------------------------------------------------
 static void recordCmdBuffer(vgl::CmdBufferRecorder& cmdRec) noexcept {
@@ -91,13 +102,23 @@ static void recordCmdBuffer(vgl::CmdBufferRecorder& cmdRec) noexcept {
         switch (drawCmd.type) {
             case DrawCmdType::SetPipeline: {
                 // Bind the pipeline
-                const vgl::Pipeline& pipeline = pipelineSet.get((VPipelineType_Main) drawCmd.arg1);
+                const VPipelineType_Main pipelineType = (VPipelineType_Main) drawCmd.arg1;
+                const vgl::Pipeline& pipeline = pipelineSet.get(pipelineType);
                 cmdRec.bindPipeline(pipeline);
 
-                // Do we need to bind the draw descriptor set as well, after setting the pipeline?
-                if (bNeedToBindDescriptorSet) {
-                    cmdRec.bindDescriptorSet(*gpDescriptorSet, pipeline, 0, 0, nullptr);
-                    bNeedToBindDescriptorSet = false;
+                // Do we need to bind the draw descriptor set after binding the pipeline?
+                // Note that some pipelines don't use the draw descriptor set, such as those for line and solid color drawing.
+                // Binding those types of pipeline also invalidates any bound descriptor set, due to the incompatible pipeline layout.
+                const bool bUsingDescriptorSet = doesPipelineTypeUseDescriptorSet(pipelineType);
+                
+                if (bUsingDescriptorSet) {
+                    if (bNeedToBindDescriptorSet) {
+                        cmdRec.bindDescriptorSet(*gpDescriptorSet, pipeline, 0, 0, nullptr);
+                        bNeedToBindDescriptorSet = false;
+                    }
+                }
+                else {
+                    bNeedToBindDescriptorSet = true;
                 }
             }   break;
 

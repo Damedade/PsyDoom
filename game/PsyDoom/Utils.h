@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 
+enum class VPipelineType_Main : uint8_t;
 enum SequenceStatus : uint8_t;
 struct DiscInfo;
 struct IsoFileSys;
@@ -32,7 +33,8 @@ bool waitUntilSeqEnteredStatus(const int32_t sequenceIdx, const SequenceStatus s
 bool waitUntilSeqExitedStatus(const int32_t sequenceIdx, const SequenceStatus status) noexcept;
 bool waitForCdAudioFadeOut() noexcept;
 void threadYield() noexcept;
-void onBeginUIDrawing() noexcept;
+void onBeginUIDrawing(const VPipelineType_Main drawPipeline) noexcept;
+void onBeginUIDrawing() noexcept; // Binds the pipeline used for most UI drawing: VPipelineType_Main::UI_8bpp
 void checkForRendererToggleInput() noexcept;
 void checkForUncappedFramerateToggleInput() noexcept;
 

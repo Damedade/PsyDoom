@@ -108,6 +108,7 @@ vgl::Sampler gSampler_normClampNearest;
 
 // Pipeline descriptor set layouts
 vgl::DescriptorSetLayout gDescSetLayout_draw;               // Used by all the normal drawing pipelines
+vgl::DescriptorSetLayout gDescSetLayout_draw_noTex;         // For drawing without a texture
 vgl::DescriptorSetLayout gDescSetLayout_blit1Tex;           // Used to blit an image using 1 texture
 vgl::DescriptorSetLayout gDescSetLayout_blit2Tex;           // Used to blit an image using 2 textures
 vgl::DescriptorSetLayout gDescSetLayout_blit3Tex;           // Used to blit an image using 3 textures
@@ -116,6 +117,7 @@ vgl::DescriptorSetLayout gDescSetLayout_postProcess1Tex;    // Post process an i
 
 // Pipeline layouts
 vgl::PipelineLayout gPipelineLayout_draw;               // Used by all the normal drawing pipelines
+vgl::PipelineLayout gPipelineLayout_draw_noTex;         // For drawing without a texture
 vgl::PipelineLayout gPipelineLayout_blit1Tex;           // Used to blit an image using 1 texture
 vgl::PipelineLayout gPipelineLayout_blit2Tex;           // Used to blit an image using 2 textures
 vgl::PipelineLayout gPipelineLayout_postProcess0Tex;    // Post process an input attachment with 0 additional input textures
@@ -259,6 +261,10 @@ static void initDescriptorSetLayouts(vgl::LogicalDevice& device) noexcept {
             FatalErrors::raise("Failed to init the 'Draw' Vulkan descriptor set layout!");
     }
     
+    // Drawing without a texture
+    if (!gDescSetLayout_draw_noTex.init(device, nullptr, 0))
+        FatalErrors::raise("Failed to init the 'Draw' (No texture) Vulkan descriptor set layout!");
+    
     // Blit (1 texture)
     {
         const VkSampler vkSampler = gSampler_normClampNearest.getVkSampler();
@@ -375,6 +381,19 @@ static void initPipelineLayouts(vgl::LogicalDevice& device) noexcept {
 
         if (!gPipelineLayout_draw.init(device, vkDescSetLayouts, C_ARRAY_SIZE(vkDescSetLayouts), &uniformPushConstants, 1))
             FatalErrors::raise("Failed to init the 'Draw' Vulkan pipeline layout!");
+    }
+    
+    // Drawing without a texture pipeline layout: uses push constants to set the MVP matrix.
+    {
+        const VkDescriptorSetLayout vkDescSetLayouts[] = { gDescSetLayout_draw_noTex.getVkLayout() };
+
+        VkPushConstantRange uniformPushConstants = {};
+        uniformPushConstants.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        uniformPushConstants.offset = 0;
+        uniformPushConstants.size = sizeof(VShaderUniforms_Draw);
+
+        if (!gPipelineLayout_draw_noTex.init(device, vkDescSetLayouts, C_ARRAY_SIZE(vkDescSetLayouts), &uniformPushConstants, 1))
+            FatalErrors::raise("Failed to init the 'Draw' (No texture) Vulkan pipeline layout!");
     }
     
     // Standard 'blit' and 'post process' pipeline layouts without any push constants
@@ -599,6 +618,7 @@ static void initDrawPipeline(
     const vgl::PipelineRasterizationState& rasterizerState,
     const vgl::PipelineColorBlendState& colorBlendState,
     const vgl::PipelineDepthStencilState& depthStencilState,
+    const bool bNoTexture,
     const bool bWrapTexture,
     const bool bEdgeOnlyMsaa
 ) noexcept {
@@ -629,7 +649,7 @@ static void initDrawPipeline(
         0,
         pShaderModules,
         &specializationInfo,
-        gPipelineLayout_draw,
+        (bNoTexture) ? gPipelineLayout_draw_noTex : gPipelineLayout_draw,
         gVertexBindingDesc_draw,
         gVertexAttribs_draw,
         C_ARRAY_SIZE(gVertexAttribs_draw),
@@ -652,55 +672,55 @@ static void initPipelineSet_Main(
 ) noexcept {
     // Create all of the main drawing pipelines
     initDrawPipeline(pipelineSet.get(VPipelineType_Main::Lines), renderPass,
-        gShaders_colored, gInputAS_lineList, gRasterState_noCull, gBlendState_noBlend, gDepthState_disabled, false, true
+        gShaders_colored, gInputAS_lineList, gRasterState_noCull, gBlendState_noBlend, gDepthState_disabled, true, false, true
     );
         
     initDrawPipeline(pipelineSet.get(VPipelineType_Main::Colored), renderPass,
-        gShaders_colored, gInputAS_triList, gRasterState_noCull, gBlendState_noBlend, gDepthState_disabled, false, true
+        gShaders_colored, gInputAS_triList, gRasterState_noCull, gBlendState_noBlend, gDepthState_disabled, true, false, true
     );
     
     initDrawPipeline(pipelineSet.get(VPipelineType_Main::UI_4bpp), renderPass,
-        gShaders_ui_4bpp, gInputAS_triList, gRasterState_noCull, gBlendState_noBlend, gDepthState_disabled, false, true
+        gShaders_ui_4bpp, gInputAS_triList, gRasterState_noCull, gBlendState_noBlend, gDepthState_disabled, false, false, true
     );
     
     initDrawPipeline(pipelineSet.get(VPipelineType_Main::UI_8bpp), renderPass,
-        gShaders_ui_8bpp, gInputAS_triList, gRasterState_noCull, gBlendState_noBlend, gDepthState_disabled, false, true
+        gShaders_ui_8bpp, gInputAS_triList, gRasterState_noCull, gBlendState_noBlend, gDepthState_disabled, false, false, true
     );
     
     initDrawPipeline(pipelineSet.get(VPipelineType_Main::UI_8bpp_Add), renderPass,
-        gShaders_ui_8bpp, gInputAS_triList, gRasterState_noCull, gBlendState_additive, gDepthState_disabled, false, true
+        gShaders_ui_8bpp, gInputAS_triList, gRasterState_noCull, gBlendState_additive, gDepthState_disabled, false, false, true
     );
     
     initDrawPipeline(pipelineSet.get(VPipelineType_Main::UI_16bpp), renderPass,
-        gShaders_ui_16bpp, gInputAS_triList, gRasterState_noCull, gBlendState_noBlend, gDepthState_disabled, false, true
+        gShaders_ui_16bpp, gInputAS_triList, gRasterState_noCull, gBlendState_noBlend, gDepthState_disabled, false, false, true
     );
     
     initDrawPipeline(pipelineSet.get(VPipelineType_Main::World_GeomMasked), renderPass,
-        gShaders_world, gInputAS_triList, gRasterState_backFaceCull, gBlendState_noBlend, gDepthState_disabled, true, false
+        gShaders_world, gInputAS_triList, gRasterState_backFaceCull, gBlendState_noBlend, gDepthState_disabled, false, true, false
     );
     
     initDrawPipeline(pipelineSet.get(VPipelineType_Main::World_GeomAlpha), renderPass,
-        gShaders_world, gInputAS_triList, gRasterState_backFaceCull, gBlendState_alpha, gDepthState_disabled, true, false
+        gShaders_world, gInputAS_triList, gRasterState_backFaceCull, gBlendState_alpha, gDepthState_disabled, false, true, false
     );
     
     initDrawPipeline(pipelineSet.get(VPipelineType_Main::World_SpriteMasked), renderPass,
-        gShaders_world, gInputAS_triList, gRasterState_noCull, gBlendState_noBlend, gDepthState_disabled, false, false
+        gShaders_world, gInputAS_triList, gRasterState_noCull, gBlendState_noBlend, gDepthState_disabled, false, false, false
     );
     
     initDrawPipeline(pipelineSet.get(VPipelineType_Main::World_SpriteAlpha), renderPass,
-        gShaders_world, gInputAS_triList, gRasterState_noCull, gBlendState_alpha, gDepthState_disabled, false, false
+        gShaders_world, gInputAS_triList, gRasterState_noCull, gBlendState_alpha, gDepthState_disabled, false, false, false
     );
     
     initDrawPipeline(pipelineSet.get(VPipelineType_Main::World_SpriteAdditive), renderPass,
-        gShaders_world, gInputAS_triList, gRasterState_noCull, gBlendState_additive, gDepthState_disabled, false, false
+        gShaders_world, gInputAS_triList, gRasterState_noCull, gBlendState_additive, gDepthState_disabled, false, false, false
     );
     
     initDrawPipeline(pipelineSet.get(VPipelineType_Main::World_SpriteSubtractive), renderPass,
-        gShaders_world, gInputAS_triList, gRasterState_noCull, gBlendState_subtractive, gDepthState_disabled, false, false
+        gShaders_world, gInputAS_triList, gRasterState_noCull, gBlendState_subtractive, gDepthState_disabled, false, false, false
     );
     
     initDrawPipeline(pipelineSet.get(VPipelineType_Main::World_Sky), renderPass,
-        gShaders_sky, gInputAS_triList, gRasterState_backFaceCull, gBlendState_noBlend, gDepthState_disabled, true, true
+        gShaders_sky, gInputAS_triList, gRasterState_backFaceCull, gBlendState_noBlend, gDepthState_disabled, false, true, true
     );
 
     // The pipeline to resolve MSAA: only bother creating this if we are doing MSAA.
@@ -865,6 +885,7 @@ void shutdown() noexcept {
     gPipelineLayout_postProcess0Tex.destroy(true);
     gPipelineLayout_blit2Tex.destroy(true);
     gPipelineLayout_blit1Tex.destroy(true);
+    gPipelineLayout_draw_noTex.destroy(true);
     gPipelineLayout_draw.destroy(true);
 
     gDescSetLayout_postProcess1Tex.destroy(true);
@@ -872,6 +893,7 @@ void shutdown() noexcept {
     gDescSetLayout_blit3Tex.destroy(true);
     gDescSetLayout_blit2Tex.destroy(true);
     gDescSetLayout_blit1Tex.destroy(true);
+    gDescSetLayout_draw_noTex.destroy(true);
     gDescSetLayout_draw.destroy(true);
 
     gSampler_normClampNearest.destroy();

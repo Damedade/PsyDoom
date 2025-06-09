@@ -18,6 +18,7 @@
 #include "PsyDoom/Config/Config.h"
 #include "PsyDoom/Game.h"
 #include "PsyDoom/PlayerPrefs.h"
+#include "PsyDoom/Utils.h"
 #include "PsyDoom/Video.h"
 #include "PsyDoom/Vulkan/VRenderer.h"
 #include "PsyQ/LIBGPU.h"
@@ -405,6 +406,11 @@ void ST_Ticker() noexcept {
 // Do drawing for the HUD status bar
 //------------------------------------------------------------------------------------------------------------------------------------------
 void ST_Drawer() noexcept {
+    // PsyDoom: make sure we are using the right drawing matrix for status bar drawing
+    #if PSYDOOM_MODS
+        Utils::onBeginUIDrawing();
+    #endif
+
     // Setup the current texture page and texture window.
     // PsyDoom: explicitly clear the texture window here also to disable wrapping - don't rely on previous drawing code to do that.
     // PsyDoom: use local instead of scratchpad draw primitives; compiler can optimize better, and removes reliance on global state

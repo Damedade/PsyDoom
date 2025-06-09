@@ -41,12 +41,14 @@ BEGIN_NAMESPACE(VPipelines)
 extern vgl::Sampler                 gSampler_draw;
 extern vgl::Sampler                 gSampler_normClampNearest;
 extern vgl::DescriptorSetLayout     gDescSetLayout_draw;
+extern vgl::DescriptorSetLayout     gDescSetLayout_draw_noTex;
 extern vgl::DescriptorSetLayout     gDescSetLayout_blit1Tex;
 extern vgl::DescriptorSetLayout     gDescSetLayout_blit2Tex;
 extern vgl::DescriptorSetLayout     gDescSetLayout_blit3Tex;
 extern vgl::DescriptorSetLayout     gDescSetLayout_postProcess0Tex;
 extern vgl::DescriptorSetLayout     gDescSetLayout_postProcess1Tex;
 extern vgl::PipelineLayout          gPipelineLayout_draw;
+extern vgl::PipelineLayout          gPipelineLayout_draw_noTex;
 extern vgl::PipelineLayout          gPipelineLayout_blit1Tex;
 extern vgl::PipelineLayout          gPipelineLayout_blit2Tex;
 extern vgl::PipelineLayout          gPipelineLayout_postProcess0Tex;

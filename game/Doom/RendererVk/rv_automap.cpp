@@ -287,9 +287,9 @@ void RV_DrawAutomap() noexcept {
         return;
 
     // Compute player map transforms, setup the draw transform matrix and switch to drawing lines
+    VDrawing::setDrawPipeline(VPipelineType_Main::Lines);
     RV_CalcPlayerMapTransforms();
     RV_SetupAutomapTransformMatrix();
-    VDrawing::setDrawPipeline(VPipelineType_Main::Lines);
 
     // Draw all automap elements
     RV_DrawMapLines();
@@ -301,7 +301,7 @@ void RV_DrawAutomap() noexcept {
     RV_DrawAutomapPlayers();
 
     // Switch to the matrix for drawing UI and draw the letterbox for widescreen in the vertical area occupied by the status bar
-    Utils::onBeginUIDrawing();
+    Utils::onBeginUIDrawing(VPipelineType_Main::Colored);
     RV_DrawWidescreenStatusBarLetterbox();
 }
 

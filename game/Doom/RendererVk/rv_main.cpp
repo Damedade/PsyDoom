@@ -227,11 +227,12 @@ void RV_RenderPlayerView() noexcept {
     RV_ClearSubsecDrawIndexes();
 
     // Switch back to UI renderng and draw a letterbox in the vertical region where the status bar would be
-    Utils::onBeginUIDrawing();
+    Utils::onBeginUIDrawing(VPipelineType_Main::Colored);
     RV_DrawWidescreenStatusBarLetterbox();
 
     // Draw the player's weapon
     if (gExtCameraTicsLeft <= 0) {
+        Utils::onBeginUIDrawing(VPipelineType_Main::UI_8bpp);
         RV_DrawWeapon();
     }
 }

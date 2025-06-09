@@ -232,9 +232,10 @@ void threadYield() noexcept {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// Does some setup for UI drawing if using the new Vulkan based renderer
+// Does some setup for UI drawing if using the new Vulkan based renderer.
+// Ends the current draw batch, switches to the specified pipeline and sets draw uniforms.
 //------------------------------------------------------------------------------------------------------------------------------------------
-void onBeginUIDrawing() noexcept {
+void onBeginUIDrawing(const VPipelineType_Main drawPipeline) noexcept {
     #if PSYDOOM_VULKAN_RENDERER
         // Setup the UI transform matrix for drawing if using the Vulkan renderer
         const bool bSetDrawMatrix = (
@@ -247,7 +248,7 @@ void onBeginUIDrawing() noexcept {
             // Note: before setting the transform matrix and other uniforms make sure we are on a compatible pipeline that can accept these push constants.
             // Also make sure to end the current drawing batch, in case draw commands before this are affected by the uniform changes.
             VDrawing::endCurrentDrawBatch();
-            VDrawing::setDrawPipeline(VPipelineType_Main::UI_8bpp);
+            VDrawing::setDrawPipeline(drawPipeline);
 
             // Set the draw uniforms, including the transform matrix
             {
@@ -259,6 +260,10 @@ void onBeginUIDrawing() noexcept {
             }
         }
     #endif
+}
+
+void onBeginUIDrawing() noexcept {
+    onBeginUIDrawing(VPipelineType_Main::UI_8bpp);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
