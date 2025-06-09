@@ -631,8 +631,13 @@ void ST_Drawer() noexcept {
         }
     }
 
-    // Draw weapon selector or frags (if deathmatch)
-    if (gNetGame != gt_deathmatch) {
+    // Draw weapon selector or frags (if deathmatch).
+    const bool bDrawWeaponSelector = (
+        (gNetGame != gt_deathmatch) ||
+        (Game::gGameType == GameType::Doom_Alpha_0_05) // Alpha 0.05 doesn't have a frags display area, always draw weapon selector
+    );
+    
+    if (bDrawWeaponSelector) {
         // Draw the weapon number box/container.
         // Note: for Alpha 0.05 this is already baked into the status bar background.
         if (Game::gGameType != GameType::Doom_Alpha_0_05) {
@@ -685,15 +690,18 @@ void ST_Drawer() noexcept {
         I_AddPrim(spritePrim);
     }
     else {
-        // Draw the frags container box
-        LIBGPU_setXY0(spritePrim, 209, 221);
-        LIBGPU_setUV0(spritePrim, 208, 243);
-        LIBGPU_setWH(spritePrim, 33, 8);
+        // Draw the frags container box.
+        // Alpha 0.05: we don't have this graphic available, so don't draw anything here. Instead draw frags in top right corner.
+        if (Game::gGameType != GameType::Doom_Alpha_0_05) {
+            LIBGPU_setXY0(spritePrim, 209, 221);
+            LIBGPU_setUV0(spritePrim, 208, 243);
+            LIBGPU_setWH(spritePrim, 33, 8);
 
-        I_AddPrim(spritePrim);
+            I_AddPrim(spritePrim);
 
-        // Draw the number of frags
-        I_DrawNumber(225, 204, player.frags);
+            // Draw the number of frags
+            I_DrawNumber(225, 204, player.frags);
+        }
     }
 
     // Draw the doomguy face if enabled
@@ -711,7 +719,11 @@ void ST_Drawer() noexcept {
     #if PSYDOOM_MODS
     {
         const StatDisplayMode statDisplayMode = PlayerPrefs::gStatDisplayMode;
-        const bool bStatDisplayEnabled = (statDisplayMode >= StatDisplayMode::Kills);
+        const bool bStatDisplayEnabled = (
+            (statDisplayMode >= StatDisplayMode::Kills) ||
+            // Alpha 0.05 deathmatch: always show the frag stat display - it's the only way we have of showing it:
+            ((Game::gGameType == GameType::Doom_Alpha_0_05) && (gNetGame == gt_deathmatch))
+        );
         const bool bAutomapOnlyStats = (
             (statDisplayMode >= StatDisplayMode::MapOnly_Kills) &&
             (statDisplayMode <= StatDisplayMode::MapOnly_KillsSecretsAndItems)
