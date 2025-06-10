@@ -406,7 +406,7 @@ static bool PA_CrossSubsector(subsector_t& subsec) noexcept {
     // Check for hits against all segs in the subsector
     const int32_t curValidCount = gValidCount;
     seg_t* const pSegs = gpSegs + subsec.firstseg;
-    const int16_t numSegs = subsec.numsegs;
+    const int32_t numSegs = subsec.numsegs;
 
     for (int32_t segIdx = 0; segIdx < numSegs; ++segIdx) {
         // Don't check this line if we already checked for this sight check

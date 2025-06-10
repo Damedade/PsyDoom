@@ -125,8 +125,16 @@ struct line_t {
 // Describes a convex region within a sector
 struct subsector_t {
     sector_t*   sector;             // Parent sector for the subsector
+    
+// PsyDoom: use unsigned data types to double some map data limits
+#if PSYDOOM_LIMIT_REMOVING
+    uint16_t    numsegs;            // How many line segments in this subsector
+    uint16_t    firstseg;           // Index of the first line segment for the subsector, in the global list of line segments
+#else
     int16_t     numsegs;            // How many line segments in this subsector
     int16_t     firstseg;           // Index of the first line segment for the subsector, in the global list of line segments
+#endif
+
     int16_t     numLeafEdges;       // How many leaf edges there are for the subsector
     int16_t     firstLeafEdge;      // Index of the first leaf edge for the subsector, in the global list of leaf edges
 #if PSYDOOM_MODS

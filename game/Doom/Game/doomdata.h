@@ -206,7 +206,13 @@ struct mapsidedef_t {
     char        toptexture[8];          // Upper texture lump name
     char        bottomtexture[8];       // Lower texture lump name
     char        midtexture[8];          // Mid or wall texture lump name
-    int16_t     sector;                 // Which sector (by index) the side belongs to
+   
+// PsyDoom: use unsigned data types to double some map data limits
+#if PSYDOOM_LIMIT_REMOVING
+    uint16_t    sector;     // Which sector (by index) the side belongs to
+#else
+    int16_t     sector;     // Which sector (by index) the side belongs to
+#endif
 };
 
 static_assert(sizeof(mapsidedef_t) == 30);
@@ -219,27 +225,52 @@ struct mapsidedef_final_t {
     int16_t     toptexture;             // Upper texture index
     int16_t     bottomtexture;          // Lower texture index
     int16_t     midtexture;             // Mid or wall texture lump index
-    int16_t     sector;                 // Which sector (by index) the side belongs to
+    
+// PsyDoom: use unsigned data types to double some map data limits
+#if PSYDOOM_LIMIT_REMOVING
+    uint16_t    sector;     // Which sector (by index) the side belongs to
+#else
+    int16_t     sector;     // Which sector (by index) the side belongs to
+#endif
 };
 
 static_assert(sizeof(mapsidedef_final_t) == 12);
 
 // Data for a line in a WAD file
 struct maplinedef_t {
+// PsyDoom: use unsigned data types to double some map data limits
+#if PSYDOOM_LIMIT_REMOVING
+    uint16_t    vertex1;        // Index of the 1st vertex in the line
+    uint16_t    vertex2;        // Index of the 2nd vertex in the line
+#else
     int16_t     vertex1;        // Index of the 1st vertex in the line
     int16_t     vertex2;        // Index of the 2nd vertex in the line
+#endif
+
     int16_t     flags;          // A combination of 'ML_XXX' line flags
     int16_t     special;        // Line special action (switch, trigger etc.)
     int16_t     tag;            // Target for the line special action (if applicable)
+    
+// PsyDoom: use unsigned data types to double some map data limits
+#if PSYDOOM_LIMIT_REMOVING
+    uint16_t    sidenum[2];     // If 0xFFFFF then the line is 1 sided
+#else
     int16_t     sidenum[2];     // If -1 then the line is 1 sided
+#endif
 };
 
 static_assert(sizeof(maplinedef_t) == 14);
 
 // Data for a subsector of a sector in a WAD file
 struct mapsubsector_t {
+// PsyDoom: use unsigned data types to double some map data limits
+#if PSYDOOM_LIMIT_REMOVING
+    uint16_t    numsegs;        // How many segs this subsector has
+    uint16_t    firstseg;       // Index of the first seg this subsector has (all are stored sequentially)
+#else
     int16_t     numsegs;        // How many segs this subsector has
     int16_t     firstseg;       // Index of the first seg this subsector has (all are stored sequentially)
+#endif
 };
 
 static_assert(sizeof(mapsubsector_t) == 4);
@@ -258,10 +289,24 @@ static_assert(sizeof(mapnode_t) == 28);
 
 // Data for a line segment in a WAD file
 struct mapseg_t {
+// PsyDoom: use unsigned data types to double some map data limits
+#if PSYDOOM_LIMIT_REMOVING
+    uint16_t    vertex1;        // Index of the 1st vertex in the line segment
+    uint16_t    vertex2;        // Index of the 2nd vertex in the line segment
+#else
     int16_t     vertex1;        // Index of the 1st vertex in the line segment
     int16_t     vertex2;        // Index of the 2nd vertex in the line segment
+#endif
+    
     int16_t     angle;          // Precomputed angle for the line segment direction
-    int16_t     linedef;        // Index of the line that the segment belongs to
+    
+// PsyDoom: use unsigned data types to double some map data limits
+#if PSYDOOM_LIMIT_REMOVING
+    uint16_t    linedef;        // Index of the line that the segment belongs to
+#else
+    int16_t     linedef;        // Index of the line that the segment belongs to    
+#endif
+    
     int16_t     side;           // '0' or '1': which side of the line the seg is on. Always '0' for one sided lines.
     int16_t     offset;         // Horizontal offset for the line segment's texture
 };
@@ -290,8 +335,14 @@ enum class MapLeafType {
 
 // New to PSX: definition for an edge in a leaf
 struct mapleafedge_t {
+// PsyDoom: use unsigned data types to double some map data limits
+#if PSYDOOM_LIMIT_REMOVING
+    uint16_t    vertexnum;      // 1st vertex in the edge; 2nd vertex is found in the following leaf edge
+    uint16_t    segnum;         // Index of the seg the leaf edge belongs to (0xFFFF if none)
+#else
     int16_t     vertexnum;      // 1st vertex in the edge; 2nd vertex is found in the following leaf edge
-    int16_t     segnum;         // Index of the seg the leaf edge belongs to
+    int16_t     segnum;         // Index of the seg the leaf edge belongs to (-1 if none)
+#endif
 };
 
 static_assert(sizeof(mapleafedge_t) == 4);

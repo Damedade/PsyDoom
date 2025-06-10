@@ -794,8 +794,15 @@ static void P_LoadLineDefs(const int32_t lumpNum) noexcept {
         }
 
         // Save side numbers and sector references
-        const int32_t sidenum1 = Endian::littleToHost(pSrcLine->sidenum[0]);
-        const int32_t sidenum2 = Endian::littleToHost(pSrcLine->sidenum[1]);
+        #if PSYDOOM_LIMIT_REMOVING
+            const uint16_t mapSideNum1 = Endian::littleToHost(pSrcLine->sidenum[0]);
+            const uint16_t mapSideNum2 = Endian::littleToHost(pSrcLine->sidenum[1]);
+            const int32_t sidenum1 = (mapSideNum1 != 0xFFFF) ? (int32_t)(uint32_t) mapSideNum1 : -1;
+            const int32_t sidenum2 = (mapSideNum2 != 0xFFFF) ? (int32_t)(uint32_t) mapSideNum2 : -1;
+        #else
+            const int32_t sidenum1 = Endian::littleToHost(pSrcLine->sidenum[0]);
+            const int32_t sidenum2 = Endian::littleToHost(pSrcLine->sidenum[1]);
+        #endif
 
         pDstLine->sidenum[0] = sidenum1;
         pDstLine->sidenum[1] = sidenum2;
@@ -1109,7 +1116,13 @@ static void P_LoadLeafs(const int32_t lumpNum) noexcept {
             pDstEdge->vertex = &gpVertexes[srcEdge.vertexnum];
 
             // Set leaf seg reference
-            if (srcEdge.segnum == -1) {
+            #if PSYDOOM_LIMIT_REMOVING
+                constexpr uint16_t NO_SEG_NUM = 0xFFFF;
+            #else
+                constexpr int16_t NO_SEG_NUM = -1;
+            #endif
+            
+            if (srcEdge.segnum == NO_SEG_NUM) {
                 pDstEdge->seg = nullptr;
             } else {
                 if (srcEdge.segnum >= gNumSegs) {
