@@ -11,6 +11,7 @@
 
 #include <cstring>
 #include <memory>
+#include <string_view>
 #include <vector>
 
 BEGIN_NAMESPACE(IntroLogos)
@@ -399,6 +400,41 @@ static LogoList getLegalLogos_FromBootExe() noexcept {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
+// Helper: gets the legal logos for PSX Doom Alpha 0.05
+//------------------------------------------------------------------------------------------------------------------------------------------
+static LogoList getLegalLogos_Alpha_0_05() noexcept {
+    LogoList logoList = {};
+    LogoPlayer::Logo& logo = logoList.logos[0];
+    
+    // Have to produce this logo programmatically...
+    logo.pPixels = std::make_unique<uint32_t[]>(256 * 240);
+    logo.width = 256;
+    logo.height = 240;
+    logo.holdTime = 3.5f;
+    
+    ImageOps::Image<uint32_t> logoImg = {};
+    logoImg.pPixels = logo.pPixels.get();
+    logoImg.width = logo.width;
+    logoImg.height = logo.height;
+    logoImg.rowStridePx = logo.width;
+    
+    std::memset(logoImg.pPixels, 0, sizeof(uint32_t) * 256 * 240); // Clear the image to black
+    
+    const std::string_view logoLine1("SONY PSX DOOM");
+    const std::string_view logoLine2("(C) WILLIAMS ENTERTAINMENT");
+    const std::string_view logoLine3("LICENSED FROM ID SOFTWARE");
+    const std::string_view logoLine4("ALPHA VERSION 0.05");
+    constexpr uint32_t FONT_COLOR = 0xFFFFFFFF;
+ 
+    ImageOps::DebugPrint(logoLine1.data(), logoLine1.length(), 66, 17, FONT_COLOR, logoImg);
+    ImageOps::DebugPrint(logoLine2.data(), logoLine2.length(), 10, 25, FONT_COLOR, logoImg);
+    ImageOps::DebugPrint(logoLine3.data(), logoLine3.length(), 18, 33, FONT_COLOR, logoImg);
+    ImageOps::DebugPrint(logoLine4.data(), logoLine4.length(), 50, 49, FONT_COLOR, logoImg);
+    
+    return logoList;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
 // Helper: gets the legals/copyright intro logos for a 'GEC Master Edition' disc
 //------------------------------------------------------------------------------------------------------------------------------------------
 static LogoList getLegalLogos_GEC_ME() noexcept {
@@ -445,7 +481,11 @@ LogoPlayer::Logo getSonyLogo() noexcept {
 LogoList getLegalLogos() noexcept {
     if (Game::isGameTypeGecMe()) {
         return getLegalLogos_GEC_ME();
-    } else {
+    }
+    else if (Game::gGameType == GameType::Doom_Alpha_0_05) {
+        return getLegalLogos_Alpha_0_05();
+    }
+    else {
         return getLegalLogos_FromBootExe();
     }
 }

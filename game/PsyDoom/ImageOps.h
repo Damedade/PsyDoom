@@ -2,6 +2,7 @@
 
 #include "Macros.h"
 
+#include <cstddef>
 #include <cstdint>
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -44,6 +45,16 @@ void Convert8bppTo32bit(
     const uint32_t imgW,
     const uint32_t imgH,
     const uint32_t* const pPalette
+) noexcept;
+
+template <class PixelT>
+void DebugPrint(
+    const char* const pText,
+    const size_t textLen,
+    const int32_t dstTopLeftX,
+    const int32_t dstTopLeftY,
+    const PixelT fontColor,
+    const Image<PixelT>& dstImg
 ) noexcept;
 
 END_NAMESPACE(ImageOps)

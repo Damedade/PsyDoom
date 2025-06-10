@@ -7,7 +7,9 @@
 // The image data for the debug font used by LIBGPU.
 // This is only used in DOOM when an I_Error occurs.
 //
-// The image format is 128x32 pixels @ 4 bits per pixel
+// The image format is 128x32 pixels @ 4 bits per pixel.
+// Row stride is 64-bytes.
+// Each row has 16 characters (8x8 pixels each) and there are 4 rows.
 //------------------------------------------------------------------------------------------------------------------------------------------
 const uint8_t gLIBGPU_DebugFont_Texture[2048] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x10, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x11, 0x00, 0x00, 0x11, 0x11, 0x01, 0x00, 0x10, 0x00, 0x00, 0x00, 0x10, 0x01, 0x00,
