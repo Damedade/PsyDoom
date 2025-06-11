@@ -455,7 +455,11 @@ gameaction_t RunDemoAtPath(const char* const filePath) noexcept {
     // Use the current game settings to determine the demo's game behavior and format.
     BuiltInDemoDef& demoDef = gCurBuiltInDemo;
     demoDef = {};
-    demoDef.bFinalDoomDemo = (Game::gGameType != GameType::Doom);
+    demoDef.bFinalDoomDemo = (
+        (Game::gGameType != GameType::Doom) &&
+        (Game::gGameType != GameType::Doom_Alpha_0_05) &&
+        (Game::gGameType != GameType::Doom_Alpha_0_30)
+    );
     demoDef.bPalDemo = (Game::gGameVariant == GameVariant::PAL);
 
     // Setup the demo buffers and play the demo file

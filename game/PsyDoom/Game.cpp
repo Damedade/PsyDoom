@@ -67,22 +67,28 @@ void determineGameTypeAndVariant() noexcept {
     if (discFileExists("SLUS_000.77")) {
         gGameType = GameType::Doom;
         gGameVariant = GameVariant::NTSC_U;
-    } else if (discFileExists("SLPS_003.08")) {
+    }
+    else if (discFileExists("SLPS_003.08")) {
         gGameType = GameType::Doom;
         gGameVariant = GameVariant::NTSC_J;
-    } else if (discFileExists("SLES_001.32")) {
+    }
+    else if (discFileExists("SLES_001.32")) {
         gGameType = GameType::Doom;
         gGameVariant = GameVariant::PAL;
-    } else if (discFileExists("SLUS_003.31")) {
+    }
+    else if (discFileExists("SLUS_003.31")) {
         gGameType = GameType::FinalDoom;
         gGameVariant = GameVariant::NTSC_U;
-    } else if (discFileExists("SLPS_007.27")) {
+    }
+    else if (discFileExists("SLPS_007.27")) {
         gGameType = GameType::FinalDoom;
         gGameVariant = GameVariant::NTSC_J;
-    } else if (discFileExists("SLES_004.87")) {
+    }
+    else if (discFileExists("SLES_004.87")) {
         gGameType = GameType::FinalDoom;
         gGameVariant = GameVariant::PAL;
-    } else if (
+    }
+    else if (
         (discFileExists("SLES_001.57")) ||                                                          // Standalone Doom demo disc
         (discFileExists("PSXDOOM/ABIN/PALDEMO.EXE", 0x6AAD82C7FF2D773A, 0x33E19B2483B90A36)) ||     // Essential PlayStation CD Three/3
         (discFileExists("PSXDOOM/ABIN/PALDEMO.EXE", 0xBC82CC0AD31992FF, 0xFBB47455A3FCD677))        // Euro Demo (Future) 103 (Official PlayStation Magazine 103)
@@ -121,6 +127,11 @@ void determineGameTypeAndVariant() noexcept {
     else if (discFileExists("PSX.EXE") && discFileExists("PSXDOOM.EXE", 0xBE4C872A5A6600B2, 0xD92F3CDF2096BDA3)) {
         // PSX Doom Alpha: v0.05
         gGameType = GameType::Doom_Alpha_0_05;
+        gGameVariant = GameVariant::NTSC_U;
+    }
+    else if (discFileExists("PSX.EXE") && discFileExists("PSXDOOM.EXE", 0xA749E063E5BA7FF9, 0x09137AD91EB1F07C)) {
+        // PSX Doom Alpha: v0.30
+        gGameType = GameType::Doom_Alpha_0_30;
         gGameVariant = GameVariant::NTSC_U;
     }
     else {

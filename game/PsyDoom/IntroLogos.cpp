@@ -75,7 +75,9 @@ static const char* getPsxDoomBootExePath() noexcept {
             case GameVariant::PAL:      return "SLES_004.87";
         }
     }
-    else if (Game::gGameType == GameType::Doom_Alpha_0_05) {
+    else if ((Game::gGameType == GameType::Doom_Alpha_0_05) ||
+             (Game::gGameType == GameType::Doom_Alpha_0_30))
+    {
         return "PSX.EXE";
     }
 
