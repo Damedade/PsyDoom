@@ -336,7 +336,12 @@ void I_DrawPausedOverlay() noexcept {
         // The 0.05 Alpha has the 'PAUSE' asset embedded in the 'STATUS' image.
         // It also renders in a slightly different location...
         if (Game::gGameType != GameType::Doom_Alpha_0_05) {
-            I_CacheAndDrawSprite(gTex_PAUSE, 107, 108, Game::getTexClut_PAUSE());
+            // Alpha 0.30 has the expected 'PAUSE' asset but still renders in a different location:
+            if (Game::gGameType != GameType::Doom_Alpha_0_30) {
+                I_CacheAndDrawSprite(gTex_PAUSE, 107, 108, Game::getTexClut_PAUSE());
+            } else {
+                I_CacheAndDrawSprite(gTex_PAUSE, 107, 89, Game::getTexClut_PAUSE());
+            }
         }
         else {
             I_DrawSprite(
