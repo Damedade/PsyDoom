@@ -311,22 +311,28 @@ void D_DoomMain() noexcept {
                 bool bGotoTitle = false;    // Only go to the title if all demos were played without interruption and at least 1 demo was played
 
                 for (uint32_t demoIdx = 0; demoIdx < C_ARRAY_SIZE(GameConstants::demos); ++demoIdx) {
-                    // Grab the details for the current demo; if there are no more demos then playback stops:
+                    // Grab the details for the current demo - if there are no more demos then playback stops.
+                    // Consider the case of no-demo but credits afterwards as valid, however...
                     gCurBuiltInDemo = Game::gConstants.demos[demoIdx];
+                    const bool bRunDemo = (gCurBuiltInDemo.filename.length() > 0);
+                    const bool bRunCredits = gCurBuiltInDemo.bShowCreditsAfter;
+                    const bool bRunDemoOrCredits = (bRunDemo || bRunCredits);
 
-                    if (gCurBuiltInDemo.filename.length() <= 0)
+                    if (!bRunDemoOrCredits)
                         break;
 
                     // Run the demo itself
                     bGotoTitle = true;
 
-                    if (didExit(RunDemo(gCurBuiltInDemo.filename))) {
-                        bGotoTitle = false;
-                        break;
+                    if (bRunDemo) {
+                        if (didExit(RunDemo(gCurBuiltInDemo.filename))) {
+                            bGotoTitle = false;
+                            break;
+                        }
                     }
 
                     // Show a credits screen after this demo?
-                    if (gCurBuiltInDemo.bShowCreditsAfter) {
+                    if (bRunCredits) {
                         if (didExit(RunCredits())) {
                             bGotoTitle = false;
                             break;

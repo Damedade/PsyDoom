@@ -204,6 +204,12 @@ static void populateConsts_DoomAlpha_0_05(GameConstants& consts) noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 static void populateConsts_DoomAlpha_0_30(GameConstants& consts) noexcept {
     populateConsts_Doom(consts, false);
+
+    // Not supporting the built-in demos for this game version; demo-compatibility is not an aim.
+    // We can still show the credits however...
+    consts.demos[0] = {};
+    consts.demos[0].bShowCreditsAfter = true;
+    consts.demos[1] = {};
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
