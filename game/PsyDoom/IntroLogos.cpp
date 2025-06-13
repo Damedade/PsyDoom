@@ -330,6 +330,83 @@ static LogoPlayer::Logo getSonyLogo_Alpha_0_05() noexcept {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
+// Gets the Sony intro logo for Alpha 0.30
+//------------------------------------------------------------------------------------------------------------------------------------------
+static LogoPlayer::Logo getSonyLogo_Alpha_0_30() noexcept {
+    ASSERT(Game::gGameType == GameType::Doom_Alpha_0_30);
+
+    // Read the raw bytes for the logo, which is a 220x44 image @ 8bpp.
+    // I don't know where the palette for this logo is stored so I will hard code instead.
+    constexpr uint32_t RAW_LOGO_W = 220;
+    constexpr uint32_t RAW_LOGO_H = 44;
+    constexpr uint32_t NUM_LOGO_PIXELS = RAW_LOGO_W * RAW_LOGO_H;
+    std::unique_ptr<std::byte[]> rawLogoBytes = readFromDiscFile(getPsxDoomBootExePath(), 0x2500, NUM_LOGO_PIXELS);
+
+    if (rawLogoBytes == nullptr)
+        return {};
+
+    // Define the palette for the logo in XBGR8888 format. Just needs 6 entries but allocate 256 to be safe:
+    const uint32_t logoPalette[256] = {
+        0xFF000000,
+        0xFF000000,
+        0xFF313131,
+        0xFF6B6B6B,
+        0xFFB5B5B5,
+        0xFFEFEFEF,
+    };
+
+    // Convert the logo from 8 to 32-bit:
+    std::unique_ptr<uint32_t[]> rawLogo32bpp = std::make_unique<uint32_t[]>(NUM_LOGO_PIXELS);
+    ImageOps::Convert8bppTo32bit(
+        reinterpret_cast<const uint8_t*>(rawLogoBytes.get()),
+        rawLogo32bpp.get(),
+        RAW_LOGO_W,
+        RAW_LOGO_H,
+        logoPalette
+    );
+
+    // Now blit parts of the SCEA logo onto a 320x240 image.
+    // In the image we read from the boot EXE there are 3 rows of text, each 14px tall with 1px of padding in-between.
+    // The 1st row says "Published by", 2nd row says "Sony Computer Entertainment of" and the 3rd row says "America Europe".
+    // Makeup the logo image by blitting the first line, and the 2nd line made up of "Sony Computer Entertainment of America".
+    // Center both lines in the output image.
+    LogoPlayer::Logo logo = {};
+    logo.pPixels = std::make_unique<uint32_t[]>(320 * 240);
+    logo.width = 320;
+    logo.height = 240;
+    logo.holdTime = 3.0f;
+    logo.fadeOutTime = 0.5f;
+
+    std::memset(logo.pPixels.get(), 0, logo.width * logo.height * sizeof(uint32_t));    // Clear the entire image before the blit
+    
+    ImageOps::Blit(
+        // Blit "Published by"
+        ImageOps::Image<uint32_t>{ rawLogo32bpp.get(), RAW_LOGO_W, RAW_LOGO_H, RAW_LOGO_W },
+        ImageOps::Image<uint32_t>{ logo.pPixels.get(), logo.width, logo.height, logo.width },
+        ImageOps::Rect{{ 0, 0 }, { 86, 14 }},
+        ImageOps::Vec2i{ 117, 68 }
+    );
+    
+    ImageOps::Blit(
+        // Blit "Sony Computer Entertainment of"
+        ImageOps::Image<uint32_t>{ rawLogo32bpp.get(), RAW_LOGO_W, RAW_LOGO_H, RAW_LOGO_W },
+        ImageOps::Image<uint32_t>{ logo.pPixels.get(), logo.width, logo.height, logo.width },
+        ImageOps::Rect{{ 0, 15 }, { 220, 14 }},
+        ImageOps::Vec2i{ 20, 82 }
+    );
+    
+    ImageOps::Blit(
+        // Blit "America"
+        ImageOps::Image<uint32_t>{ rawLogo32bpp.get(), RAW_LOGO_W, RAW_LOGO_H, RAW_LOGO_W },
+        ImageOps::Image<uint32_t>{ logo.pPixels.get(), logo.width, logo.height, logo.width },
+        ImageOps::Rect{{ 0, 30 }, { 57, 14 }},
+        ImageOps::Vec2i{ 243, 82 }
+    );
+
+    return logo;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
 // Helper: gets the Sony intro logo for the current variant of the game by extracting it from the boot executable
 //------------------------------------------------------------------------------------------------------------------------------------------
 static LogoPlayer::Logo getSonyLogo_FromBootExe() noexcept {
@@ -340,6 +417,9 @@ static LogoPlayer::Logo getSonyLogo_FromBootExe() noexcept {
         // Other special cases:
         if (Game::gGameType == GameType::Doom_Alpha_0_05)
             return getSonyLogo_Alpha_0_05();
+            
+        if (Game::gGameType == GameType::Doom_Alpha_0_30)
+            return getSonyLogo_Alpha_0_30();
 
         return {};
     }
@@ -402,13 +482,11 @@ static LogoList getLegalLogos_FromBootExe() noexcept {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// Helper: gets the legal logos for PSX Doom Alpha 0.05
+// Produces the textual legal logo for alpha builds of PSX Doom.
+// This legal logo is produced programmatically.
 //------------------------------------------------------------------------------------------------------------------------------------------
-static LogoList getLegalLogos_Alpha_0_05() noexcept {
-    LogoList logoList = {};
-    LogoPlayer::Logo& logo = logoList.logos[0];
-    
-    // Have to produce this logo programmatically...
+static LogoPlayer::Logo getDoomAlphaTextualLegalLogo(const std::string_view versionText) noexcept {
+    LogoPlayer::Logo logo = {};
     logo.pPixels = std::make_unique<uint32_t[]>(256 * 240);
     logo.width = 256;
     logo.height = 240;
@@ -425,7 +503,7 @@ static LogoList getLegalLogos_Alpha_0_05() noexcept {
     const std::string_view logoLine1("SONY PSX DOOM");
     const std::string_view logoLine2("(C) WILLIAMS ENTERTAINMENT");
     const std::string_view logoLine3("LICENSED FROM ID SOFTWARE");
-    const std::string_view logoLine4("ALPHA VERSION 0.05");
+    const std::string_view logoLine4(versionText);
     constexpr uint32_t FONT_COLOR = 0xFFFFFFFF;
  
     ImageOps::DebugPrint(logoLine1.data(), logoLine1.length(), 66, 17, FONT_COLOR, logoImg);
@@ -433,6 +511,29 @@ static LogoList getLegalLogos_Alpha_0_05() noexcept {
     ImageOps::DebugPrint(logoLine3.data(), logoLine3.length(), 18, 33, FONT_COLOR, logoImg);
     ImageOps::DebugPrint(logoLine4.data(), logoLine4.length(), 50, 49, FONT_COLOR, logoImg);
     
+    return logo;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Gets the legal logos for PSX Doom Alpha 0.05
+//------------------------------------------------------------------------------------------------------------------------------------------
+static LogoList getLegalLogos_Doom_Alpha_0_05() noexcept {
+    LogoList logoList = {};
+    logoList.logos[0] = getDoomAlphaTextualLegalLogo("ALPHA VERSION 0.05");
+    return logoList;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Gets the legal logos for PSX Doom Alpha 0.30
+//------------------------------------------------------------------------------------------------------------------------------------------
+static LogoList getLegalLogos_Doom_Alpha_0_30() noexcept {
+    // Note: this is slightly different to the actual Alpha 0.30.
+    // In the real alpha the message with the "ALPHA VERSION 0.30" text is printed on top of the "LEGALS" logo, but its very hard to read.
+    // Separate this message out in PsyDoom, so we can make it easier to see. Also helps to make some Alpha 0.05 code reusable:
+    LogoList logoList = {};
+    logoList.logos[0] = getDoomAlphaTextualLegalLogo("ALPHA VERSION 0.30");
+    logoList.logos[1] = decodeWadLogo("LEGALS", readWadPalette("PLAYPAL", 0).get());
+    logoList.logos[1].holdTime = 3.5f;
     return logoList;
 }
 
@@ -485,7 +586,10 @@ LogoList getLegalLogos() noexcept {
         return getLegalLogos_GEC_ME();
     }
     else if (Game::gGameType == GameType::Doom_Alpha_0_05) {
-        return getLegalLogos_Alpha_0_05();
+        return getLegalLogos_Doom_Alpha_0_05();
+    }
+    else if (Game::gGameType == GameType::Doom_Alpha_0_30) {
+        return getLegalLogos_Doom_Alpha_0_30();
     }
     else {
         return getLegalLogos_FromBootExe();

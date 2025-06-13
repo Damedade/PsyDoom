@@ -124,12 +124,16 @@ void determineGameTypeAndVariant() noexcept {
         gGameVariant = GameVariant::NTSC_U;
         gbIsPsxDoomForever = true;
     }
-    else if (discFileExists("PSX.EXE") && discFileExists("PSXDOOM.EXE", 0xBE4C872A5A6600B2, 0xD92F3CDF2096BDA3)) {
+    else if (discFileExists("PSX.EXE", 0xCD4DC63EF44615C0, 0xB7E6BC54CC94AA65) &&
+             discFileExists("PSXDOOM.EXE", 0xBE4C872A5A6600B2, 0xD92F3CDF2096BDA3))
+    {
         // PSX Doom Alpha: v0.05
         gGameType = GameType::Doom_Alpha_0_05;
         gGameVariant = GameVariant::NTSC_U;
     }
-    else if (discFileExists("PSX.EXE") && discFileExists("PSXDOOM.EXE", 0xA749E063E5BA7FF9, 0x09137AD91EB1F07C)) {
+    else if (discFileExists("PSX.EXE", 0x693DC11B4C493919, 0x9587E6FB2AB9F4C0) &&
+             discFileExists("PSXDOOM.EXE", 0xA749E063E5BA7FF9, 0x09137AD91EB1F07C))
+    {
         // PSX Doom Alpha: v0.30
         gGameType = GameType::Doom_Alpha_0_30;
         gGameVariant = GameVariant::NTSC_U;
@@ -144,7 +148,7 @@ void determineGameTypeAndVariant() noexcept {
             "   - [GEC] Master Edition tools: single map test disc.\n"
             "   - PSX Doom Forever (ROM hack).\n"
             "   - Doom single level PAL demo (standalone disc, or in a demo collection).\n"
-            "   - PSX Doom Alpha (0.05)."
+            "   - PSX Doom Alpha (0.05/0.30)."
         );
     }
 
