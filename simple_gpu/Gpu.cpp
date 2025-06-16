@@ -3,6 +3,7 @@
 #include "Asserts.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 
 BEGIN_NAMESPACE(Gpu)
