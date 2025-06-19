@@ -1666,8 +1666,11 @@ void G_ExitLevelImmediately() noexcept {
 // Schedules the level to end in 4 tics and go to the specified map; used for entering/exiting secret maps
 //------------------------------------------------------------------------------------------------------------------------------------------
 void G_SecretExitLevel(const int32_t nextMap) noexcept {
-    // PsyDoom: if the specified next map does not exist, issue a warning and just skip to the next level.
-    // Also recognize map numbers <= 0 as not specifying any destination map, in which case we just go to the next map.
+    // PsyDoom: if the specified next map does not exist, just skip to the next level.
+    // If the next map was within the range of valid levels, issue a warning about the missing map.
+    // Otherwise, interpret it as a 'game end' exit that is past the last level, like with 'DOOM II, MAP54: Redemption Denied'.
+    //
+    // Also, recognize map numbers <= 0 as not specifying any destination map, in which case we just go to the next map.
     // Alpha 0.05 uses a map number of '0' for the secret exit in 'MAP03: Toxin Refinery', and the behavior is to just go to the next level.
     #if PSYDOOM_MODS
         if (MapInfo::mapExists(nextMap)) {
@@ -1676,19 +1679,26 @@ void G_SecretExitLevel(const int32_t nextMap) noexcept {
             P_ScheduleDelayedAction(4, G_CompleteLevel);
         }
         else if (nextMap <= 0) {
-            // No next map specified, just skip to the next one
+            // No next map specified, just skip to the next one (Alpha 0.05 needs this sometimes)
             gNextMap = MapInfo::incrementMapNumToNext(gGameMap);
             P_ScheduleDelayedAction(4, G_CompleteLevel);
         }
+        else if (nextMap > MapInfo::getLastMapNum()) {
+            // Specified a map past the last valid one...
+            // This is a 'game end' exit like the one found in 'DOOM II, MAP54: Redemption Denied'.
+            gNextMap = nextMap;
+            P_ScheduleDelayedAction(4, G_CompleteLevel);
+        }
         else {
-            // Map does not exist: show a warning about the bad map number
+            // Bad map number that we should show a warning about, just increment the current map to whichever is next.
+            // Delay the exit longer also, so that the warning can be seen:
+            gNextMap = MapInfo::incrementMapNumToNext(gGameMap);
+
             static char msgBuffer[64];
-            std::snprintf(msgBuffer, C_ARRAY_SIZE(msgBuffer), "W:Bad map num:%d!", gNextMap);
+            std::snprintf(msgBuffer, C_ARRAY_SIZE(msgBuffer), "W:Bad map num:%d!", nextMap);
             gStatusBar.message = msgBuffer;
             gStatusBar.messageTicsLeft = 60;
 
-            // Skip to the next map instead but delay the exit a little so the error can be seen
-            gNextMap = MapInfo::incrementMapNumToNext(gGameMap);
             P_ScheduleDelayedAction(60, G_CompleteLevel);
         }
     #else
