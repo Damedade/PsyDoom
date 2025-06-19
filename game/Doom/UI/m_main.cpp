@@ -907,7 +907,7 @@ gameaction_t M_Ticker() noexcept {
                 gStartMapOrEpisode--;
             #endif
 
-            if (gStartMapOrEpisode > gMinStartEpisodeOrMap) {
+            if (gStartMapOrEpisode >= gMinStartEpisodeOrMap) {
                 S_StartSound(nullptr, sfx_swtchx);
             }
             else {
