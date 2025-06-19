@@ -10,6 +10,30 @@ using namespace MapPatcherUtils;
 BEGIN_NAMESPACE(MapPatches)
 
 //------------------------------------------------------------------------------------------------------------------------------------------
+// Fix issues for MAP08: Phobos Anomaly
+//------------------------------------------------------------------------------------------------------------------------------------------
+static void patchMap_PhobosAnomaly() noexcept {
+    applyOriginalMapCommonPatches();
+
+    if (shouldApplyMapPatches_GamePlay()) {
+        // Fix the tag for the kill Baron special (was 666)
+        gpSectors[62].tag = 671;
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Fix issues for MAP22: Limbo
+//------------------------------------------------------------------------------------------------------------------------------------------
+static void patchMap_Limbo() noexcept {
+    applyOriginalMapCommonPatches();
+
+    if (shouldApplyMapPatches_GamePlay()) {
+        // Fix not being able to open the yellow door just before the exit
+        gpLines[585].special = 27;
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
 // All of the map patches for this game type
 //------------------------------------------------------------------------------------------------------------------------------------------
 static const PatchDef gPatchArray_Doom_Alpha_0_30[] = {
@@ -20,10 +44,9 @@ static const PatchDef gPatchArray_Doom_Alpha_0_30[] = {
     {  89450, 0xD5FAB734061D4F6F, 0xC9B34AA0ABA6C12E, applyOriginalMapCommonPatches },      // MAP05
     { 124172, 0x3230A3CC7D8AA5C2, 0x689E7E811DB81608, applyOriginalMapCommonPatches },      // MAP06
     { 106103, 0x20864A91778FD9BE, 0x2905135A8E34A15D, applyOriginalMapCommonPatches },      // MAP07
-    {  50885, 0x211804279DF92496, 0xE2A559796F17CFF9, applyOriginalMapCommonPatches },      // MAP08
+    {  50885, 0x211804279DF92496, 0xE2A559796F17CFF9, patchMap_PhobosAnomaly        },      // MAP08
     {  47025, 0xAE35EDC7EE264C64, 0xEDB0D9EC2A6326D9, applyOriginalMapCommonPatches },      // MAP09
     {  96251, 0x31CF22864E8E03F0, 0x8B80403B947D9EFE, applyOriginalMapCommonPatches },      // MAP10
-    
     {  74912, 0x2C1239F6225A7A1B, 0x82BDED22C0BD25BF, applyOriginalMapCommonPatches },      // MAP11
     { 119289, 0x1A2ABCCA4C071C97, 0xDDD9D1133B709DFE, applyOriginalMapCommonPatches },      // MAP12
     {  83803, 0x8D2496154C00EFDC, 0xD93CCFA11F6E50E0, applyOriginalMapCommonPatches },      // MAP13
@@ -35,7 +58,7 @@ static const PatchDef gPatchArray_Doom_Alpha_0_30[] = {
     {  75129, 0xB61B7D128274B536, 0xD1CA6CB4A4AC4710, applyOriginalMapCommonPatches },      // MAP19
     { 143513, 0xA00219661FCF2759, 0x87D75E2098046459, applyOriginalMapCommonPatches },      // MAP20
     {  85838, 0x61A8034D8BA96F93, 0xA4903A18B290FF40, applyOriginalMapCommonPatches },      // MAP21
-    { 110854, 0x4C3D132B09239DA7, 0xD202F8FB050A412E, applyOriginalMapCommonPatches },      // MAP22
+    { 110854, 0x4C3D132B09239DA7, 0xD202F8FB050A412E, patchMap_Limbo                },      // MAP22
     {  32935, 0x55A24A4ED4053AC3, 0x636CDB24CE519EF8, applyOriginalMapCommonPatches },      // MAP23
     {  56531, 0xAB19C8965ABE1365, 0x96FDF892BB700B7A, applyOriginalMapCommonPatches },      // MAP24
     {  77282, 0x1C90877C47872497, 0xB6E7A06DCC561431, applyOriginalMapCommonPatches },      // MAP25
