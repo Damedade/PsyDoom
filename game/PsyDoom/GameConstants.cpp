@@ -213,6 +213,13 @@ static void populateConsts_DoomAlpha_0_30(GameConstants& consts) noexcept {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
+// Set the values of all constants for 'Doom Alpha v0.32'
+//------------------------------------------------------------------------------------------------------------------------------------------
+static void populateConsts_DoomAlpha_0_32(GameConstants& consts) noexcept {
+    populateConsts_Doom(consts, false);
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
 // Populates the set of game constants for the current game type
 //------------------------------------------------------------------------------------------------------------------------------------------
 void GameConstants::populate(const GameType gameType, const bool bIsDemoVersion) noexcept {
@@ -229,6 +236,7 @@ void GameConstants::populate(const GameType gameType, const bool bIsDemoVersion)
         case GameType::GEC_ME_Beta4:                populateConsts_GEC_ME_Beta4(*this);                 break;
         case GameType::Doom_Alpha_0_05:             populateConsts_DoomAlpha_0_05(*this);               break;
         case GameType::Doom_Alpha_0_30:             populateConsts_DoomAlpha_0_30(*this);               break;
+        case GameType::Doom_Alpha_0_32:             populateConsts_DoomAlpha_0_32(*this);               break;
 
         default:
             FatalErrors::raise("GameConstants::populate(): unhandled game type!");

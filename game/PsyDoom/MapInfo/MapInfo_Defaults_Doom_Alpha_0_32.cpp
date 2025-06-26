@@ -1,44 +1,44 @@
 //------------------------------------------------------------------------------------------------------------------------------------------
-// MapInfo defaults for 'Doom Alpha v0.30'
+// MapInfo defaults for 'Doom Alpha v0.32'
 //------------------------------------------------------------------------------------------------------------------------------------------
-#include "MapInfo_Defaults_Doom_Alpha_0_30.h"
+#include "MapInfo_Defaults_Doom_Alpha_0_32.h"
 
 #include "MapInfo_Defaults_Doom.h"
 
 BEGIN_NAMESPACE(MapInfo)
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// Initializes a 'GameInfo' struct for 'Doom Alpha v0.30'
+// Initializes a 'GameInfo' struct for 'Doom Alpha v0.32'
 //------------------------------------------------------------------------------------------------------------------------------------------
-void initGameInfo_Doom_Alpha_0_30(GameInfo& gameInfo) noexcept {
+void initGameInfo_Doom_Alpha_0_32(GameInfo& gameInfo) noexcept {
     initGameInfo_Doom(gameInfo);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// Adds all the default episodes for 'Doom Alpha v0.30' to the given list
+// Adds all the default episodes for 'Doom Alpha v0.32' to the given list
 //------------------------------------------------------------------------------------------------------------------------------------------
-void addEpisodes_Doom_Alpha_0_30(std::vector<Episode>& episodes) noexcept {
+void addEpisodes_Doom_Alpha_0_32(std::vector<Episode>& episodes) noexcept {
     addEpisodes_Doom(episodes);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// Adds all the default clusters for 'Doom Alpha v0.30' to the given list
+// Adds all the default clusters for 'Doom Alpha v0.32' to the given list
 //------------------------------------------------------------------------------------------------------------------------------------------
-void addClusters_Doom_Alpha_0_30(std::vector<Cluster>& clusters) noexcept {
+void addClusters_Doom_Alpha_0_32(std::vector<Cluster>& clusters) noexcept {
     addClusters_Doom(clusters);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// Adds the default maps for 'Doom Alpha v0.30' to the given list
+// Adds the default maps for 'Doom Alpha v0.32' to the given list
 //------------------------------------------------------------------------------------------------------------------------------------------
-void addMaps_Doom_Alpha_0_30(std::vector<Map>& maps) noexcept {
+void addMaps_Doom_Alpha_0_32(std::vector<Map>& maps) noexcept {
     addMaps_Doom(maps);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// Adds the credit pages for 'Doom Alpha v0.30' to the given list
+// Adds the credit pages for 'Doom Alpha v0.32' to the given list
 //------------------------------------------------------------------------------------------------------------------------------------------
-void addCredits_Doom_Alpha_0_30(std::vector<CreditsPage>& credits) noexcept {
+void addCredits_Doom_Alpha_0_32(std::vector<CreditsPage>& credits) noexcept {
     addCredits_Doom(credits);
 }
 

@@ -64,81 +64,137 @@ void determineGameTypeAndVariant() noexcept {
     gbIsDemoVersion = false;
     gbIsPsxDoomForever = false;
 
-    if (discFileExists("SLUS_000.77")) {
-        gGameType = GameType::Doom;
-        gGameVariant = GameVariant::NTSC_U;
-    }
-    else if (discFileExists("SLPS_003.08")) {
-        gGameType = GameType::Doom;
-        gGameVariant = GameVariant::NTSC_J;
-    }
-    else if (discFileExists("SLES_001.32")) {
-        gGameType = GameType::Doom;
-        gGameVariant = GameVariant::PAL;
-    }
-    else if (discFileExists("SLUS_003.31")) {
-        gGameType = GameType::FinalDoom;
-        gGameVariant = GameVariant::NTSC_U;
-    }
-    else if (discFileExists("SLPS_007.27")) {
-        gGameType = GameType::FinalDoom;
-        gGameVariant = GameVariant::NTSC_J;
-    }
-    else if (discFileExists("SLES_004.87")) {
-        gGameType = GameType::FinalDoom;
-        gGameVariant = GameVariant::PAL;
-    }
-    else if (
-        (discFileExists("SLES_001.57")) ||                                                          // Standalone Doom demo disc
-        (discFileExists("PSXDOOM/ABIN/PALDEMO.EXE", 0x6AAD82C7FF2D773A, 0x33E19B2483B90A36)) ||     // Essential PlayStation CD Three/3
-        (discFileExists("PSXDOOM/ABIN/PALDEMO.EXE", 0xBC82CC0AD31992FF, 0xFBB47455A3FCD677))        // Euro Demo (Future) 103 (Official PlayStation Magazine 103)
-    ) {
-        // Doom one level demo, standalone or in a demo collection; other demo discs may also match, but I haven't tested them all!
-        gGameType = GameType::Doom;
-        gGameVariant = GameVariant::PAL;
-        gbIsDemoVersion = true;
-    }
-    else if (discFileExists("SLUS_666.01", 0xD012570E0D1C31ED, 0xC51B8585D187CD59)) {
-        // [GEC] Master Edition PSX Doom for the PlayStation (Beta 3)
-        gGameType = GameType::GEC_ME_Beta3;
-        gGameVariant = GameVariant::NTSC_U;
-    }
-    else if (discFileExists("SLUS_666.02", 0x97BB6F2D22E807E0, 0x6D818DA45FF98708)) {
-        // [GEC] Master Edition PSX Doom for the PlayStation (Beta 4)
-        gGameType = GameType::GEC_ME_Beta4;
-        gGameVariant = GameVariant::NTSC_U;
-    }
-    else if (discFileExists("PSXDOOM/ABIN/PSXDOOM.EXE") && discFileExists("PSXDOOM/MAPDIR0/MAP01.WAD") && (!discFileExists("PSXDOOM/MAPDIR0/MAP02.WAD"))) {
-        // [GEC] Master Edition tools: single map test disc ('Doom' format)
-        gGameType = GameType::GEC_ME_TestMap_Doom;
-        gGameVariant = GameVariant::NTSC_U;
-    }
-    else if (discFileExists("PSXDOOM/ABIN/PSXDOOM.EXE") && discFileExists("PSXDOOM/MAPDIR0/MAP01.ROM") && (!discFileExists("PSXDOOM/MAPDIR0/MAP02.ROM"))) {
-        // [GEC] Master Edition tools: single map test disc ('Final Doom' format)
-        gGameType = GameType::GEC_ME_TestMap_FinalDoom;
-        gGameVariant = GameVariant::NTSC_U;
-    }
-    else if (discFileExists("ZONE3D/ABIN/ZONE3D.WAD")) {
-        // This appears to be the 'PSX Doom Forever' ROM hack: pretend it's Final Doom, because it's basically just a re-skin of it
-        gGameType = GameType::FinalDoom;
-        gGameVariant = GameVariant::NTSC_U;
-        gbIsPsxDoomForever = true;
-    }
-    else if (discFileExists("PSX.EXE", 0xCD4DC63EF44615C0, 0xB7E6BC54CC94AA65) &&
-             discFileExists("PSXDOOM.EXE", 0xBE4C872A5A6600B2, 0xD92F3CDF2096BDA3))
-    {
-        // PSX Doom Alpha: v0.05
-        gGameType = GameType::Doom_Alpha_0_05;
-        gGameVariant = GameVariant::NTSC_U;
-    }
-    else if (discFileExists("PSX.EXE", 0x693DC11B4C493919, 0x9587E6FB2AB9F4C0) &&
-             discFileExists("PSXDOOM.EXE", 0xA749E063E5BA7FF9, 0x09137AD91EB1F07C))
-    {
-        // PSX Doom Alpha: v0.30
-        gGameType = GameType::Doom_Alpha_0_30;
-        gGameVariant = GameVariant::NTSC_U;
-    }
-    else {
+    // Try to match the disc against one of the supported game types
+    do {
+        // PSX Doom (NTSC-U, NTSC-J, PAL)
+        if (discFileExists("SLUS_000.77")) {
+            gGameType = GameType::Doom;
+            gGameVariant = GameVariant::NTSC_U;
+            break;
+        }
+
+        if (discFileExists("SLPS_003.08")) {
+            gGameType = GameType::Doom;
+            gGameVariant = GameVariant::NTSC_J;
+            break;
+        }
+
+        if (discFileExists("SLES_001.32")) {
+            gGameType = GameType::Doom;
+            gGameVariant = GameVariant::PAL;
+            break;
+        }
+
+        // PSX Final Doom (NTSC-U, NTSC-J, PAL)
+        if (discFileExists("SLUS_003.31")) {
+            gGameType = GameType::FinalDoom;
+            gGameVariant = GameVariant::NTSC_U;
+            break;
+        }
+
+        if (discFileExists("SLPS_007.27")) {
+            gGameType = GameType::FinalDoom;
+            gGameVariant = GameVariant::NTSC_J;
+            break;
+        }
+
+        if (discFileExists("SLES_004.87")) {
+            gGameType = GameType::FinalDoom;
+            gGameVariant = GameVariant::PAL;
+            break;
+        }
+
+        // PSX Doom demo discs
+        if (
+            (discFileExists("SLES_001.57")) ||                                                          // Standalone Doom demo disc
+            (discFileExists("PSXDOOM/ABIN/PALDEMO.EXE", 0x6AAD82C7FF2D773A, 0x33E19B2483B90A36)) ||     // Essential PlayStation CD Three/3
+            (discFileExists("PSXDOOM/ABIN/PALDEMO.EXE", 0xBC82CC0AD31992FF, 0xFBB47455A3FCD677))        // Euro Demo (Future) 103 (Official PlayStation Magazine 103)
+        ) {
+            // Doom one level demo, standalone or in a demo collection; other demo discs may also match, but I haven't tested them all!
+            gGameType = GameType::Doom;
+            gGameVariant = GameVariant::PAL;
+            gbIsDemoVersion = true;
+            break;
+        }
+
+        // GEC Master Edition
+        if (discFileExists("SLUS_666.01", 0xD012570E0D1C31ED, 0xC51B8585D187CD59)) {
+            // [GEC] Master Edition PSX Doom for the PlayStation (Beta 3)
+            gGameType = GameType::GEC_ME_Beta3;
+            gGameVariant = GameVariant::NTSC_U;
+            break;
+        }
+
+        if (discFileExists("SLUS_666.02", 0x97BB6F2D22E807E0, 0x6D818DA45FF98708)) {
+            // [GEC] Master Edition PSX Doom for the PlayStation (Beta 4)
+            gGameType = GameType::GEC_ME_Beta4;
+            gGameVariant = GameVariant::NTSC_U;
+            break;
+        }
+
+        if (discFileExists("PSXDOOM/ABIN/PSXDOOM.EXE") && discFileExists("PSXDOOM/MAPDIR0/MAP01.WAD") && (!discFileExists("PSXDOOM/MAPDIR0/MAP02.WAD"))) {
+            // [GEC] Master Edition tools: single map test disc ('Doom' format)
+            gGameType = GameType::GEC_ME_TestMap_Doom;
+            gGameVariant = GameVariant::NTSC_U;
+            break;
+        }
+
+        if (discFileExists("PSXDOOM/ABIN/PSXDOOM.EXE") && discFileExists("PSXDOOM/MAPDIR0/MAP01.ROM") && (!discFileExists("PSXDOOM/MAPDIR0/MAP02.ROM"))) {
+            // [GEC] Master Edition tools: single map test disc ('Final Doom' format)
+            gGameType = GameType::GEC_ME_TestMap_FinalDoom;
+            gGameVariant = GameVariant::NTSC_U;
+            break;
+        }
+
+        // PSX Doom Forever ROM hack
+        if (discFileExists("ZONE3D/ABIN/ZONE3D.WAD")) {
+            // This appears to be the 'PSX Doom Forever' ROM hack: pretend it's Final Doom, because it's basically just a re-skin of it
+            gGameType = GameType::FinalDoom;
+            gGameVariant = GameVariant::NTSC_U;
+            gbIsPsxDoomForever = true;
+            break;
+        }
+
+        // PSX Doom Alpha versions
+        uint64_t psx_exe_hash[2] = {};
+        uint64_t psxdoom_exe_hash[2] = {};
+        Utils::getDiscFileMD5Hash(PsxVm::gDiscInfo, PsxVm::gIsoFileSys, "PSX.EXE", psx_exe_hash[0], psx_exe_hash[1]);
+        Utils::getDiscFileMD5Hash(PsxVm::gDiscInfo, PsxVm::gIsoFileSys, "PSXDOOM.EXE", psxdoom_exe_hash[0], psxdoom_exe_hash[1]);
+
+        if ((psx_exe_hash[0] == 0xCD4DC63EF44615C0) &&
+            (psx_exe_hash[1] == 0xB7E6BC54CC94AA65) &&
+            (psxdoom_exe_hash[0] == 0xBE4C872A5A6600B2) &&
+            (psxdoom_exe_hash[1] == 0xD92F3CDF2096BDA3))
+        {
+            // PSX Doom Alpha: v0.05
+            gGameType = GameType::Doom_Alpha_0_05;
+            gGameVariant = GameVariant::NTSC_U;
+            break;
+        }
+
+        if ((psx_exe_hash[0] == 0x693DC11B4C493919) &&
+            (psx_exe_hash[1] == 0x9587E6FB2AB9F4C0) &&
+            (psxdoom_exe_hash[0] == 0xA749E063E5BA7FF9) &&
+            (psxdoom_exe_hash[1] == 0x09137AD91EB1F07C))
+        {
+            // PSX Doom Alpha: v0.30
+            gGameType = GameType::Doom_Alpha_0_30;
+            gGameVariant = GameVariant::NTSC_U;
+            break;
+        }
+
+        if ((psx_exe_hash[0] == 0x693DC11B4C493919) &&
+            (psx_exe_hash[1] == 0x9587E6FB2AB9F4C0) &&
+            (psxdoom_exe_hash[0] == 0x60E2216FD67E5C1F) &&
+            (psxdoom_exe_hash[1] == 0x3BB8FF02E4487371))
+        {
+            // PSX Doom Alpha: v0.32
+            gGameType = GameType::Doom_Alpha_0_32;
+            gGameVariant = GameVariant::NTSC_U;
+            break;
+        }
+
+        // Don't know what this disc is!
         FatalErrors::raise(
             "Unknown/unrecognized PSX Doom game disc provided!\n"
             "The disc must be one of the following:\n\n"
@@ -151,6 +207,7 @@ void determineGameTypeAndVariant() noexcept {
             "   - PSX Doom Alpha (0.05/0.30)."
         );
     }
+    while (false);
 
     // Populate constants that vary from game to game
     gConstants.populate(gGameType, gbIsDemoVersion);
