@@ -204,7 +204,7 @@ void determineGameTypeAndVariant() noexcept {
             "   - [GEC] Master Edition tools: single map test disc.\n"
             "   - PSX Doom Forever (ROM hack).\n"
             "   - Doom single level PAL demo (standalone disc, or in a demo collection).\n"
-            "   - PSX Doom Alpha (0.05/0.30)."
+            "   - PSX Doom Alpha (0.05/0.30/0.32)."
         );
     }
     while (false);
