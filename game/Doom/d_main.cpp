@@ -464,7 +464,8 @@ gameaction_t RunDemoAtPath(const char* const filePath) noexcept {
     demoDef.bFinalDoomDemo = (
         (Game::gGameType != GameType::Doom) &&
         (Game::gGameType != GameType::Doom_Alpha_0_05) &&
-        (Game::gGameType != GameType::Doom_Alpha_0_30)
+        (Game::gGameType != GameType::Doom_Alpha_0_30) &&
+        (Game::gGameType != GameType::Doom_Alpha_0_32)
     );
     demoDef.bPalDemo = (Game::gGameVariant == GameVariant::PAL);
 

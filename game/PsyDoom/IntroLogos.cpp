@@ -76,7 +76,8 @@ static const char* getPsxDoomBootExePath() noexcept {
         }
     }
     else if ((Game::gGameType == GameType::Doom_Alpha_0_05) ||
-             (Game::gGameType == GameType::Doom_Alpha_0_30))
+             (Game::gGameType == GameType::Doom_Alpha_0_30) ||
+             (Game::gGameType == GameType::Doom_Alpha_0_32))
     {
         return "PSX.EXE";
     }
@@ -330,10 +331,10 @@ static LogoPlayer::Logo getSonyLogo_Alpha_0_05() noexcept {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-// Gets the Sony intro logo for Alpha 0.30
+// Gets the Sony intro logo for Alpha 0.30/0.32
 //------------------------------------------------------------------------------------------------------------------------------------------
-static LogoPlayer::Logo getSonyLogo_Alpha_0_30() noexcept {
-    ASSERT(Game::gGameType == GameType::Doom_Alpha_0_30);
+static LogoPlayer::Logo getSonyLogo_Alpha_0_30_0_32() noexcept {
+    ASSERT((Game::gGameType == GameType::Doom_Alpha_0_30) || (Game::gGameType == GameType::Doom_Alpha_0_32));
 
     // Read the raw bytes for the logo, which is a 220x44 image @ 8bpp.
     // I don't know where the palette for this logo is stored so I will hard code instead.
@@ -417,9 +418,9 @@ static LogoPlayer::Logo getSonyLogo_FromBootExe() noexcept {
         // Other special cases:
         if (Game::gGameType == GameType::Doom_Alpha_0_05)
             return getSonyLogo_Alpha_0_05();
-            
-        if (Game::gGameType == GameType::Doom_Alpha_0_30)
-            return getSonyLogo_Alpha_0_30();
+
+        if ((Game::gGameType == GameType::Doom_Alpha_0_30) || (Game::gGameType == GameType::Doom_Alpha_0_32))
+            return getSonyLogo_Alpha_0_30_0_32();
 
         return {};
     }
@@ -538,6 +539,21 @@ static LogoList getLegalLogos_Doom_Alpha_0_30() noexcept {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
+// Gets the legal logos for PSX Doom Alpha 0.32
+//------------------------------------------------------------------------------------------------------------------------------------------
+static LogoList getLegalLogos_Doom_Alpha_0_32() noexcept {
+    // Note: this is slightly different to the actual Alpha 0.32.
+    // In the real alpha the message with the "ALPHA VERSION 0.32" text is printed on top of the "LEGALS" logo, but its very hard to read.
+    // Also the 'LEGALS' logo scrolls upwards...
+    // Separate this message out in PsyDoom, so we can make it easier to see. Also helps to make some Alpha 0.05 code reusable:
+    LogoList logoList = {};
+    logoList.logos[0] = getDoomAlphaTextualLegalLogo("ALPHA VERSION 0.32");
+    logoList.logos[1] = decodeWadLogo("LEGALS", readWadPalette("PLAYPAL", 0).get());
+    logoList.logos[1].holdTime = 3.5f;
+    return logoList;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
 // Helper: gets the legals/copyright intro logos for a 'GEC Master Edition' disc
 //------------------------------------------------------------------------------------------------------------------------------------------
 static LogoList getLegalLogos_GEC_ME() noexcept {
@@ -590,6 +606,9 @@ LogoList getLegalLogos() noexcept {
     }
     else if (Game::gGameType == GameType::Doom_Alpha_0_30) {
         return getLegalLogos_Doom_Alpha_0_30();
+    }
+    else if (Game::gGameType == GameType::Doom_Alpha_0_32) {
+        return getLegalLogos_Doom_Alpha_0_32();
     }
     else {
         return getLegalLogos_FromBootExe();
