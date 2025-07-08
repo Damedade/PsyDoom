@@ -20,7 +20,10 @@ static constexpr uint32_t NET_GAMEID_GEC_ME_BETA3               = 0xAB00AB22;
 static constexpr uint32_t NET_GAMEID_GEC_ME_TESTMAP_DOOM        = 0xBB00BB22;
 static constexpr uint32_t NET_GAMEID_GEC_ME_TESTMAP_FINAL_DOOM  = 0xBB00BB23;
 static constexpr uint32_t NET_GAMEID_GEC_ME_BETA4               = 0xAB00AB23;
-static constexpr uint32_t NET_GAMEID_DOOM_ALPHA_0_05            = 0xAA12AA22;
+static constexpr uint32_t NET_GAMEID_DOOM_ALPHA_0_05            = 0xAA120001;
+static constexpr uint32_t NET_GAMEID_DOOM_ALPHA_0_30            = 0xAA120002;
+static constexpr uint32_t NET_GAMEID_DOOM_ALPHA_0_32            = 0xAA120003;
+static constexpr uint32_t NET_GAMEID_FINAL_DOOM_ALPHA           = 0xAA120004;
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Set the values of all constants for 'Doom'
@@ -187,10 +190,10 @@ static void populateConsts_GEC_ME_Beta4(GameConstants& consts) noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Set the values of all constants for 'Doom Alpha v0.05'
 //------------------------------------------------------------------------------------------------------------------------------------------
-static void populateConsts_DoomAlpha_0_05(GameConstants& consts) noexcept {
+static void populateConsts_Doom_Alpha_0_05(GameConstants& consts) noexcept {
     consts.mainWads[0] = CdFile::PSXDOOM_WAD;
     consts.introMovies[0] = "MOVIE.STR";
-    consts.saveFilePrefix = "ADoom_";
+    consts.saveFilePrefix = "ADoom_0_05_";
     consts.pLastPasswordField = &PlayerPrefs::gLastPassword_Doom;
     consts.netGameId = NET_GAMEID_DOOM_ALPHA_0_05;
     consts.baseNumAnims = BASE_NUM_ANIMS_DOOM;
@@ -202,8 +205,10 @@ static void populateConsts_DoomAlpha_0_05(GameConstants& consts) noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Set the values of all constants for 'Doom Alpha v0.30'
 //------------------------------------------------------------------------------------------------------------------------------------------
-static void populateConsts_DoomAlpha_0_30(GameConstants& consts) noexcept {
+static void populateConsts_Doom_Alpha_0_30(GameConstants& consts) noexcept {
     populateConsts_Doom(consts, false);
+    consts.saveFilePrefix = "ADoom_0_30_";
+    consts.netGameId = NET_GAMEID_DOOM_ALPHA_0_30;
 
     // Not supporting the built-in demos for this game version; demo-compatibility is not an aim.
     // We can still show the credits however...
@@ -215,8 +220,31 @@ static void populateConsts_DoomAlpha_0_30(GameConstants& consts) noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Set the values of all constants for 'Doom Alpha v0.32'
 //------------------------------------------------------------------------------------------------------------------------------------------
-static void populateConsts_DoomAlpha_0_32(GameConstants& consts) noexcept {
+static void populateConsts_Doom_Alpha_0_32(GameConstants& consts) noexcept {
     populateConsts_Doom(consts, false);
+    consts.saveFilePrefix = "ADoom_0_32_";
+    consts.netGameId = NET_GAMEID_DOOM_ALPHA_0_32;
+
+    // Not supporting the built-in demos for this game version; demo-compatibility is not an aim.
+    // We can still show the credits however...
+    consts.demos[0] = {};
+    consts.demos[0].bShowCreditsAfter = true;
+    consts.demos[1] = {};
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+// Set the values of all constants for 'Final Doom Alpha'
+//------------------------------------------------------------------------------------------------------------------------------------------
+static void populateConsts_FinalDoom_Alpha(GameConstants& consts) noexcept {
+    populateConsts_FinalDoom(consts);
+    consts.saveFilePrefix = "AFDoom_";
+    consts.netGameId = NET_GAMEID_FINAL_DOOM_ALPHA;
+
+    // Not supporting the built-in demos for this game version; demo-compatibility is not an aim.
+    // We can still show the credits however...
+    consts.demos[0] = {};
+    consts.demos[0].bShowCreditsAfter = true;
+    consts.demos[1] = {};
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -234,9 +262,10 @@ void GameConstants::populate(const GameType gameType, const bool bIsDemoVersion)
         case GameType::GEC_ME_TestMap_Doom:         populateConsts_GEC_ME_TestMap_Doom(*this);          break;
         case GameType::GEC_ME_TestMap_FinalDoom:    populateConsts_GEC_ME_TestMap_FinalDoom(*this);     break;
         case GameType::GEC_ME_Beta4:                populateConsts_GEC_ME_Beta4(*this);                 break;
-        case GameType::Doom_Alpha_0_05:             populateConsts_DoomAlpha_0_05(*this);               break;
-        case GameType::Doom_Alpha_0_30:             populateConsts_DoomAlpha_0_30(*this);               break;
-        case GameType::Doom_Alpha_0_32:             populateConsts_DoomAlpha_0_32(*this);               break;
+        case GameType::Doom_Alpha_0_05:             populateConsts_Doom_Alpha_0_05(*this);              break;
+        case GameType::Doom_Alpha_0_30:             populateConsts_Doom_Alpha_0_30(*this);              break;
+        case GameType::Doom_Alpha_0_32:             populateConsts_Doom_Alpha_0_32(*this);              break;
+        case GameType::FinalDoom_Alpha:             populateConsts_FinalDoom_Alpha(*this);              break;
 
         default:
             FatalErrors::raise("GameConstants::populate(): unhandled game type!");

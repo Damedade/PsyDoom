@@ -70,6 +70,13 @@ void determineGameTypeAndVariant() noexcept {
         if (discFileExists("SLUS_000.77")) {
             gGameType = GameType::Doom;
             gGameVariant = GameVariant::NTSC_U;
+
+            // Check if it's actually the Final Doom 'alpha' build.
+            // This didn't yet have the proper game id assigned to it:
+            if (discFileExists("PSXDOOM/ABIN/PSXDOOM.EXE", 0x3C1BD1254933D7B8, 0x556E5E3943E57446)) {
+                gGameType = GameType::FinalDoom_Alpha;
+            }
+
             break;
         }
 
@@ -204,7 +211,8 @@ void determineGameTypeAndVariant() noexcept {
             "   - [GEC] Master Edition tools: single map test disc.\n"
             "   - PSX Doom Forever (ROM hack).\n"
             "   - Doom single level PAL demo (standalone disc, or in a demo collection).\n"
-            "   - PSX Doom Alpha (0.05/0.30/0.32)."
+            "   - PSX Doom Alpha (0.05/0.30/0.32).\n"
+            "   - PSX Final Doom Alpha."
         );
     }
     while (false);

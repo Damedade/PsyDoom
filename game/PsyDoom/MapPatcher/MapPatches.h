@@ -45,6 +45,8 @@ extern const PatchList gPatches_GEC_ME_Beta4;
 extern const PatchList gPatches_Doom_Alpha_0_05;
 extern const PatchList gPatches_Doom_Alpha_0_30;
 extern const PatchList gPatches_Doom_Alpha_0_32;
+extern const PatchList gPatches_Doom_Alpha_0_32;
+extern const PatchList gPatches_FinalDoom_Alpha;
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Helpers: check if various forms of map patches should be applied

@@ -7,6 +7,7 @@
 #include "MapInfo_Defaults_Doom_Alpha_0_30.h"
 #include "MapInfo_Defaults_Doom_Alpha_0_32.h"
 #include "MapInfo_Defaults_FinalDoom.h"
+#include "MapInfo_Defaults_FinalDoom_Alpha.h"
 #include "MapInfo_Defaults_GEC_ME_Beta3.h"
 #include "MapInfo_Defaults_GEC_ME_TestMap.h"
 #include "PsyDoom/Game.h"
@@ -100,6 +101,7 @@ static void initGameInfo(GameInfo& gameInfo) noexcept {
         case GameType::Doom_Alpha_0_05:             initGameInfo_Doom_Alpha_0_05(gameInfo);             break;
         case GameType::Doom_Alpha_0_30:             initGameInfo_Doom_Alpha_0_30(gameInfo);             break;
         case GameType::Doom_Alpha_0_32:             initGameInfo_Doom_Alpha_0_32(gameInfo);             break;
+        case GameType::FinalDoom_Alpha:             initGameInfo_FinalDoom_Alpha(gameInfo);             break;
 
         default:
             FatalErrors::raise("MapInfo::initGameInfo(): unhandled game type!");
@@ -122,6 +124,7 @@ static void initEpisodes(std::vector<Episode>& episodes) noexcept {
         case GameType::Doom_Alpha_0_05:             addEpisodes_Doom_Alpha_0_05(episodes);  break;
         case GameType::Doom_Alpha_0_30:             addEpisodes_Doom_Alpha_0_30(episodes);  break;
         case GameType::Doom_Alpha_0_32:             addEpisodes_Doom_Alpha_0_32(episodes);  break;
+        case GameType::FinalDoom_Alpha:             addEpisodes_FinalDoom_Alpha(episodes);  break;
 
         default:
             FatalErrors::raise("MapInfo::initEpisodes(): unhandled game type!");
@@ -144,6 +147,7 @@ static void initClusters(std::vector<Cluster>& clusters) noexcept {
         case GameType::Doom_Alpha_0_05:             addClusters_Doom_Alpha_0_05(clusters);  break;
         case GameType::Doom_Alpha_0_30:             addClusters_Doom_Alpha_0_30(clusters);  break;
         case GameType::Doom_Alpha_0_32:             addClusters_Doom_Alpha_0_32(clusters);  break;
+        case GameType::FinalDoom_Alpha:             addClusters_FinalDoom_Alpha(clusters);  break;
 
         default:
             FatalErrors::raise("MapInfo::initClusters(): unhandled game type!");
@@ -166,6 +170,7 @@ static void initMaps(std::vector<Map>& maps) noexcept {
         case GameType::Doom_Alpha_0_05:             addMaps_Doom_Alpha_0_05(maps);  break;
         case GameType::Doom_Alpha_0_30:             addMaps_Doom_Alpha_0_30(maps);  break;
         case GameType::Doom_Alpha_0_32:             addMaps_Doom_Alpha_0_32(maps);  break;
+        case GameType::FinalDoom_Alpha:             addMaps_FinalDoom_Alpha(maps);  break;
 
         default:
             FatalErrors::raise("MapInfo::initMaps(): unhandled game type!");
@@ -188,6 +193,7 @@ static void initCredits(std::vector<CreditsPage>& credits) noexcept {
         case GameType::Doom_Alpha_0_05:             addCredits_Doom_Alpha_0_05(credits);            break;
         case GameType::Doom_Alpha_0_30:             addCredits_Doom_Alpha_0_30(credits);            break;
         case GameType::Doom_Alpha_0_32:             addCredits_Doom_Alpha_0_32(credits);            break;
+        case GameType::FinalDoom_Alpha:             addCredits_FinalDoom_Alpha(credits);            break;
 
         default:
             FatalErrors::raise("MapInfo::initCredits(): unhandled game type!");
