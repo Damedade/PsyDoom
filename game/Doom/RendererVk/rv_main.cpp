@@ -226,7 +226,7 @@ void RV_RenderPlayerView() noexcept {
     // Cleanup after drawing the world: need to clear the draw order for each drawn subsector
     RV_ClearSubsecDrawIndexes();
 
-    // Switch back to UI renderng and draw a letterbox in the vertical region where the status bar would be
+    // Switch back to UI renderng and draw a letterbox in the horizontal region where the status bar would be
     Utils::onBeginUIDrawing(VPipelineType_Main::Colored);
     RV_DrawWidescreenStatusBarLetterbox();
 

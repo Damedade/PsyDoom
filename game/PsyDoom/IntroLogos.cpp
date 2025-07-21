@@ -47,6 +47,7 @@ static constexpr PsxDoomBootExeLogos PSX_DOOM_BOOT_EXE_LOGOS[] = {
     { 0x0668FF031942802C, 0xC6384BA037DA257D, 0x1B008, 0x2B30C, 0x3B610 },      // Final Doom: US (SLUS_003.31)
     { 0x28EF0816BB969BC4, 0x87302D5B286BCEC2, 0x1B054, 0x2B358, 0x3B65C },      // Final Doom: Europe (SLES_004.87)
     { 0xE42785D83C5778AD, 0x0B0F01693A83C71C, 0x1B000, 0x2B304, 0x3B608 },      // Final Doom: Japan (SLPS_007.27)
+    { 0x5B7C365284C1EECE, 0x6787D977642F375A, 0x00000, 0x00000, 0x3B608 },      // Final Doom Alpha (Unknown version/build-number)
 };
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -80,6 +81,9 @@ static const char* getPsxDoomBootExePath() noexcept {
              (Game::gGameType == GameType::Doom_Alpha_0_32))
     {
         return "PSX.EXE";
+    }
+    else if (Game::gGameType == GameType::FinalDoom_Alpha) {
+        return "SLUS_000.77";
     }
 
     return nullptr;
@@ -424,6 +428,10 @@ static LogoPlayer::Logo getSonyLogo_FromBootExe() noexcept {
 
         return {};
     }
+    
+    // No Sony logo for the alpha version of Final Doom
+    if (Game::gGameType == GameType::FinalDoom_Alpha)
+        return {};
 
     // This logo is only used for the US and Europe editions of PSX Doom.
     // The Japanese version of the game doesn't show any Sony specific logo:
