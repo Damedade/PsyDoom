@@ -241,10 +241,8 @@ static void populateConsts_FinalDoom_Alpha(GameConstants& consts) noexcept {
     consts.netGameId = NET_GAMEID_FINAL_DOOM_ALPHA;
 
     // Not supporting the built-in demos for this game version; demo-compatibility is not an aim.
-    // We can still show the credits however...
+    // Also this build of Final Doom doesn't have credits implemented yet...
     consts.demos[0] = {};
-    consts.demos[0].bShowCreditsAfter = true;
-    consts.demos[1] = {};
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------

@@ -1,9 +1,11 @@
 //------------------------------------------------------------------------------------------------------------------------------------------
 // MapInfo defaults for 'Final Doom Alpha'
 //------------------------------------------------------------------------------------------------------------------------------------------
-#include "MapInfo_Defaults_FinalDoom.h"
-
 #include "MapInfo_Defaults_FinalDoom_Alpha.h"
+
+#include "Doom/UI/cr_main.h"
+#include "MapInfo.h"
+#include "MapInfo_Defaults_FinalDoom.h"
 
 BEGIN_NAMESPACE(MapInfo)
 
@@ -38,8 +40,8 @@ void addMaps_FinalDoom_Alpha(std::vector<Map>& maps) noexcept {
 //------------------------------------------------------------------------------------------------------------------------------------------
 // Adds the credit pages for 'Final Doom Alpha' to the given list
 //------------------------------------------------------------------------------------------------------------------------------------------
-void addCredits_FinalDoom_Alpha(std::vector<CreditsPage>& credits) noexcept {
-    addCredits_FinalDoom(credits);
+void addCredits_FinalDoom_Alpha([[maybe_unused]] std::vector<CreditsPage>& credits) noexcept {
+    // This build of Final Doom doesn't have credits implemented...
 }
 
 END_NAMESPACE(MapInfo)
