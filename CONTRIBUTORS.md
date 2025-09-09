@@ -201,8 +201,9 @@ PsyDoom contributors (sorted alphabetically)
         https://github.com/BodbDearg/PsyDoom/issues/90
 
 * **[Steven (StevenSYS)](https://github.com/StevenSYS)**
-    * Fix compile error:
+    * Fix compile errors:
         https://github.com/BodbDearg/PsyDoom/pull/121
+        https://github.com/BodbDearg/PsyDoom/pull/127
 
 * **[ts-miller](https://github.com/ts-miller)**
     * Various multiplayer quality of life improvements:
