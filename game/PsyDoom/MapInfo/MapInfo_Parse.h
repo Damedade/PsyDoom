@@ -124,7 +124,7 @@ struct LinkedToken {
     // Returns how many tokens are ahead by following 'pNext'
     int32_t numTokensAhead() const noexcept {
         int32_t count = 0;
-        
+
         for (LinkedToken* pToken = pNext; pToken; pToken = pToken->pNext) {
             count++;
         }
@@ -135,7 +135,7 @@ struct LinkedToken {
     // Returns how many tokens are ahead by following 'pNextData'
     int32_t numDataTokensAhead() const noexcept {
         int32_t count = 0;
-        
+
         for (LinkedToken* pToken = pNextData; pToken; pToken = pToken->pNextData) {
             count++;
         }
@@ -293,6 +293,7 @@ template <class ...FmtStrArgs>
 [[noreturn]] inline void error(const Block& block, const char* const errorFmtStr, FmtStrArgs... fmtStrArgs) noexcept {
     error(block.pType->token.begin, errorFmtStr, fmtStrArgs...);
 }
+
 std::vector<Token> tokenizeMapInfo(const char* const mapInfoStr) noexcept;
 MapInfo parseMapInfo(const char* const mapInfoStr) noexcept;
 

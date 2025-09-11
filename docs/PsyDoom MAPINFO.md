@@ -175,7 +175,6 @@ GameInfo {
     AllowWideTitleScreenFire = false
     AllowWideOptionsBg = false
     TitleScreenStyle = 0
-    CreditsScreenStyle = 0
     TitleScreenCdTrackOverride = -1
     TexPalette_TitleScreenFire = 15
     TexPalette_STATUS = 16
@@ -209,10 +208,6 @@ Internal Fields:
   - `1` = Final Doom: the 'TITLE' image displays over the fire at all times and fades in from black.
   - `2` = GEC Master Edition Beta 3: the `DOOM` and `FINAL` images display side-by-side over the fire at all times, fading in from black. The 'Master Edition' text from the 'DATA' lump also displays on top.
   - `3` = GEC Master Edition Beta 4: show transparent fire over the `COVER` image and then the logos from `TITLE2` on top of that. Fade in the background and logos.
-- `CreditsScreenStyle`: what style of credits screen to use. Valid values are currently:
-  - `0` = Doom: 2 pages, ID and Williams.
-  - `1` = Final Doom: 3 pages, level, Williams and ID credits.
-  - `2` = GEC Master Edition: 5 pages, GEC, Doomworld, and Final Doom credits.
 - `TitleScreenCdTrackOverride`: if >= 2 then play this CD track on the title screen instead of the default one.
 - `TexPalette_TitleScreenFire`: palette index to use for the fire on the title screen. Must be between 0 and 31.
 - `TexPalette_STATUS`: palette index to use for the `STATUS` image lump. Must be between 0 and 31.

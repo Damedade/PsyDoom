@@ -25,7 +25,6 @@ void initGameInfo_GEC_ME_Beta3(GameInfo& gameInfo) noexcept {
     gameInfo.numRegularMaps = 92;           // Last two maps are secret: stops the game ending on completing 'Go 2 It'
     gameInfo.bFinalDoomGameRules = false;   // Some maps might rely on the extra forward speed of 'Doom'
     gameInfo.titleScreenStyle = TitleScreenStyle::GEC_ME_BETA3;
-    gameInfo.creditsScreenStyle = CreditsScreenStyle::GEC_ME;
     gameInfo.texPalette_titleScreenFire = FIRESKYPAL;
     gameInfo.texPalette_BACK = 29;
     gameInfo.texLumpName_BACK = "BACK";

@@ -6,7 +6,6 @@
 #include <cstdint>
 #include <vector>
 
-enum class CreditsScreenStyle : uint8_t;
 enum class TitleScreenStyle : uint8_t;
 enum SpuReverbMode : int32_t;
 
@@ -37,7 +36,6 @@ struct GameInfo {
     bool                    bAllowWideTitleScreenFire;      // Vulkan renderer: if 'true' then the fire sky on the title screen can tile/repeat taking widescreen into account (beyond the original UI area)
     bool                    bAllowWideOptionsBg;            // Vulkan renderer: if 'true' then the options menu background can tile/repeat taking widescreen into account (beyond the original UI area)
     TitleScreenStyle        titleScreenStyle;               // What style of title screen to use
-    CreditsScreenStyle      creditsScreenStyle;             // What style of credits screen to use
     int8_t                  titleScreenCdTrackOverride;     // If >= 2 then play this cd track on the title screen instead of the regular one
     uint8_t                 texPalette_titleScreenFire;     // Palette index to use for the fire on the title screen
     uint8_t                 texPalette_STATUS;              // Palette index to use for the 'STATUS' image lump

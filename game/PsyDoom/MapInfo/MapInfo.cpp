@@ -69,7 +69,6 @@ GameInfo::GameInfo() noexcept
     , bDisableMultiplayer(false)
     , bFinalDoomGameRules(false)
     , titleScreenStyle(TitleScreenStyle::Doom)
-    , creditsScreenStyle(CreditsScreenStyle::Doom)
     , titleScreenCdTrackOverride(-1)
     , texPalette_titleScreenFire(FIRESKYPAL)
     , texPalette_STATUS(UIPAL)
@@ -165,7 +164,6 @@ static void readGameInfo(const Block& block) noexcept {
     gameInfo.bAllowWideTitleScreenFire = (block.getSingleIntValue("AllowWideTitleScreenFire", gameInfo.bAllowWideTitleScreenFire) > 0);
     gameInfo.bAllowWideOptionsBg = (block.getSingleIntValue("AllowWideOptionsBg", gameInfo.bAllowWideOptionsBg) > 0);
     gameInfo.titleScreenStyle = (TitleScreenStyle) block.getSingleIntValue("TitleScreenStyle", (int32_t) gameInfo.titleScreenStyle);
-    gameInfo.creditsScreenStyle = (CreditsScreenStyle) block.getSingleIntValue("CreditsScreenStyle", (int32_t) gameInfo.creditsScreenStyle);
     gameInfo.titleScreenCdTrackOverride = (int8_t) block.getSingleIntValue("TitleScreenCdTrackOverride", gameInfo.titleScreenCdTrackOverride);
     gameInfo.texPalette_titleScreenFire = (uint8_t) block.getSingleIntValue("TexPalette_TitleScreenFire", gameInfo.texPalette_titleScreenFire);
     gameInfo.texPalette_STATUS = (uint8_t) block.getSingleIntValue("TexPalette_STATUS", gameInfo.texPalette_STATUS);
@@ -200,10 +198,6 @@ static void readGameInfo(const Block& block) noexcept {
     // Validate title and credits screen styles
     if ((uint32_t) gameInfo.titleScreenStyle >= NUM_TITLE_SCREEN_STYLES) {
         error(block, "GameInfo: 'TitleScreenStyle' must be between 0 and %u!", NUM_TITLE_SCREEN_STYLES - 1u);
-    }
-
-    if ((uint32_t) gameInfo.creditsScreenStyle >= NUM_CREDITS_SCREEN_STYLES) {
-        error(block, "GameInfo: 'CreditsScreenStyle' must be between 0 and %u!", NUM_CREDITS_SCREEN_STYLES - 1u);
     }
 
     // Check all palettes are in range
@@ -323,7 +317,7 @@ static void readMap(const Block& block) noexcept {
     // Read and validate the map header
     block.ensureMinHeaderTokenCount(1);
     const int32_t mapNum = block.getRequiredHeaderInt(0);
-    
+
     if ((mapNum < 1) || (mapNum > 255)) {
         error(block, "Map: map number must be between 1 and 255!");
     }

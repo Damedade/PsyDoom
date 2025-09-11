@@ -24,7 +24,6 @@ void initGameInfo_FinalDoom(GameInfo& gameInfo) noexcept {
     gameInfo.bAllowWideTitleScreenFire = false;
     gameInfo.bAllowWideOptionsBg = false;
     gameInfo.titleScreenStyle = TitleScreenStyle::FinalDoom;
-    gameInfo.creditsScreenStyle = CreditsScreenStyle::FinalDoom;
     gameInfo.texPalette_titleScreenFire = FIRESKYPAL;
     gameInfo.texPalette_STATUS = UIPAL;
     gameInfo.texPalette_TITLE = TITLEPAL;
