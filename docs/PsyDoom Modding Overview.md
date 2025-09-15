@@ -60,6 +60,13 @@ PsyDoom now supports adding custom music to user mods in Ogg Vorbis format. PsyD
 
 Restrictions: the Ogg Vorbis files provided must have exactly 2 channels and a 44.1KHz sample rate (CD Audio quality).
 
+The following metadata tags in Ogg Vorbis files are also recognized, to control how the music loops:
+- `LOOP_START` or `LOOPSTART`: Indicates where to start looping from in the track. If not specified, defaults to the start of the track.
+- `LOOP_END` or `LOOPEND`: Indicates where the track ends playback/looping. If not specified, defaults to the end of the track.
+- `LOOP_LENGTH` or `LOOPLENGTH`: An alternate to specifying `LOOP_END` or `LOOPEND`. Indicates the length of the looping section, instead of where it ends.
+
+For each of the loop metadata tags, if the time value is specified as a simple integer number then it is interpreted as being in terms of raw PCM samples. Alternatively, you can specify the time value as hours, minutes, seconds and fractional seconds using the `HH:MM:SS.ssss` format. Note: if the time value contains either a `:` or `.` character then it is always interpreted as being in the `HH:MM:SS.ssss` format. Thus the value `18.0` would be interpreted as 18 seconds whereas `18` would be interpreted as 18 samples.
+
 ## Custom sounds
 PsyDoom now has the ability to load sounds defined in extension IWADS. The sounds must be stored in the .wav file format, using PCM encoding with 8 or 16 bit sample depth. Any sample rate (44.1 KHz, 22 KHz etc.) is allowed.
 
