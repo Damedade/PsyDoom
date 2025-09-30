@@ -749,17 +749,29 @@ void S_PlaySoundAtPosition(const float x, const float y, const uint32_t soundId)
 // Helper macros for registering properties
 //------------------------------------------------------------------------------------------------------------------------------------------
 
+// Register generic properties
+#define SOL_PROPERTY(TypeName, FieldName)\
+    sol::property(\
+        [](const TypeName& obj) noexcept -> decltype(TypeName::FieldName) { return obj.FieldName; },\
+        [](TypeName& obj, const decltype(TypeName::FieldName) value) noexcept -> void { obj.FieldName = value; }\
+    )
+
+#define SOL_READONLY_PROPERTY(TypeName, FieldName)\
+    sol::readonly_property(\
+        [](const TypeName& obj) noexcept -> decltype(TypeName::FieldName) { return obj.FieldName; }\
+    )
+
 // Register a getter and setter for a fixed point number and expose it as a floating point number
 #define SOL_FIXED_PROPERTY_AS_FLOAT(TypeName, FieldName)\
     sol::property(\
-        [](const TypeName& obj) noexcept { return FixedToFloat(obj.FieldName); },\
-        [](TypeName& obj, const float value) noexcept { obj.FieldName = FloatToFixed(value); }\
+        [](const TypeName& obj) noexcept -> float { return FixedToFloat(obj.FieldName); },\
+        [](TypeName& obj, const float value) noexcept -> void { obj.FieldName = FloatToFixed(value); }\
     )
 
 // Register a getter (only) and for a fixed point number and expose it as a floating point number
 #define SOL_READONLY_FIXED_PROPERTY_AS_FLOAT(TypeName, FieldName)\
     sol::readonly_property(\
-        [](const TypeName& obj) noexcept { return FixedToFloat(obj.FieldName); }\
+        [](const TypeName& obj) noexcept -> float { return FixedToFloat(obj.FieldName); }\
     )
 
 // Register a getter and setter for a value defined from 0-255.
@@ -767,14 +779,14 @@ void S_PlaySoundAtPosition(const float x, const float y, const uint32_t soundId)
 #define SOL_BYTE_PROPERTY(TypeName, FieldName)\
     sol::property(\
         [](const TypeName& obj) noexcept -> int32_t { return obj.FieldName; },\
-        [](TypeName& obj, const int32_t value) noexcept { obj.FieldName = (uint8_t) std::clamp(value, 0, 255); }\
+        [](TypeName& obj, const int32_t value) noexcept -> void { obj.FieldName = (uint8_t) std::clamp(value, 0, 255); }\
     )
 
 // Register a fixed property which is interpolated if sector interpolation is enabled
 #define SOL_LERPED_SECTOR_FIXED_PROPERTY(TypeName, FieldName)\
     sol::property(\
-        [](const TypeName& obj) noexcept { return obj.FieldName; },\
-        [](TypeName& obj, const fixed_t value) noexcept {\
+        [](const TypeName& obj) noexcept -> fixed_t { return obj.FieldName; },\
+        [](TypeName& obj, const fixed_t value) noexcept -> void {\
             obj.FieldName = value;\
             \
             if (!Config::gbInterpolateSectors) {\
@@ -786,8 +798,8 @@ void S_PlaySoundAtPosition(const float x, const float y, const uint32_t soundId)
 // Register a fixed property (exposed as a float) which is interpolated if sector interpolation is enabled
 #define SOL_LERPED_SECTOR_FIXED_PROPERTY_AS_FLOAT(TypeName, FieldName)\
     sol::property(\
-        [](const TypeName& obj) noexcept { return FixedToFloat(obj.FieldName); },\
-        [](TypeName& obj, const float value) noexcept {\
+        [](const TypeName& obj) noexcept -> float { return FixedToFloat(obj.FieldName); },\
+        [](TypeName& obj, const float value) noexcept -> void {\
             obj.FieldName = FloatToFixed(value);\
             \
             if (!Config::gbInterpolateSectors) {\
@@ -807,19 +819,19 @@ static void registerType_sector_t(sol::state& lua) noexcept {
     type["floorheight_fixed"] = SOL_LERPED_SECTOR_FIXED_PROPERTY(sector_t, floorheight);
     type["ceilingheight"] = SOL_LERPED_SECTOR_FIXED_PROPERTY_AS_FLOAT(sector_t, ceilingheight);
     type["ceilingheight_fixed"] = SOL_LERPED_SECTOR_FIXED_PROPERTY(sector_t, ceilingheight);
-    type["floorpic"] = &sector_t::floorpic;
-    type["ceilingpic"] = &sector_t::ceilingpic;
+    type["floorpic"] = SOL_PROPERTY(sector_t, floorpic);
+    type["ceilingpic"] = SOL_PROPERTY(sector_t, ceilingpic);
     type["colorid"] = SOL_BYTE_PROPERTY(sector_t, colorid);
     type["lightlevel"] = SOL_BYTE_PROPERTY(sector_t, lightlevel);
-    type["special"] = &sector_t::special;
-    type["tag"] = &sector_t::tag;
-    type["flags"] = &sector_t::flags;
+    type["special"] = SOL_PROPERTY(sector_t, special);
+    type["tag"] = SOL_PROPERTY(sector_t, tag);
+    type["flags"] = SOL_PROPERTY(sector_t, flags);
     type["ceil_colorid"] = SOL_BYTE_PROPERTY(sector_t, ceilColorid);
     type["floor_tex_offset_x"] = SOL_LERPED_SECTOR_FIXED_PROPERTY_AS_FLOAT(sector_t, floorTexOffsetX);
     type["floor_tex_offset_y"] = SOL_LERPED_SECTOR_FIXED_PROPERTY_AS_FLOAT(sector_t, floorTexOffsetY);
     type["ceil_tex_offset_x"] = SOL_LERPED_SECTOR_FIXED_PROPERTY_AS_FLOAT(sector_t, ceilTexOffsetX);
     type["ceil_tex_offset_y"] = SOL_LERPED_SECTOR_FIXED_PROPERTY_AS_FLOAT(sector_t, ceilTexOffsetY);
-    type["numlines"] = sol::readonly(&sector_t::linecount);
+    type["numlines"] = SOL_READONLY_PROPERTY(sector_t, linecount);
     type["hasthinker"] = sol::readonly_property([](const sector_t& sector){ return (sector.specialdata != nullptr); });
 
     type.set_function("GetLine", &GetLineInSector);
@@ -852,13 +864,13 @@ static void registerType_line_t(sol::state& lua) noexcept {
     type["v2x"] = sol::readonly_property([](const line_t& line) noexcept { return FixedToFloat(line.vertex2->x); });
     type["v2y"] = sol::readonly_property([](const line_t& line) noexcept { return FixedToFloat(line.vertex2->y); });
     type["angle"] = sol::readonly_property([](const line_t& line) noexcept { return AngleToDegrees((angle_t) line.fineangle << ANGLETOFINESHIFT); });
-    type["flags"] = &line_t::flags;
-    type["special"] = &line_t::special;
-    type["tag"] = &line_t::tag;
+    type["flags"] = SOL_PROPERTY(line_t, flags);
+    type["special"] = SOL_PROPERTY(line_t, special);
+    type["tag"] = SOL_PROPERTY(line_t, tag);
     type["frontside"] = sol::readonly_property([](const line_t& line) noexcept { return GetSide(line.sidenum[0]); });
     type["backside"] = sol::readonly_property([](const line_t& line) noexcept { return GetSide(line.sidenum[1]); });
-    type["frontsector"] = sol::readonly(&line_t::frontsector);
-    type["backsector"] = sol::readonly(&line_t::backsector);
+    type["frontsector"] = SOL_READONLY_PROPERTY(line_t, frontsector);
+    type["backsector"] = SOL_READONLY_PROPERTY(line_t, backsector);
 
     makeTypeReadOnly(type);
 }
@@ -871,10 +883,10 @@ static void registerType_side_t(sol::state& lua) noexcept {
     type["textureoffset_fixed"] = SOL_LERPED_SECTOR_FIXED_PROPERTY(side_t, textureoffset);
     type["rowoffset"] = SOL_LERPED_SECTOR_FIXED_PROPERTY_AS_FLOAT(side_t, rowoffset);
     type["rowoffset_fixed"] = SOL_LERPED_SECTOR_FIXED_PROPERTY(side_t, rowoffset);
-    type["toptexture"] = &side_t::toptexture;
-    type["bottomtexture"] = &side_t::bottomtexture;
-    type["midtexture"] = &side_t::midtexture;
-    type["sector"] = sol::readonly(&side_t::sector);
+    type["toptexture"] = SOL_PROPERTY(side_t, toptexture);
+    type["bottomtexture"] = SOL_PROPERTY(side_t, bottomtexture);
+    type["midtexture"] = SOL_PROPERTY(side_t, midtexture);
+    type["sector"] = SOL_READONLY_PROPERTY(side_t, sector);
 
     makeTypeReadOnly(type);
 }
@@ -885,24 +897,24 @@ static void registerType_mobj_t(sol::state& lua) noexcept {
     type["x"] = SOL_READONLY_FIXED_PROPERTY_AS_FLOAT(mobj_t, x);
     type["y"] = SOL_READONLY_FIXED_PROPERTY_AS_FLOAT(mobj_t, y);
     type["z"] = SOL_READONLY_FIXED_PROPERTY_AS_FLOAT(mobj_t, z);
-    type["tag"] = &mobj_t::tag;
+    type["tag"] = SOL_PROPERTY(mobj_t, tag);
     type["angle"] = sol::property(
-        [](const mobj_t& mo) noexcept { return AngleToDegrees(mo.angle); },
-        [](mobj_t& mo, const float value) noexcept { mo.angle = DegreesToAngle(value); }
+        [](const mobj_t& mo) noexcept -> float { return AngleToDegrees(mo.angle); },
+        [](mobj_t& mo, const float value) noexcept -> void { mo.angle = DegreesToAngle(value); }
     );
     type["momx"] = SOL_FIXED_PROPERTY_AS_FLOAT(mobj_t, momx);
     type["momy"] = SOL_FIXED_PROPERTY_AS_FLOAT(mobj_t, momy);
     type["momz"] = SOL_FIXED_PROPERTY_AS_FLOAT(mobj_t, momz);
-    type["type"] = sol::readonly(&mobj_t::type);
+    type["type"] = SOL_READONLY_PROPERTY(mobj_t, type);
     type["doomednum"] = sol::readonly_property([](const mobj_t& mo) noexcept { return mo.info->doomednum; });
-    type["flags"] = sol::readonly(&mobj_t::flags);
+    type["flags"] = SOL_READONLY_PROPERTY(mobj_t, flags);
     type["radius"] = SOL_READONLY_FIXED_PROPERTY_AS_FLOAT(mobj_t, radius);
     type["height"] = SOL_READONLY_FIXED_PROPERTY_AS_FLOAT(mobj_t, height);
-    type["health"] = sol::readonly(&mobj_t::health);
+    type["health"] = SOL_READONLY_PROPERTY(mobj_t, health);
     type["sector"] = sol::readonly_property([](const mobj_t& mo) noexcept { return mo.subsector->sector; });
-    type["target"] = &mobj_t::target;
-    type["tracer"] = &mobj_t::tracer;
-    type["player"] = sol::readonly(&mobj_t::player);
+    type["target"] = SOL_PROPERTY(mobj_t, target);
+    type["tracer"] = SOL_PROPERTY(mobj_t, tracer);
+    type["player"] = SOL_READONLY_PROPERTY(mobj_t, player);
 
     makeTypeReadOnly(type);
 }
@@ -911,15 +923,15 @@ static void registerType_player_t(sol::state& lua) noexcept {
     sol::usertype<player_t> type = lua.new_usertype<player_t>("player_t", sol::no_constructor);
 
     type["index"] = sol::readonly_property([](const player_t& p) noexcept { return &p - gPlayers; });
-    type["mo"] = sol::readonly(&player_t::mo);
-    type["health"] = sol::readonly(&player_t::health);
-    type["armorpoints"] = sol::readonly(&player_t::armorpoints);
-    type["armortype"] = sol::readonly(&player_t::armortype);
-    type["backpack"] = sol::readonly(&player_t::backpack);
-    type["frags"] = sol::readonly(&player_t::frags);
-    type["killcount"] = sol::readonly(&player_t::killcount);
-    type["itemcount"] = sol::readonly(&player_t::itemcount);
-    type["secretcount"] = sol::readonly(&player_t::secretcount);
+    type["mo"] = SOL_READONLY_PROPERTY(player_t, mo);
+    type["health"] = SOL_READONLY_PROPERTY(player_t, health);
+    type["armorpoints"] = SOL_READONLY_PROPERTY(player_t, armorpoints);
+    type["armortype"] = SOL_READONLY_PROPERTY(player_t, armortype);
+    type["backpack"] = SOL_READONLY_PROPERTY(player_t, backpack);
+    type["frags"] = SOL_READONLY_PROPERTY(player_t, frags);
+    type["killcount"] = SOL_READONLY_PROPERTY(player_t, killcount);
+    type["itemcount"] = SOL_READONLY_PROPERTY(player_t, itemcount);
+    type["secretcount"] = SOL_READONLY_PROPERTY(player_t, secretcount);
     type["readyweapon"] = sol::readonly_property([](const player_t& p) noexcept { return (uint32_t) p.readyweapon; });
     type["pendingweapon"] = sol::readonly_property([](const player_t& p) noexcept { return (uint32_t) p.pendingweapon; });
 
@@ -935,16 +947,16 @@ static void registerType_player_t(sol::state& lua) noexcept {
 static void registerType_CustomFloorDef(sol::state& lua) noexcept {
     sol::usertype<CustomFloorDef> type = lua.new_usertype<CustomFloorDef>("CustomFloorDef", sol::default_constructor);
 
-    type["crush"] = &CustomFloorDef::bCrush;
-    type["dofinishscript"] = &CustomFloorDef::bDoFinishScript;
+    type["crush"] = SOL_PROPERTY(CustomFloorDef, bCrush);
+    type["dofinishscript"] = SOL_PROPERTY(CustomFloorDef, bDoFinishScript);
     type["destheight"] = SOL_FIXED_PROPERTY_AS_FLOAT(CustomFloorDef, destHeight);
     type["speed"] = SOL_FIXED_PROPERTY_AS_FLOAT(CustomFloorDef, speed);
-    type["startsound"] = &CustomFloorDef::startSound;
-    type["movesound"] = &CustomFloorDef::moveSound;
-    type["movesoundfreq"] = &CustomFloorDef::moveSoundFreq;
-    type["stopsound"] = &CustomFloorDef::stopSound;
-    type["finishscript_actionnum"] = &CustomFloorDef::finishScriptActionNum;
-    type["finishscript_userdata"] = &CustomFloorDef::finishScriptUserdata;
+    type["startsound"] = SOL_PROPERTY(CustomFloorDef, startSound);
+    type["movesound"] = SOL_PROPERTY(CustomFloorDef, moveSound);
+    type["movesoundfreq"] = SOL_PROPERTY(CustomFloorDef, moveSoundFreq);
+    type["stopsound"] = SOL_PROPERTY(CustomFloorDef, stopSound);
+    type["finishscript_actionnum"] = SOL_PROPERTY(CustomFloorDef, finishScriptActionNum);
+    type["finishscript_userdata"] = SOL_PROPERTY(CustomFloorDef, finishScriptUserdata);
 
     makeTypeReadOnly(type);
 }
@@ -952,20 +964,20 @@ static void registerType_CustomFloorDef(sol::state& lua) noexcept {
 static void registerType_CustomPlatDef(sol::state& lua) noexcept {
     sol::usertype<CustomPlatDef> type = lua.new_usertype<CustomPlatDef>("CustomPlatDef", sol::default_constructor);
 
-    type["crush"] = &CustomPlatDef::bCrush;
-    type["dofinishscript"] = &CustomPlatDef::bDoFinishScript;
-    type["startstate"] = &CustomPlatDef::startState;
-    type["finishstate"] = &CustomPlatDef::finishState;
+    type["crush"] = SOL_PROPERTY(CustomPlatDef, bCrush);
+    type["dofinishscript"] = SOL_PROPERTY(CustomPlatDef, bDoFinishScript);
+    type["startstate"] = SOL_PROPERTY(CustomPlatDef, startState);
+    type["finishstate"] = SOL_PROPERTY(CustomPlatDef, finishState);
     type["minheight"] = SOL_FIXED_PROPERTY_AS_FLOAT(CustomPlatDef, minHeight);
     type["maxheight"] = SOL_FIXED_PROPERTY_AS_FLOAT(CustomPlatDef, maxHeight);
     type["speed"] = SOL_FIXED_PROPERTY_AS_FLOAT(CustomPlatDef, speed);
-    type["waittime"] = &CustomPlatDef::waitTime;
-    type["startsound"] = &CustomPlatDef::startSound;
-    type["movesound"] = &CustomPlatDef::moveSound;
-    type["movesoundfreq"] = &CustomPlatDef::moveSoundFreq;
-    type["stopsound"] = &CustomPlatDef::stopSound;
-    type["finishscript_actionnum"] = &CustomPlatDef::finishScriptActionNum;
-    type["finishscript_userdata"] = &CustomPlatDef::finishScriptUserdata;
+    type["waittime"] = SOL_PROPERTY(CustomPlatDef, waitTime);
+    type["startsound"] = SOL_PROPERTY(CustomPlatDef, startSound);
+    type["movesound"] = SOL_PROPERTY(CustomPlatDef, moveSound);
+    type["movesoundfreq"] = SOL_PROPERTY(CustomPlatDef, moveSoundFreq);
+    type["stopsound"] = SOL_PROPERTY(CustomPlatDef, stopSound);
+    type["finishscript_actionnum"] = SOL_PROPERTY(CustomPlatDef, finishScriptActionNum);
+    type["finishscript_userdata"] = SOL_PROPERTY(CustomPlatDef, finishScriptUserdata);
 
     makeTypeReadOnly(type);
 }
@@ -973,21 +985,21 @@ static void registerType_CustomPlatDef(sol::state& lua) noexcept {
 static void registerType_CustomCeilingDef(sol::state& lua) noexcept {
     sol::usertype<CustomCeilingDef> type = lua.new_usertype<CustomCeilingDef>("CustomCeilingDef", sol::default_constructor);
 
-    type["crush"] = &CustomCeilingDef::bCrush;
-    type["dofinishscript"] = &CustomCeilingDef::bDoFinishScript;
+    type["crush"] = SOL_PROPERTY(CustomCeilingDef, bCrush);
+    type["dofinishscript"] = SOL_PROPERTY(CustomCeilingDef, bDoFinishScript);
     type["minheight"] = SOL_FIXED_PROPERTY_AS_FLOAT(CustomCeilingDef, minHeight);
     type["maxheight"] = SOL_FIXED_PROPERTY_AS_FLOAT(CustomCeilingDef, maxHeight);
-    type["startdir"] = &CustomCeilingDef::startDir;
+    type["startdir"] = SOL_PROPERTY(CustomCeilingDef, startDir);
     type["normalspeed"] = SOL_FIXED_PROPERTY_AS_FLOAT(CustomCeilingDef, normalSpeed);
     type["crushspeed"] = SOL_FIXED_PROPERTY_AS_FLOAT(CustomCeilingDef, crushSpeed);
-    type["numdirchanges"] = &CustomCeilingDef::numDirChanges;
-    type["startsound"] = &CustomCeilingDef::startSound;
-    type["movesound"] = &CustomCeilingDef::moveSound;
-    type["movesoundfreq"] = &CustomCeilingDef::moveSoundFreq;
-    type["changedirsound"] = &CustomCeilingDef::changeDirSound;
-    type["stopsound"] = &CustomCeilingDef::stopSound;
-    type["finishscript_actionnum"] = &CustomCeilingDef::finishScriptActionNum;
-    type["finishscript_userdata"] = &CustomCeilingDef::finishScriptUserdata;
+    type["numdirchanges"] = SOL_PROPERTY(CustomCeilingDef, numDirChanges);
+    type["startsound"] = SOL_PROPERTY(CustomCeilingDef, startSound);
+    type["movesound"] = SOL_PROPERTY(CustomCeilingDef, moveSound);
+    type["movesoundfreq"] = SOL_PROPERTY(CustomCeilingDef, moveSoundFreq);
+    type["changedirsound"] = SOL_PROPERTY(CustomCeilingDef, changeDirSound);
+    type["stopsound"] = SOL_PROPERTY(CustomCeilingDef, stopSound);
+    type["finishscript_actionnum"] = SOL_PROPERTY(CustomCeilingDef, finishScriptActionNum);
+    type["finishscript_userdata"] = SOL_PROPERTY(CustomCeilingDef, finishScriptUserdata);
 
     makeTypeReadOnly(type);
 }
@@ -995,18 +1007,18 @@ static void registerType_CustomCeilingDef(sol::state& lua) noexcept {
 static void registerType_CustomDoorDef(sol::state& lua) noexcept {
     sol::usertype<CustomDoorDef> type = lua.new_usertype<CustomDoorDef>("CustomDoorDef", sol::default_constructor);
 
-    type["open"] = &CustomDoorDef::bOpen;
-    type["doreturn"] = &CustomDoorDef::bDoReturn;
-    type["blockable"] = &CustomDoorDef::bBlockable;
-    type["dofinishscript"] = &CustomDoorDef::bDoFinishScript;
+    type["open"] = SOL_PROPERTY(CustomDoorDef, bOpen);
+    type["doreturn"] = SOL_PROPERTY(CustomDoorDef, bDoReturn);
+    type["blockable"] = SOL_PROPERTY(CustomDoorDef, bBlockable);
+    type["dofinishscript"] = SOL_PROPERTY(CustomDoorDef, bDoFinishScript);
     type["minheight"] = SOL_FIXED_PROPERTY_AS_FLOAT(CustomDoorDef, minHeight);
     type["maxheight"] = SOL_FIXED_PROPERTY_AS_FLOAT(CustomDoorDef, maxHeight);
     type["speed"] = SOL_FIXED_PROPERTY_AS_FLOAT(CustomDoorDef, speed);
-    type["waittime"] = &CustomDoorDef::waitTime;
-    type["opensound"] = &CustomDoorDef::openSound;
-    type["closesound"] = &CustomDoorDef::closeSound;
-    type["finishscript_actionnum"] = &CustomDoorDef::finishScriptActionNum;
-    type["finishscript_userdata"] = &CustomDoorDef::finishScriptUserdata;
+    type["waittime"] = SOL_PROPERTY(CustomDoorDef, waitTime);
+    type["opensound"] = SOL_PROPERTY(CustomDoorDef, openSound);
+    type["closesound"] = SOL_PROPERTY(CustomDoorDef, closeSound);
+    type["finishscript_actionnum"] = SOL_PROPERTY(CustomDoorDef, finishScriptActionNum);
+    type["finishscript_userdata"] = SOL_PROPERTY(CustomDoorDef, finishScriptUserdata);
 
     makeTypeReadOnly(type);
 }

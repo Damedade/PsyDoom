@@ -9,6 +9,7 @@
 #include "PsyDoom/PsxVm.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cctype>
 #include <cstddef>
 #include <cstdio>
@@ -338,7 +339,7 @@ private:
             // Otherwise uppercase it and turn it into a string view
             const char* const pCommentStart = pComments[i];
             const char* const pCommentEnd = pCommentStart + commentLength;
-            std::transform(pCommentStart, pCommentEnd, ucaseCommentBuf, std::toupper);
+            std::transform(pCommentStart, pCommentEnd, ucaseCommentBuf, [](const char c) { return std::toupper(c); });
             const std::string_view ucaseComment(ucaseCommentBuf, pCommentEnd - pCommentStart);
 
             // The comment should that the format 'NAME=VALUE' - split up the fields:
