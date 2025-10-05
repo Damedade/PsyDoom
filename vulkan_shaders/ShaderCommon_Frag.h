@@ -45,7 +45,7 @@ vec4 tex16bpp(
 ) {
     // Wrap or clamp the UV coordinate, then transform by the texture window position
     if (bWrap) {
-        uv = ivec2(uvec2(uv) % texWinSize);     // N.B use unsigned modulus since signed produces GPU dependent behavior
+        uv = (uv & 0xFFFFFF) % texWinSize; // N.B: truncate UVs to 16-bit since negative modulus produces GPU dependent behavior
     } else {
         uv = clamp(uv, ivec2(0, 0), texWinSize - 1);
     }
@@ -72,7 +72,7 @@ vec4 tex8bpp(
 ) {
     // Wrap or clamp the UV coordinate, then transform by the texture window position
     if (bWrap) {
-        uv = ivec2(uvec2(uv) % texWinSize);     // N.B use unsigned modulus since signed produces GPU dependent behavior
+        uv = (uv & 0xFFFF) % texWinSize; // N.B: truncate UVs to 16-bit since negative modulus produces GPU dependent behavior
     } else {
         uv = clamp(uv, ivec2(0, 0), texWinSize - 1);
     }
@@ -106,7 +106,7 @@ vec4 tex4bpp(
 ) {
     // Wrap or clamp the UV coordinate, then transform by the texture window position
     if (bWrap) {
-        uv = ivec2(uvec2(uv) % texWinSize);     // N.B use unsigned modulus since signed produces GPU dependent behavior
+        uv = (uv & 0xFFFF) % texWinSize; // N.B: truncate UVs to 16-bit since negative modulus produces GPU dependent behavior
     } else {
         uv = clamp(uv, ivec2(0, 0), texWinSize - 1);
     }
