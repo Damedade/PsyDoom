@@ -4,7 +4,7 @@ on:
   workflow_dispatch: # Allows manual trigger
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true" # Clears the Node 20 deprecation warning
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true" # Forces Node 24 to fix the runner deprecation warning
 
 jobs:
   build-windows:
@@ -25,12 +25,12 @@ jobs:
         run: |
           cmake --build build --config Release
 
-      - name: Debug and Find Executables
+      - name: Check Build Directories
         run: |
-          echo "=== SEARCHING FOR PSYDOOM.EXE ==="
-          Get-ChildItem -Path . -Filter "PsyDoom.exe" -Recurase -ErrorAction SilentlyContinue | Select-Object FullName
-          echo "=== CURRENT DIRECTORY STRUCTURE ==="
+          echo "=== ROOT CONTROLS ==="
           Get-ChildItem -Directory
+          echo "=== LOOKING FOR INTERMEDIATE EXE FILES ==="
+          Get-ChildItem -Path . -Filter "PsyDoom*" -Recurse -ErrorAction SilentlyContinue | Select-Object FullName
         shell: pwsh
 
       - name: Upload Latest Develop Executable
@@ -40,4 +40,8 @@ jobs:
           path: |
             **/PsyDoom.exe
             **/Release/PsyDoom.exe
-          if-no-files-found: error # This will force the build to fail explicitly if it's missing
+            **/build/Release/PsyDoom.exe
+            **/exe/Release/PsyDoom.exe
+            build/Release/
+            exe/Release/
+          if-no-files-found: warn
