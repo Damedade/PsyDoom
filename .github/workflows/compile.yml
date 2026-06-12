@@ -1,0 +1,35 @@
+name: Build PsyDoom Latest Develop
+
+on:
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Original Develop Branch
+        uses: actions/checkout@v4
+        with:
+          repository: 'BodbDearg/PsyDoom'
+          ref: 'develop' # Automatically pulls the absolute latest experimental commits
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build Binary
+        run: |
+          cmake --build build --config Release
+
+      - name: Get Short Commit SHA
+        id: vars
+        run: |
+          echo "sha=$(git rev-parse --short HEAD)" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
+      - name: Upload Latest Develop Executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: PsyDoom-Develop-${{ steps.vars.outputs.sha }}-Windows
+          path: build/Release/PsyDoom.exe
