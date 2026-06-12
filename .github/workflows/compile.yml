@@ -1,7 +1,10 @@
 name: Build PsyDoom Latest Develop
 
 on:
-  workflow_dispatch: # Allows manual trigger
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true" # Completely silences the Node.js 20 deprecation warning
 
 jobs:
   build-windows:
@@ -12,24 +15,25 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'BodbDearg/PsyDoom'
-          ref: 'develop' # Automatically pulls the absolute latest experimental commits
+          ref: 'develop'
 
+      # Forces CMake to output the finished exe directly into the main workspace folder
       - name: Configure CMake
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake -B build -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ github.workspace }}" -DCMAKE_BUILD_TYPE=Release
 
       - name: Build Binary
         run: |
           cmake --build build --config Release
 
-      - name: Get Short Commit SHA
-        id: vars
+      - name: Verify File Location
         run: |
-          echo "sha=$(git rev-parse --short HEAD)" >> $env:GITHUB_OUTPUT
+          echo "=== Checking Workspace Root ==="
+          dir
         shell: pwsh
 
       - name: Upload Latest Develop Executable
         uses: actions/upload-artifact@v4
         with:
-          name: PsyDoom-Develop-${{ steps.vars.outputs.sha }}-Windows
-          path: exe/Release/PsyDoom.exe
+          name: PsyDoom-Windows-Binary
+          path: PsyDoom.exe # Bypasses all folders! Looks directly at the workspace root.
