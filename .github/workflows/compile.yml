@@ -12,7 +12,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'BodbDearg/PsyDoom'
-          ref: 'develop' # Automatically pulls the absolute latest experimental commits
+          ref: 'develop'
 
       - name: Configure CMake
         run: |
@@ -32,4 +32,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: PsyDoom-Develop-${{ steps.vars.outputs.sha }}-Windows
-          path: build/Release/PsyDoom.exe
+          path: "**/*.exe" # <-- Magic path: Searches EVERYWHERE inside the workspace for any generated .exe files
