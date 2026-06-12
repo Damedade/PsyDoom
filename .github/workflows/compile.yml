@@ -32,4 +32,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: PsyDoom-Develop-${{ steps.vars.outputs.sha }}-Windows
-          path: build/Release/PsyDoom.exe
+          path: exe/Release/PsyDoom.exe
