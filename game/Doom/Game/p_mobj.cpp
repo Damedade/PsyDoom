@@ -13,6 +13,7 @@
 #include "Doom/UI/st_main.h"
 #include "doomdata.h"
 #include "g_game.h"
+#include "PsyDoom/ProgArgs.h"
 #include "info.h"
 #include "p_enemy.h"
 #include "p_local.h"
@@ -507,7 +508,7 @@ void P_SpawnMapThing(const mapthing_t& mapthing) noexcept {
                 MT_SKULL       // Lost Soul
             };
             
-            // FIXED LINE: Correct array division
+            // Correct array element counting division
             int numMonsters = sizeof(monsterPool) / sizeof(mobjtype_t);
             
             // Roll using Doom's built-in pseudorandom table
