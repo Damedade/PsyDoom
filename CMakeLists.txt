@@ -131,3 +131,4 @@ if (PSYDOOM_INCLUDE_REVERSING_TOOLS)
     add_subdirectory("${PROJECT_SOURCE_DIR}/tools/reversing/reversing_common")
     add_subdirectory("${PROJECT_SOURCE_DIR}/tools/reversing/vram_dump_getrect")
 endif()
+# Force Rebuild
