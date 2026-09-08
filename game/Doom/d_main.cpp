@@ -210,6 +210,11 @@ void D_DoomMain() noexcept {
     #endif
 
     ST_Init();
+       
+    // Check for custom randomiser command line argument
+    if (ProgArgs::checkParm("-randomizer")) {
+        gStartGameType = SafetyRandomizer;
+    }
 
     // Check for custom randomiser command line argument
     if (ProgArgs::checkParm("-randomizer")) {
