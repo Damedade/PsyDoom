@@ -517,6 +517,7 @@ void P_SpawnMapThing(const mapthing_t& mapthing) noexcept {
         }
     }
 
+
     // Set the ambush flag (no activate on sound) if specified
     mobj.flags |= (mapthing.options & MTF_AMBUSH) ? MF_AMBUSH : 0;
 
