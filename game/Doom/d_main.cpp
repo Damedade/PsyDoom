@@ -216,6 +216,11 @@ void D_DoomMain() noexcept {
     #endif
 
     ST_Init();
+     
+    // Check for custom randomiser command line argument
+    if (ProgArgs::checkParm("-randomizer")) {
+        gStartGameType = SafetyRandomizer;
+    }
 
     #if PSYDOOM_MODS
         // PsyDoom: new cleanup logic before we exit
