@@ -507,7 +507,8 @@ void P_SpawnMapThing(const mapthing_t& mapthing) noexcept {
                 MT_SKULL       // Lost Soul
             };
             
-            int numMonsters = sizeof(monsterPool) / sizeof(monsterPool[0]);
+            // FIXED LINE: Correct array division
+            int numMonsters = sizeof(monsterPool) / sizeof(mobjtype_t);
             
             // Roll using Doom's built-in pseudorandom table
             int randomIndex = P_Random() % numMonsters;
@@ -517,8 +518,7 @@ void P_SpawnMapThing(const mapthing_t& mapthing) noexcept {
         }
     }
 
-
-    // Set the ambush flag (no activate on sound) if specified
+// Set the ambush flag (no activate on sound) if specified
     mobj.flags |= (mapthing.options & MTF_AMBUSH) ? MF_AMBUSH : 0;
 
     // PSX specific blending flags: set them on the thing if specified
