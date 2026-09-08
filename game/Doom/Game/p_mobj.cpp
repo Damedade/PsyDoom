@@ -489,8 +489,8 @@ void P_SpawnMapThing(const mapthing_t& mapthing) noexcept {
     mobj.spawntype = mapthing.type;
     mobj.spawnangle = mapthing.angle;
  
-    // Custom Randomiser Backport
-    if (ProgArgs::checkParm("-randomizer")) {
+       // Custom Randomiser Backport
+    if (ProgArgs::checkParm("-randomizer") != nullptr) { // <-- Added explicit validation
         const mobjinfo_t& checkInfo = gMobjInfo[thingType];
         
         // Only randomize actual enemies (things that count toward your kill total)
